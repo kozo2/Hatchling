@@ -1,4 +1,4 @@
-FROM python:3.12-slim
+FROM ghcr.io/astral-sh/uv:debian
 
 # Install git
 RUN apt-get update && apt-get install -y git
@@ -16,12 +16,9 @@ WORKDIR /app
 COPY . /app
 
 # Install the package
-RUN pip install -e /app
-
-# Creates a non-root user with an explicit UID and adds permission to access the /app folder
-RUN adduser -u 5678 --disabled-password --gecos "" appuser
-
-USER appuser
+RUN uv venv --python 3.12
+RUN uv venv
+RUN uv pip install -e /app
 
 # During debugging, this entry point will be overridden. For more information, please refer to https://aka.ms/vscode-docker-python-debug
-CMD ["hatchling"]
+CMD ["/usr/local/bin/uv", "run", "hatchling"]
