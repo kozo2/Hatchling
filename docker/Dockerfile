@@ -20,4 +20,4 @@ RUN uv venv --python 3.12
 RUN uv pip install -e /app
 
 # During debugging, this entry point will be overridden. For more information, please refer to https://aka.ms/vscode-docker-python-debug
-CMD ["/usr/local/bin/uv", "run", "hatchling"]
+CMD ["uv", "run", "hatchling"]
