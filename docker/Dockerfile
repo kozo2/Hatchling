@@ -22,10 +22,11 @@ ENV PATH=${CONDA_DIR}/bin:${PATH}
 ENV LANG=C.UTF-8 LC_ALL=C.UTF-8
 
 # Copy local Miniforge installer if present in build context (optional)
-COPY docker/miniforge_download/Miniforge3-Linux-x86_64.sh /tmp/miniforge.sh
+COPY docker/Miniforge3-Linux-x86_64.s[h] /tmp
 
 # Use local installer if present, else download
-RUN if [ -f /tmp/miniforge.sh ]; then \
+RUN if [ -f /tmp/Miniforge3-Linux-x86_64.sh ]; then \
+      mv /tmp/Miniforge3-Linux-x86_64.sh /tmp/miniforge.sh && \
       echo "Using local Miniforge installer"; \
     else \
       echo "Downloading Miniforge installer"; \
