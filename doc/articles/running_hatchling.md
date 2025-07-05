@@ -97,7 +97,7 @@ Configuration is managed through environment variables or a `.env` file in the `
 | `LOG_LEVEL` | The default log level at start up | `INFO` |
 | `USER_ID` | User ID for the container user (set on Linux to match host user for permissions) | `1000` |
 | `GROUP_ID` | Group ID for the container user (set on Linux to match host group for permissions) | `1000` |
-| `USER_NAME` | Username for the container user (optional, defaults to `appuser`) | `appuser` |
+| `USER_NAME` | Username for the container user (set on Linux to match host name) | `HatchlingUser` |
 
 ##### OLLAMA_HOST_API
 
@@ -125,10 +125,14 @@ For example, [earlier](#checking-that-gpu-support-is-enabled--as-expected) the G
 > [!Note]
 > You can adapt the [environment variables](#configuration) to suit your needs (e.g. change the LLM) before you run the following command:
 
+**The first time**:
+
 ```bash
 # From the docker directory in your project
-docker-compose run --rm hatchling #The `--rm` flag ensures the container is removed when you exit the application.
+docker-compose run --name HatchlingApp hatchling
 ```
+
+You can of course adapt the name `HatchlingApp`.
 
 If Hatchling successfully connects to Ollama, it will download the specified LLM model. This will materialize by many prints indicating the download progress. Of course, the download time varies based on the model's size: the default model `llama3.2` takes about 2GB.
 
@@ -137,3 +141,38 @@ Here is a screenshot of what Hatchling typically looks like right after start up
 ![Typical_Hatchling_CLI_20250627_pt2](../resources/images/running-hatchling/Typical_Hatchling_CLI_20250627_pt2.png)
 
 You can receive help about all available commands by writing `help` in the chat. Details about the commands are also available in the [documentation](./chat_commands.md)
+
+You can close Hatchling by running:
+
+```bash
+[Tools disabled] You: quit
+```
+
+or
+
+```bash
+[Tools disabled] You: exit
+```
+
+Both have the same effects and are aliases.
+
+**Restarting Hatchling**:
+The appropriate docker command to restart a Hatchling container that you have used before is
+
+```bash
+docker start -ai HatchlingApp
+```
+
+The name `HatchlingApp` must match the name you gave when you started the Hatchling container for the first time (as shown above).
+
+**Deleting Hatchling**:
+
+> [!Warning] Be aware that you will loose all dependencies. However, Hatchling-related data such as the environments, the packages should still be accessible at the `HATCH_HOST_CACHE_DIR` as shown in the [prior table](#configuration).
+
+The command is 
+
+```
+docker remove HatchlingApp
+```
+
+where, once again, `HatchlingApp` must match the name you gave when you started the Hatchling container for the first time (as shown above).

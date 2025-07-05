@@ -63,6 +63,3 @@ RUN pip install .
 
 # Use the entrypoint script (runs as root initially to handle permissions)
 ENTRYPOINT ["./docker/entrypoint.sh"]
-
-# Default command
-CMD ["hatchling"]
