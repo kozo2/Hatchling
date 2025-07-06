@@ -104,6 +104,10 @@ class CLIChat:
         
         # Check if MCP server is available
         self.logger.info("Checking MCP server availability...")
+        
+        # Set environment manager in MCP manager for Python executable resolution
+        mcp_manager.set_hatch_environment_manager(self.env_manager)
+        
         # Get the name of the current environment
         name = self.env_manager.get_current_environment()
         # Retrieve the environment's entry points for the MCP servers
