@@ -42,8 +42,8 @@ if [ "$(id -u)" = "0" ]; then
 
     # Switch to user and execute command
     # exec gosu ${USER_NAME}
-    exec "${@:-hatchling}"
+    exec "$@"
 else
     echo "Running as user $(whoami)"
-    exec "${@:-hatchling}"
+    exec "$@"
 fi
