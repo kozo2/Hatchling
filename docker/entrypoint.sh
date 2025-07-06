@@ -18,6 +18,10 @@ if [ "$(id -u)" = "0" ]; then
     groupadd -g ${GROUP_ID} ${USER_NAME} 2>/dev/null || true
     useradd -m -u ${USER_ID} -g ${GROUP_ID} ${USER_NAME} 2>/dev/null || true
 
+    # Refresh apt package cache for system dependency installation
+    echo "Refreshing apt package cache..."
+    apt-get update
+
     # Creating hatchling directories
     mkdir -p /home/${USER_NAME}/.hatch
     mkdir -p /home/${USER_NAME}/.local
