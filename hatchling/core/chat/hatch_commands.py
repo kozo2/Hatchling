@@ -68,6 +68,21 @@ class HatchCommands(AbstractCommands):
                         'default': False,
                         'is_flag': True,
                         'required': False
+                    },
+                    'no-hatch-mcp-server': {
+                        'positional': False,
+                        'completer_type': 'none',
+                        'description': "Don't install hatch_mcp_server in the new environment",
+                        'default': False,
+                        'is_flag': True,
+                        'required': False
+                    },
+                    'hatch_mcp_server_tag': {
+                        'positional': False,
+                        'completer_type': 'none',
+                        'description': "Git tag/branch reference for hatch_mcp_server installation (e.g., 'dev', 'v0.1.0')",
+                        'default': None,
+                        'required': False
                     }
                 }
             },
@@ -383,8 +398,17 @@ class HatchCommands(AbstractCommands):
     def _cmd_env_create(self, args: str) -> bool:
         """Create a new Hatch environment.
         
+        Creates a new Hatch environment with optional Python environment support and
+        automatic hatch_mcp_server installation. The MCP server installation can be
+        controlled via command flags.
+        
         Args:
-            args (str): Environment name and optional description.
+            args (str): Environment name and optional parameters including:
+                      - description: Environment description
+                      - python-version: Specific Python version
+                      - no-python: Skip Python environment creation
+                      - no-hatch-mcp-server: Skip MCP server installation
+                      - hatch_mcp_server_tag: Git tag/branch for MCP server
             
         Returns:
             bool: True to continue the chat session.
@@ -393,7 +417,9 @@ class HatchCommands(AbstractCommands):
             'name': {'positional': True},
             'description': {'aliases': ['D'], 'default': ''},
             'python-version': {'default': None},
-            'no-python': {'default': False, 'action': 'store_true'}
+            'no-python': {'default': False, 'action': 'store_true'},
+            'no-hatch-mcp-server': {'default': False, 'action': 'store_true'},
+            'hatch_mcp_server_tag': {'default': None}
         }
         
         parsed_args = self._parse_args(args, arg_defs)
@@ -408,8 +434,17 @@ class HatchCommands(AbstractCommands):
             description = parsed_args.get('description', '')
             python_version = parsed_args.get('python-version')
             create_python_env = not parsed_args.get('no-python', False)
+            no_hatch_mcp_server = parsed_args.get('no-hatch-mcp-server', False)
+            hatch_mcp_server_tag = parsed_args.get('hatch_mcp_server_tag')
             
-            if self.env_manager.create_environment(name, description, python_version, create_python_env):                
+            if self.env_manager.create_environment(
+                name, 
+                description, 
+                python_version=python_version, 
+                create_python_env=create_python_env,
+                no_hatch_mcp_server=no_hatch_mcp_server,
+                hatch_mcp_server_tag=hatch_mcp_server_tag
+            ):                
                 self.logger.info(f"Environment created: {name}")
                 if create_python_env and python_version:
                     self.logger.info(f"Python environment initialized with version: {python_version}")
@@ -417,6 +452,17 @@ class HatchCommands(AbstractCommands):
                     self.logger.info("Python environment initialized with default version")
                 else:
                     self.logger.info("Python environment creation skipped (--no-python)")
+                
+                # Provide feedback about MCP server installation
+                if create_python_env and not no_hatch_mcp_server:
+                    if hatch_mcp_server_tag:
+                        self.logger.info(f"hatch_mcp_server installed with tag/branch: {hatch_mcp_server_tag}")
+                    else:
+                        self.logger.info("hatch_mcp_server installed with default branch")
+                elif no_hatch_mcp_server:
+                    self.logger.info("hatch_mcp_server installation skipped (--no-hatch-mcp-server)")
+                elif not create_python_env:
+                    self.logger.info("hatch_mcp_server installation skipped (no Python environment)")
             else:
                 self.logger.error(f"Failed to create environment: {name}")
                 
