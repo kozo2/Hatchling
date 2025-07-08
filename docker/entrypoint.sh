@@ -18,6 +18,9 @@ if [ "$(id -u)" = "0" ]; then
     groupadd -g ${GROUP_ID} ${USER_NAME} 2>/dev/null || true
     useradd -m -u ${USER_ID} -g ${GROUP_ID} ${USER_NAME} 2>/dev/null || true
 
+    # Allow HatchlingUser passwordless sudo for apt only (after user is created)
+    echo "${USER_NAME} ALL=(ALL) NOPASSWD:/usr/bin/apt,/usr/bin/apt-get" >> /etc/sudoers
+
     # Refresh apt package cache for system dependency installation
     echo "Refreshing apt package cache..."
     apt-get update
