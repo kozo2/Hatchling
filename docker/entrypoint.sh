@@ -21,10 +21,6 @@ if [ "$(id -u)" = "0" ]; then
     # Allow HatchlingUser passwordless sudo for apt only (after user is created)
     echo "${USER_NAME} ALL=(ALL) NOPASSWD:/usr/bin/apt,/usr/bin/apt-get" >> /etc/sudoers
 
-    # Refresh apt package cache for system dependency installation
-    echo "Refreshing apt package cache..."
-    apt-get update
-
     # Creating hatchling directories
     mkdir -p /home/${USER_NAME}/.hatch
     mkdir -p /home/${USER_NAME}/.local
