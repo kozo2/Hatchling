@@ -139,13 +139,16 @@ docker-compose up -d hatchling
 
 This starts the container in the background and keeps it running.
 
-To enter the container and start Hatchling:
+To enter the container and start Hatchling as the intended user:
 
 ```bash
-docker-compose exec hatchling bash
+docker-compose exec --user HatchlingUser hatchling bash
 # Then, inside the container:
 hatchling
 ```
+
+> [!Note]
+> If you replaced the value of `USER_NAME` in the [environment file](#configuration), you can replace `HatchlingUser` with the actual value. So the command becomes `docker-compose exec --user <USER_NAME> hatchling bash`
 
 If Hatchling successfully connects to Ollama, it will download the specified LLM model. This will be shown by progress messages. Download time depends on the model size (the default model `llama3.2` is about 2GB).
 
@@ -202,7 +205,8 @@ hatchling
 
 **Deleting Hatchling container:**
 
-> [!Warning] This will remove the container and its installed dependencies. However, Hatchling-related data such as environments and packages remain accessible at the `HATCH_HOST_CACHE_DIR` as shown in the [prior table](#configuration).
+> [!Warning]
+> This will remove the container and its installed dependencies. However, Hatchling-related data such as environments and packages remain accessible at the `HATCH_HOST_CACHE_DIR` as shown in the [prior table](#configuration).
 
 To remove the container:
 
