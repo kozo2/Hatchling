@@ -282,6 +282,21 @@ class HatchCommands(AbstractCommands):
                         'default': False,
                         'is_flag': True,
                         'required': False
+                    },
+                    'no-hatch-mcp-server': {
+                        'positional': False,
+                        'completer_type': 'none',
+                        'description': "Don't install hatch_mcp_server wrapper in the Python environment",
+                        'default': False,
+                        'is_flag': True,
+                        'required': False
+                    },
+                    'hatch_mcp_server_tag': {
+                        'positional': False,
+                        'completer_type': 'none',
+                        'description': "Git tag/branch reference for hatch_mcp_server wrapper installation (e.g., 'dev', 'v0.1.0')",
+                        'default': None,
+                        'required': False
                     }
                 }
             },
@@ -345,6 +360,27 @@ class HatchCommands(AbstractCommands):
                         'positional': False,
                         'completer_type': 'none',
                         'description': "Command to run in the shell (optional)",
+                        'default': None,
+                        'required': False
+                    }
+                }
+            },
+            'hatch:env:python:add-hatch-mcp': {
+                'handler': self._cmd_env_python_add_hatch_mcp,
+                'description': "Add hatch_mcp_server wrapper to the environment",
+                'is_async': False,
+                'args': {
+                    'hatch_env': {
+                        'positional': False,
+                        'completer_type': 'environment',
+                        'description': "Hatch environment name. It must possess a valid Python environment. (default: current environment)",
+                        'default': None,
+                        'required': False
+                    },
+                    'tag': {
+                        'positional': False,
+                        'completer_type': 'none',
+                        'description': "Git tag/branch reference for wrapper installation (e.g., 'dev', 'v0.1.0')",
                         'default': None,
                         'required': False
                     }
@@ -771,8 +807,17 @@ class HatchCommands(AbstractCommands):
     def _cmd_env_python_init(self, args: str) -> bool:
         """Initialize Python environment for a Hatch environment.
         
+        Creates a Python environment using conda/mamba for the specified Hatch environment,
+        with optional hatch_mcp_server wrapper installation. The MCP server installation
+        can be controlled via command flags.
+        
         Args:
-            args (str): Environment options.
+            args (str): Environment options including:
+                      - hatch_env: Hatch environment name (optional)
+                      - python-version: Python version (optional)
+                      - force: Force recreation if exists
+                      - no-hatch-mcp-server: Skip MCP server installation
+                      - hatch_mcp_server_tag: Git tag/branch for MCP server
             
         Returns:
             bool: True to continue the chat session.
@@ -780,23 +825,50 @@ class HatchCommands(AbstractCommands):
         arg_defs = {
             'hatch_env': {'positional': False, 'default': None},
             'python-version': {'default': None},
-            'force': {'default': False, 'is_flag': True}
+            'force': {'default': False, 'is_flag': True},
+            'no-hatch-mcp-server': {'default': False, 'action': 'store_true'},
+            'hatch_mcp_server_tag': {'default': None}
         }
         
         parsed_args = self._parse_args(args, arg_defs)
         hatch_env = parsed_args.get('hatch_env')
         python_version = parsed_args.get('python-version')
         force = parsed_args.get('force', False)
+        no_hatch_mcp_server = parsed_args.get('no-hatch-mcp-server', False)
+        hatch_mcp_server_tag = parsed_args.get('hatch_mcp_server_tag')
 
         try:
-            if self.env_manager.create_python_environment_only(hatch_env, python_version, force):
+            if self.env_manager.create_python_environment_only(
+                hatch_env, 
+                python_version, 
+                force,
+                no_hatch_mcp_server=no_hatch_mcp_server,
+                hatch_mcp_server_tag=hatch_mcp_server_tag
+            ):
                 env_name = hatch_env if hatch_env else "current environment"
-                self.logger.info(f"Python environment initialized for Hatch environment: {env_name}")
+                self.logger.info(f"Python environment initialized for: {env_name}")
+                
                 if python_version:
                     self.logger.info(f"Python version: {python_version}")
+                    
+                # Show Python environment info
+                python_info = self.env_manager.get_python_environment_info(hatch_env)
+                if python_info:
+                    self.logger.info(f"  Python executable: {python_info['python_executable']}")
+                    self.logger.info(f"  Python version: {python_info.get('python_version', 'Unknown')}")
+                    self.logger.info(f"  Conda environment: {python_info.get('conda_env_name', 'N/A')}")
+                
+                # Provide feedback about MCP server installation
+                if not no_hatch_mcp_server:
+                    if hatch_mcp_server_tag:
+                        self.logger.info(f"hatch_mcp_server installed with tag/branch: {hatch_mcp_server_tag}")
+                    else:
+                        self.logger.info("hatch_mcp_server installed with default branch")
+                else:
+                    self.logger.info("hatch_mcp_server installation skipped (--no-hatch-mcp-server)")
             else:
                 env_name = hatch_env if hatch_env else "current environment"
-                self.logger.error(f"Failed to initialize Python environment for Hatch environment: {env_name}")
+                self.logger.error(f"Failed to initialize Python environment for: {env_name}")
                 
         except Exception as e:
             self.logger.error(f"Error initializing Python environment: {e}")
@@ -926,5 +998,46 @@ class HatchCommands(AbstractCommands):
                 
         except Exception as e:
             self.logger.error(f"Error launching Python shell: {e}")
+            
+        return True
+    
+    def _cmd_env_python_add_hatch_mcp(self, args: str) -> bool:
+        """Add hatch_mcp_server wrapper to the environment.
+        
+        Installs the hatch_mcp_server wrapper in an existing Python environment
+        within a Hatch environment. The environment must have a valid Python
+        environment already initialized.
+        
+        Args:
+            args (str): Installation options including:
+                      - hatch_env: Hatch environment name (optional)
+                      - tag: Git tag/branch reference for installation
+            
+        Returns:
+            bool: True to continue the chat session.
+        """
+        arg_defs = {
+            'hatch_env': {'positional': False, 'default': None},
+            'tag': {'default': None}
+        }
+        
+        parsed_args = self._parse_args(args, arg_defs)
+        hatch_env = parsed_args.get('hatch_env')
+        tag = parsed_args.get('tag')
+
+        try:
+            env_name = hatch_env if hatch_env else self.env_manager.get_current_environment()
+            
+            if self.env_manager.install_mcp_server(hatch_env, tag):
+                self.logger.info(f"hatch_mcp_server wrapper installed successfully in environment: {env_name}")
+                if tag:
+                    self.logger.info(f"Using tag/branch: {tag}")
+                else:
+                    self.logger.info("Using default branch")
+            else:
+                self.logger.error(f"Failed to install hatch_mcp_server wrapper in environment: {env_name}")
+                
+        except Exception as e:
+            self.logger.error(f"Error installing hatch_mcp_server wrapper: {e}")
             
         return True
