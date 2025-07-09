@@ -97,7 +97,7 @@ Configuration is managed through environment variables or a `.env` file in the `
 | `LOG_LEVEL` | The default log level at start up | `INFO` |
 | `USER_ID` | User ID for the container user (set on Linux to match host user for permissions) | `1000` |
 | `GROUP_ID` | Group ID for the container user (set on Linux to match host group for permissions) | `1000` |
-| `USER_NAME` | Username for the container user (optional, defaults to `appuser`) | `appuser` |
+| `USER_NAME` | Username for the container user (set on Linux to match host name) | `HatchlingUser` |
 
 ##### OLLAMA_HOST_API
 
@@ -125,15 +125,91 @@ For example, [earlier](#checking-that-gpu-support-is-enabled--as-expected) the G
 > [!Note]
 > You can adapt the [environment variables](#configuration) to suit your needs (e.g. change the LLM) before you run the following command:
 
+
+**Running Hatchling (recommended approach)**:
+
+By default, the Hatchling container does not start the application automatically. This gives you flexibility to inspect or run any command inside the container.
+
+**First time:**
+
 ```bash
 # From the docker directory in your project
-docker-compose run --rm hatchling #The `--rm` flag ensures the container is removed when you exit the application.
+docker-compose up -d hatchling
 ```
 
-If Hatchling successfully connects to Ollama, it will download the specified LLM model. This will materialize by many prints indicating the download progress. Of course, the download time varies based on the model's size: the default model `llama3.2` takes about 2GB.
+This starts the container in the background and keeps it running.
+
+To enter the container and start Hatchling as the intended user:
+
+```bash
+docker-compose exec --user HatchlingUser hatchling bash
+# Then, inside the container:
+hatchling
+```
+
+> [!Note]
+> If you replaced the value of `USER_NAME` in the [environment file](#configuration), you can replace `HatchlingUser` with the actual value. So the command becomes `docker-compose exec --user <USER_NAME> hatchling bash`
+
+If Hatchling successfully connects to Ollama, it will download the specified LLM model. This will be shown by progress messages. Download time depends on the model size (the default model `llama3.2` is about 2GB).
 
 Here is a screenshot of what Hatchling typically looks like right after start up:
 ![Typical_Hatchling_CLI_20250627_pt1](../resources/images/running-hatchling/Typical_Hatchling_CLI_20250627_pt1.png)
 ![Typical_Hatchling_CLI_20250627_pt2](../resources/images/running-hatchling/Typical_Hatchling_CLI_20250627_pt2.png)
 
 You can receive help about all available commands by writing `help` in the chat. Details about the commands are also available in the [documentation](./chat_commands.md)
+
+
+To close Hatchling, type:
+
+```bash
+[Tools disabled] You: quit
+```
+
+or
+
+```bash
+[Tools disabled] You: exit
+```
+
+Both commands have the same effect and are aliases.
+
+**Exiting the container's bash shell:**
+
+After you are done inside the container (for example, after running Hatchling), you can exit the bash shell in two ways:
+
+- Type `exit` and press Enter
+- Or press `Ctrl-D`
+
+Both methods will close your shell session and return you to your host terminal.
+
+**Stopping the Hatchling container:**
+
+To stop the background Hatchling container after you have exited all sessions:
+
+```bash
+docker-compose stop hatchling
+```
+
+This will stop the container but keep its data and state. You can start it again later with `docker-compose start hatchling`.
+
+**Restarting Hatchling container:**
+
+To restart the background container and enter it again:
+
+```bash
+docker-compose start hatchling
+docker-compose exec hatchling bash
+# Then run:
+hatchling
+```
+
+**Deleting Hatchling container:**
+
+> [!Warning]
+> This will remove the container and its installed dependencies. However, Hatchling-related data such as environments and packages remain accessible at the `HATCH_HOST_CACHE_DIR` as shown in the [prior table](#configuration).
+
+To remove the container:
+
+```bash
+docker-compose rm hatchling
+```

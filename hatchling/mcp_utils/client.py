@@ -1,7 +1,7 @@
 import os
 import asyncio
 import logging
-from typing import Dict, Any, Optional
+from typing import Dict, Any, Optional, Callable
 import uuid
 from contextlib import AsyncExitStack
 
@@ -12,8 +12,13 @@ from hatchling.core.logging.logging_manager import logging_manager
 
 class MCPClient:
     """Client for MCP servers that manages connections and tool execution."""
-    def __init__(self):
-        """Initialize the MCP client."""
+    def __init__(self, python_executable_resolver: Optional[Callable[[], str]] = None):
+        """Initialize the MCP client.
+        
+        Args:
+            python_executable_resolver (Callable[[], str], optional): Function to resolve the Python executable 
+                for the current environment. If None, defaults to "python".
+        """
         self.client_id = str(uuid.uuid4())
         self.session: Optional[ClientSession] = None
         self.exit_stack = None  # Created in connection manager task
@@ -22,6 +27,9 @@ class MCPClient:
         self.server_path = None
         self.read = None
         self.write = None
+        
+        # Python executable resolution
+        self._python_executable_resolver = python_executable_resolver
         
         # Connection manager task and queue
         self._operation_queue = asyncio.Queue()
@@ -125,6 +133,7 @@ class MCPClient:
             self.logger.error(f"Error in disconnect operation: {e}")
             # Even if disconnect fails, mark as disconnected
             self.connected = False
+
     async def get_citations(self) -> Dict[str, str]:
         """Get citations from the MCP server.
         
@@ -144,6 +153,7 @@ class MCPClient:
         except Exception as e:
             self.logger.error(f"Error in get_citations operation: {e}")
             raise
+
     async def execute_tool(self, tool_name: str, arguments: Dict[str, Any]) -> Any:
         """Execute an MCP tool by name with given arguments.
         
@@ -264,13 +274,18 @@ class MCPClient:
         self.exit_stack = AsyncExitStack()
         
         # Create server parameters for stdio connection
+        python_executable = self._get_python_executable()
+        #env_vars = self._get_environment_vars()
+        
+        self.logger.debug(f"Using Python executable: {python_executable}")
+
         server_params = StdioServerParameters(
-            command="python",
+            command=python_executable,
             args=[server_path],
-            env=os.environ.copy(),
+            #env=env_vars,
         )
         
-        self.logger.debug(f"Connecting to MCP server: {server_path}")
+        self.logger.debug(f"Connecting to MCP server: {server_path} using Python: {python_executable}")
         try:
             # Follow the exact sequence from the working example
             stdio_transport = await self.exit_stack.enter_async_context(stdio_client(server_params))
@@ -457,3 +472,32 @@ class MCPClient:
                 self.logger.error(f"Error stopping connection manager task: {e}")
                 
             self._manager_task = None
+
+    def _get_python_executable(self) -> str:
+        """Get the appropriate Python executable for the current environment.
+        
+        Returns:
+            str: Path to Python executable, falls back to "python" if no resolver provided.
+        """
+        if self._python_executable_resolver:
+            try:
+                python_executable = self._python_executable_resolver()
+                self.logger.debug(f"Resolved Python executable: {python_executable}")
+                return python_executable
+            except Exception as e:
+                self.logger.warning(f"Failed to resolve Python executable: {e}, falling back to 'python'")
+        
+        # Fallback to default Python command
+        self.logger.debug("Using default Python executable: python")
+        return "python"
+    
+    def _get_environment_vars(self) -> Optional[Dict[str, str]]:
+        """Get environment variables for the MCP server process.
+        
+        Returns:
+            Dict[str, str]: Environment variables to use, or None to use default environment.
+        """
+        # For now, use the current environment
+        # Future enhancement: could get environment-specific variables from resolver
+        return os.environ.copy()
+    

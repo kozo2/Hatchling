@@ -2,11 +2,15 @@ import asyncio
 import logging
 import os
 import subprocess
+import sys
 from typing import Dict, List, Any, Optional
+
+from hatch import HatchEnvironmentManager
 
 from hatchling.mcp_utils.client import MCPClient
 from hatchling.mcp_utils.ollama_adapter import OllamaMCPAdapter
 from hatchling.core.logging.logging_manager import logging_manager
+
 
 class MCPManager:
     """Centralized manager for everything MCP-related: servers, clients, and adapters."""
@@ -47,6 +51,9 @@ class MCPManager:
         # Adapter for Ollama format
         self._adapter = None
         
+        # Environment context for Python executable
+        self._hatch_env_manager = None
+        
         # Get a debug log session
         self.logger = logging_manager.get_session(self.__class__.__name__,
                                   formatter=logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s'))
@@ -73,45 +80,6 @@ class MCPManager:
             valid_paths.append(abs_path)
             
         return valid_paths
-    
-    async def start_server(self, server_path: str) -> Optional[subprocess.Popen]:
-        """Start an MCP server in a subprocess.
-        
-        Args:
-            server_path (str): Path to the MCP server script.
-            
-        Returns:
-            Optional[subprocess.Popen]: Process object if server started successfully, None otherwise.
-        """
-        if not os.path.isfile(server_path):
-            self.logger.error(f"MCP server script not found: {server_path}")
-            return None
-        
-        # Get the directory containing the script to use as the working directory
-        working_dir = os.path.dirname(os.path.abspath(server_path))
-        server_filename = os.path.basename(server_path)
-        
-        try:
-            process = subprocess.Popen(
-                ['python', server_filename],
-                stdout=subprocess.PIPE,
-                stderr=subprocess.STDOUT,
-                text=True,
-                cwd=working_dir  # Set the working directory
-            )
-            
-            self.logger.info(f"MCP server started: {server_path}")
-            
-            # Store the process
-            self.server_processes[server_path] = process
-            
-            # Give the MCP server a moment to start
-            await asyncio.sleep(2)
-            
-            return process
-        except Exception as e:
-            self.logger.error(f"Error starting MCP server: {str(e)}")
-            return None
     
     async def initialize(self, server_paths: List[str], auto_start: bool = False) -> bool:
         """Initialize the MCP system with the given server paths.
@@ -153,12 +121,8 @@ class MCPManager:
             
             # Connect to each valid server path
             for path in valid_paths:
-                # Start the server if requested
-                if auto_start and path not in self.server_processes:
-                    await self.start_server(path)
-                
-                # Connect to the server
-                client = MCPClient()
+                # Create client with environment resolver
+                client = MCPClient(python_executable_resolver=self._get_python_executable)
                 is_connected = await client.connect(path)
                 if is_connected:
                     self.mcp_clients[path] = client
@@ -182,6 +146,7 @@ class MCPManager:
                 self.logger.warning("Failed to connect to any MCP server")
                 
             return self.connected
+        
     async def disconnect_all(self) -> None:
         """Disconnect from all MCP servers."""
         if not self.connected:
@@ -372,6 +337,36 @@ class MCPManager:
             
             # Remove from tracking
             del self.server_processes[path]
+    
+    def set_hatch_environment_manager(self, env_manager: HatchEnvironmentManager) -> None:
+        """Set the Hatch environment manager for Python executable resolution.
+        
+        Args:
+            env_manager (HatchEnvironmentManager): The Hatch environment manager instance.
+        """
+        self._hatch_env_manager = env_manager
+        self.logger.debug("Set Hatch environment manager for Python executable resolution")
+    
+    def _get_python_executable(self) -> str:
+        """Get the appropriate Python executable for the current environment.
+        
+        Returns:
+            str: Path to Python executable, falls back to system Python.
+        """
+        if self._hatch_env_manager:
+            current_env = self._hatch_env_manager.get_current_environment()
+            if current_env:
+                python_env_info = self._hatch_env_manager.get_python_environment_info(current_env)
+                if python_env_info:
+                    python_executable = python_env_info.get("python_executable")
+                    if python_executable:
+                        self.logger.debug(f"Using environment Python for {current_env}: {python_executable}")
+                        return python_executable
+        
+        # Fallback to system Python
+        system_python = sys.executable
+        self.logger.debug(f"Using system Python: {system_python}")
+        return system_python
 
 # Create a singleton instance
 mcp_manager = MCPManager()
