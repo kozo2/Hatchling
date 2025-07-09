@@ -9,6 +9,7 @@ from prompt_toolkit.history import FileHistory, InMemoryHistory
 from prompt_toolkit.patch_stdout import patch_stdout
 from prompt_toolkit.formatted_text import FormattedText
 from prompt_toolkit.styles import Style
+from prompt_toolkit.completion import FuzzyCompleter
 
 from hatchling.core.logging.logging_manager import logging_manager
 from hatchling.core.llm.model_manager import ModelManager
@@ -127,8 +128,8 @@ class CLIChat:
         self.cmd_handler = ChatCommandHandler(self.chat_session, self.settings, self.env_manager, self.logger, self.command_style)
         
         # Initialize command completer
-        self.command_completer = CommandCompleterFactory.create_completer(self.cmd_handler)
-        
+        self.command_completer = FuzzyCompleter(CommandCompleterFactory.create_completer(self.cmd_handler))
+
         # Initialize command lexer for real-time syntax highlighting
         all_commands = self.cmd_handler.get_all_command_metadata()
         self.command_lexer = ChatCommandLexer(all_commands)
