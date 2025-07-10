@@ -8,18 +8,18 @@ import json
 from typing import List, Tuple
 import aiohttp
 import os
-from hatchling.mcp_utils.ollama_adapter import OllamaMCPAdapter
+#from hatchling.mcp_utils.ollama_adapter import OllamaMCPAdapter
 from hatchling.core.logging.session_debug_log import SessionDebugLog
-from hatchling.config.settings import ChatSettings
+from hatchling.config.settings import AppSettings
 
 class ModelManager:
     """Manages model availability and downloading."""
 
-    def __init__(self, settings: ChatSettings, debug_log: SessionDebugLog = None):
+    def __init__(self, settings: AppSettings, debug_log: SessionDebugLog = None):
         """Initialize the model manager.
 
         Args:
-            settings (ChatSettings): Settings for chat configuration.
+            settings (AppSettings): Settings for chat configuration.
             debug_log (SessionDebugLog, optional): Logger for debugging messages. Defaults to None.
         """
         self.settings = settings
@@ -39,7 +39,7 @@ class ModelManager:
             Exception: If there is an error checking for model availability.
         """
         try:
-            async with session.get(f"{self.settings.ollama_api_url}/tags") as response:
+            async with session.get(f"{self.settings.llm.api_url}/tags") as response:
                 if response.status == 200:
                     data = await response.json()
                     available_models = [model["name"] for model in data.get("models", [])]
@@ -65,7 +65,7 @@ class ModelManager:
 
         try:
             async with session.post(
-                f"{self.settings.ollama_api_url}/pull",
+                f"{self.settings.llm.api_url}/pull",
                 json={"name": model_name},
                 timeout=None  # No timeout for model downloading
             ) as response:
@@ -122,7 +122,7 @@ class ModelManager:
         """
         try:
             async with aiohttp.ClientSession() as session:
-                async with session.get(f"{self.settings.ollama_api_url}/version", timeout=5) as response:
+                async with session.get(f"{self.settings.llm.api_url}/version", timeout=5) as response:
                     if response.status == 200:
                         data = await response.json()
                         return True, f"Ollama service is running, version: {data.get('version')}"

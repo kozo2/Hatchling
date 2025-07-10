@@ -13,6 +13,12 @@ from .settings_access_level import SettingAccessLevel
 class PathSettings(BaseModel):
     """Settings for file and directory paths."""
 
+    hatchling_source_dir: Union[str, Path] = Field(
+        default_factory=lambda: Path(os.environ.get("HATCHLING_SOURCE_DIR", str(Path.home() / "Hatchling"))),
+        description="Directory where Hatchling source code is located.",
+        json_schema_extra={"access_level": SettingAccessLevel.READ_ONLY},
+    )
+
     envs_dir: Union[str, Path] = Field(
         default_factory=lambda: Path(os.environ.get("HATCH_ENVS_DIR", str(Path.home() / ".hatch" / "envs"))),
         description="Directory for Hatch environments.",

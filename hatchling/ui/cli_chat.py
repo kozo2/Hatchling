@@ -17,7 +17,7 @@ from hatchling.core.llm.chat_session import ChatSession
 from hatchling.core.chat.chat_command_handler import ChatCommandHandler
 from hatchling.core.chat.command_completion import CommandCompleterFactory
 from hatchling.core.chat.command_lexer import ChatCommandLexer
-from hatchling.config.settings import ChatSettings
+from hatchling.config.settings import AppSettings
 from hatchling.mcp_utils.manager import mcp_manager
 # Import removed - using centralized logging system
 
@@ -26,11 +26,11 @@ from hatch import HatchEnvironmentManager
 class CLIChat:
     """Command-line interface for chat functionality."""    
     
-    def __init__(self, settings: ChatSettings):
+    def __init__(self, settings: AppSettings):
         """Initialize the CLI chat interface.
         
         Args:
-            settings (ChatSettings): The chat settings to use.
+            settings (AppSettings): The chat settings to use.
         """
         # Store settings first
         self.settings = settings
@@ -77,7 +77,7 @@ class CLIChat:
         })
         
         self.env_manager = HatchEnvironmentManager(
-            environments_dir = self.settings.hatch_envs_dir,
+            environments_dir = self.settings.paths.envs_dir,
             cache_ttl = 86400,  # 1 day default
         )
             
@@ -98,7 +98,7 @@ class CLIChat:
         available, message = await self.model_manager.check_ollama_service()
         if not available:
             self.logger.error(message)
-            self.logger.error(f"Please ensure the Ollama service is running at {self.settings.ollama_api_url} before running this script.")
+            self.logger.error(f"Please ensure the Ollama service is running at {self.settings.llm.api_url} before running this script.")
             return False
         
         self.logger.info(message)
@@ -147,13 +147,13 @@ class CLIChat:
         """
         try:
             # Check if model is available
-            is_model_available = await self.model_manager.check_availability(session, self.settings.ollama_model)
+            is_model_available = await self.model_manager.check_availability(session, self.settings.llm.model)
             
             if is_model_available:
-                self.logger.info(f"Model {self.settings.ollama_model} is already pulled.")
+                self.logger.info(f"Model {self.settings.llm.model} is already pulled.")
                 return True
             else:
-                await self.model_manager.pull_model(session, self.settings.ollama_model)
+                await self.model_manager.pull_model(session, self.settings.llm.model)
                 return True
         except Exception as e:
             self.logger.error(f"Error checking/pulling model: {e}")
@@ -164,8 +164,8 @@ class CLIChat:
         if not self.chat_session or not self.cmd_handler:
             self.logger.error("Chat session not initialized. Call initialize() first.")
             return
-        
-        self.logger.info(f"Starting interactive chat with {self.settings.ollama_model}")
+
+        self.logger.info(f"Starting interactive chat with {self.settings.llm.model}")
         print_pt(FormattedText([('cyan bold', '\n=== Hatchling Chat Interface ===\n')]))
         self.cmd_handler.print_commands_help()
         

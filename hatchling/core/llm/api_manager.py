@@ -3,23 +3,22 @@ from typing import List, Dict, Tuple, Any
 import logging
 import aiohttp
 from hatchling.core.logging.logging_manager import logging_manager
-from hatchling.config.settings import ChatSettings
+from hatchling.config.settings import AppSettings
 from hatchling.core.chat.message_history import MessageHistory
 
 class APIManager:
     """Manages API communication with the LLM."""
     
-    def __init__(self, settings: ChatSettings):
+    def __init__(self, settings: AppSettings):
         """Initialize the API manager.
         
         Args:
             settings: The application settings
         """
         self.settings = settings
-        self.logger = logging_manager.get_session(f"APIManager-{settings.ollama_model}",
+        self.logger = logging_manager.get_session("APIManager",
                                       formatter=logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s'))
-        self.model_name = settings.ollama_model
-    
+
     def prepare_request_payload(self, messages: List[Dict[str, Any]]) -> Dict[str, Any]:
         """Prepare the request payload for the LLM API.
         
@@ -30,7 +29,7 @@ class APIManager:
             The prepared payload.
         """
         payload = {
-            "model": self.model_name,
+            "model": self.settings.llm.model,
             "messages": messages,
             "stream": True  # Always stream
         }
@@ -138,7 +137,7 @@ class APIManager:
         if prefix and print_output:
             print(prefix)
             
-        async with session.post(f"{self.settings.ollama_api_url}/chat", json=payload) as response:
+        async with session.post(f"{self.settings.llm.api_url}/chat", json=payload) as response:
             if response.status != 200:
                 error_text = await response.text()
                 self.logger.error(f"Error: {response.status}, {error_text}")

@@ -11,13 +11,13 @@ from pathlib import Path
 from prompt_toolkit import print_formatted_text
 from prompt_toolkit.formatted_text import FormattedText
 
-from hatchling.core.logging.session_debug_log import SessionDebugLog
-from hatchling.config.settings import ChatSettings
+# from hatchling.core.logging.session_debug_log import SessionDebugLog
+# from hatchling.config.settings import AppSettings
 from hatchling.core.chat.abstract_commands import AbstractCommands
 from hatchling.mcp_utils.manager import mcp_manager
 
 # Import Hatch components - assumes Hatch is installed or available in the Python path
-from hatch import HatchEnvironmentManager
+# from hatch import HatchEnvironmentManager
 from hatch import create_package_template
 
 

@@ -13,10 +13,8 @@ from prompt_toolkit.formatted_text import FormattedText
 from hatchling.core.logging.session_debug_log import SessionDebugLog
 from hatchling.core.logging.logging_manager import logging_manager
 from hatchling.mcp_utils.manager import mcp_manager
-from hatchling.config.settings import ChatSettings
 from hatchling.core.chat.abstract_commands import AbstractCommands
-
-from hatch import HatchEnvironmentManager
+from hatchling.config.i18n import translate
 
 
 class BaseChatCommands(AbstractCommands):
@@ -24,29 +22,29 @@ class BaseChatCommands(AbstractCommands):
 
     def _register_commands(self) -> None:
         """Register all available chat commands with their handlers."""
-        # New standardized command registration format
+        # New standardized command registration format with i18n support
         self.commands = {
             'help': {
                 'handler': self._cmd_help,
-                'description': "Display help for available commands",
+                'description': translate("commands.base.help_description"),
                 'is_async': False,
                 'args': {}
             },
             'exit': {
                 'handler': self._cmd_exit,
-                'description': "End the chat session",
+                'description': translate("commands.base.exit_description"),
                 'is_async': False,
                 'args': {}
             },
             'quit': {
                 'handler': self._cmd_exit,
-                'description': "End the chat session (alias for exit)",
+                'description': translate("commands.base.quit_description"),
                 'is_async': False,
                 'args': {}
             },
             'clear': {
                 'handler': self._cmd_clear,
-                'description': "Clear the chat history",
+                'description': translate("commands.base.clear_description"),
                 'is_async': False,
                 'args': {}
             },

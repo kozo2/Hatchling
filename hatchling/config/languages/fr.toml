@@ -1,0 +1,186 @@
+# French translation file for Hatchling
+# Fichier de traduction française pour Hatchling
+
+[meta]
+language_code = "fr"
+language_name = "Français"
+version = "1.0.0"
+
+# Commonly used translations
+[common]
+description = "Description"
+name = "Nom"
+default = "Par défaut"
+current = "Actuel"
+category = "Catégorie"
+
+# Settings translations
+[settings]
+
+[settings.categories]
+llm = "Configuration LLM"
+paths = "Configuration des Chemins"
+tool_calling = "Appel d'Outils"
+ui = "Interface Utilisateur"
+
+# LLM Settings
+[settings.llm]
+category_name = "llm"
+category_display_name = "Configuration LLM"
+category_description = "Paramètres pour la configuration du modèle de langage"
+
+[settings.llm.api_url]
+name = "URL de l'API"
+description = "URL pour le point de terminaison de l'API Ollama"
+hint = "Exemple : http://localhost:11434/api"
+
+[settings.llm.model]
+name = "Modèle"
+description = "Modèle LLM à utiliser pour les interactions de chat"
+hint = "Exemple : mistral-small3.1"
+
+# Path Settings
+[settings.paths]
+category_name = "paths"
+category_display_name = "Configuration des Chemins"
+category_description = "Paramètres pour les chemins de fichiers et répertoires"
+
+[settings.paths.envs_dir]
+name = "Répertoire des Environnements"
+description = "Répertoire où les environnements Hatch sont stockés"
+hint = "Chemin du répertoire"
+
+[settings.paths.data_dir]
+name = "Répertoire de Données"
+description = "Répertoire pour le stockage des données d'application"
+hint = "Chemin du répertoire"
+
+[settings.paths.config_dir]
+name = "Répertoire de Configuration"
+description = "Répertoire pour les fichiers de configuration"
+hint = "Chemin du répertoire"
+
+# Tool Calling Settings
+[settings.tool_calling]
+category_name = "tool_calling"
+category_display_name = "Appel d'Outils"
+category_description = "Paramètres pour le comportement d'appel d'outils"
+
+[settings.tool_calling.max_iterations]
+name = "Max Itérations"
+description = "Nombre maximum d'itérations d'appel d'outils"
+hint = "Nombre entier"
+
+[settings.tool_calling.max_working_time]
+name = "Max Temps de Travail"
+description = "Temps de travail maximum pour les appels d'outils"
+hint = "Temps en secondes"
+
+# UI Settings
+[settings.ui]
+category_name = "ui"
+category_display_name = "Interface Utilisateur"
+category_description = "Paramètres pour le comportement de l'interface utilisateur"
+
+[settings.ui.language]
+name = "Langue"
+description = "Code de langue pour la localisation de l'interface utilisateur"
+hint = "Code de langue (ex : en, fr, es)"
+
+# Command translations
+[commands]
+
+# Base chat commands
+[commands.base]
+help_name = "aide"
+help_description = "Afficher l'aide pour les commandes disponibles"
+exit_name = "sortir"
+exit_description = "Terminer la session de chat"
+quit_name = "quitter"
+quit_description = "Terminer la session de chat (alias pour sortir)"
+clear_name = "effacer"
+clear_description = "Effacer l'historique du chat"
+
+# Hatch commands
+[commands.hatch]
+env_create_name = "env:créer"
+env_create_description = "Créer un nouvel environnement Hatch"
+env_list_name = "env:lister"
+env_list_description = "Lister les environnements Hatch disponibles"
+env_remove_name = "env:supprimer"
+env_remove_description = "Supprimer un environnement Hatch"
+
+# Settings commands
+[commands.settings]
+list_name = "param:lister"
+list_description = "Lister tous les paramètres disponibles"
+get_name = "param:obtenir"
+get_description = "Obtenir la valeur d'un paramètre spécifique"
+set_name = "param:définir"
+set_description = "Définir la valeur d'un paramètre spécifique"
+reset_name = "param:réinitialiser"
+reset_description = "Réinitialiser un paramètre à sa valeur par défaut"
+import_name = "param:importer"
+import_description = "Importer les paramètres depuis un fichier"
+export_name = "param:exporter"
+export_description = "Exporter les paramètres vers un fichier"
+language_list_name = "param:langue:lister"
+language_list_description = "Lister les langues disponibles"
+language_set_name = "param:langue:définir"
+language_set_description = "Définir la langue de l'interface"
+
+# Command arguments
+[commands.args]
+name_description = "Nom pour la ressource"
+file_description = "Chemin du fichier"
+format_description = "Format de sortie (table, json, yaml)"
+force_description = "Forcer l'opération sans confirmation"
+language_description = "Code de langue à définir"
+filter_description = "Motif de filtre pour les paramètres"
+setting_description = "Paramètre au format catégorie:nom"
+value_description = "Valeur à définir"
+
+# Error messages
+[errors]
+invalid_setting = "Paramètre invalide : {setting}"
+invalid_value = "Valeur invalide pour {setting} : {value}"
+setting_not_found = "Paramètre introuvable : {setting}"
+permission_denied = "Permission refusée pour le paramètre : {setting}"
+file_not_found = "Fichier introuvable : {file}"
+invalid_format = "Format invalide : {format}"
+language_not_found = "Langue introuvable : {language}"
+translation_key_missing = "Clé de traduction manquante : {key}"
+settings_registry_not_available = "Registre des paramètres non disponible"
+setting_name_required = "Le nom du paramètre est requis"
+setting_and_value_required = "Le nom du paramètre et la valeur sont requis"
+file_path_required = "Le chemin du fichier est requis"
+language_code_required = "Le code de langue est requis"
+invalid_setting_path = "Format de chemin de paramètre invalide : {path}. Utilisez 'catégorie:nom'"
+list_settings_failed = "Échec de la liste des paramètres : {error}"
+get_setting_failed = "Échec de l'obtention du paramètre : {error}"
+set_setting_failed = "Échec de la définition du paramètre : {error}"
+reset_setting_failed = "Échec de la réinitialisation du paramètre : {error}"
+export_settings_failed = "Échec de l'exportation des paramètres : {error}"
+import_settings_failed = "Échec de l'importation des paramètres : {error}"
+list_languages_failed = "Échec de la liste des langues : {error}"
+set_language_failed = "Échec de la définition de la langue : {error}"
+
+# Info messages
+[info]
+setting_updated = "Paramètre '{setting}' mis à jour vers '{value}'"
+setting_reset = "Paramètre '{setting}' réinitialisé à la valeur par défaut"
+settings_imported = "Paramètres importés depuis {file}"
+settings_exported = "Paramètres exportés vers {file}"
+language_changed = "Langue changée vers {language}"
+available_languages = "Langues disponibles : {languages}"
+operation_cancelled = "Opération annulée"
+
+# Headers
+[headers]
+settings_list = "Paramètres Disponibles"
+available_languages = "Langues Disponibles"
+
+# Prompts
+[prompts]
+confirm_reset = "Êtes-vous sûr de vouloir réinitialiser '{setting}' à sa valeur par défaut ?"
+confirm_import = "Êtes-vous sûr de vouloir importer les paramètres depuis '{file}' ? Cela peut écraser les paramètres actuels."

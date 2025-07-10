@@ -29,6 +29,7 @@ from pydantic import ValidationError
 
 from hatchling.config.settings import AppSettings, SettingAccessLevel
 from hatchling.core.logging.logging_manager import logging_manager
+from hatchling.config.i18n import get_translation_loader, translate
 
 
 class SettingsRegistry:
@@ -46,6 +47,12 @@ class SettingsRegistry:
         """
         self.app_settings = app_settings
         self.logger = logging_manager.get_session("hatchling.config.settings_registry")
+        
+        # Initialize translation loader with current language
+        translation_loader = get_translation_loader()
+        current_language = self.app_settings.ui.language
+        if current_language != translation_loader.get_current_language():
+            translation_loader.set_language(current_language)
     
     def list_settings(self, filter_regex: Optional[str] = None) -> List[Dict[str, Any]]:
         """List all settings with optional filtering.
@@ -66,7 +73,7 @@ class SettingsRegistry:
         # Stage 1: Exact match (category or setting name)
         exact_matches = []
         for setting in all_settings:
-            if setting['category'] == filter_regex or setting['name'] == filter_regex:
+            if setting['category_name']+":"+setting['name'] == filter_regex:
                 exact_matches.append(setting)
         
         if exact_matches:
@@ -75,7 +82,7 @@ class SettingsRegistry:
         # Stage 2: Category-wide listing
         category_matches = []
         for setting in all_settings:
-            if setting['category'] == filter_regex:
+            if setting['category_name'] == filter_regex:
                 category_matches.append(setting)
         
         if category_matches:
@@ -86,7 +93,7 @@ class SettingsRegistry:
             regex_pattern = re.compile(filter_regex, re.IGNORECASE)
             regex_matches = []
             for setting in all_settings:
-                if (regex_pattern.search(setting['category']) or 
+                if (regex_pattern.search(setting['category_name']) or 
                     regex_pattern.search(setting['name']) or 
                     regex_pattern.search(setting['description'])):
                     regex_matches.append(setting)
@@ -100,7 +107,7 @@ class SettingsRegistry:
         # Stage 4: Fuzzy search
         fuzzy_matches = []
         for setting in all_settings:
-            search_text = f"{setting['category']} {setting['name']} {setting['description']}"
+            search_text = f"{setting['category_name']} {setting['name']} {setting['description']}"
             similarity = SequenceMatcher(None, filter_regex.lower(), search_text.lower()).ratio()
             if similarity > 0.3:  # Minimum similarity threshold
                 setting['_similarity'] = similarity
@@ -284,7 +291,7 @@ class SettingsRegistry:
         return report
     
     def _get_all_settings_metadata(self) -> List[Dict[str, Any]]:
-        """Get metadata for all settings.
+        """Get metadata for all settings with internationalized display names and descriptions.
 
         Returns:
             List[Dict[str, Any]]: List of metadata dictionaries for each setting.
@@ -299,8 +306,12 @@ class SettingsRegistry:
                 continue  # Skip non-model fields
 
             category_model_class = type(_category_model)
+            
+            # Get translated category information
+            category_display_name = translate(f"settings.{category_name}.category_name")
+            category_description = translate(f"settings.{category_name}.category_description")
+            
             for field_name, field_info in category_model_class.model_fields.items():
-                self.logger.info(f"Processing setting: {category_name}.{field_name}")
                 current_value = getattr(_category_model, field_name)
                 default_value = field_info.default
 
@@ -315,12 +326,29 @@ class SettingsRegistry:
                 elif hasattr(field_info, 'extra') and 'access_level' in field_info.extra:
                     access_level = field_info.extra['access_level']
 
+                # Get translated setting information
+                setting_name_key = f"settings.{category_name}.{field_name}.name"
+                setting_desc_key = f"settings.{category_name}.{field_name}.description"
+                setting_hint_key = f"settings.{category_name}.{field_name}.hint"
+                
+                setting_display_name = translate(setting_name_key)
+                setting_description = translate(setting_desc_key)
+                setting_hint = translate(setting_hint_key)
+                
+                # Fall back to original description if translation key doesn't exist
+                if setting_description == setting_desc_key:
+                    setting_description = field_info.description or ""
+
                 settings_list.append({
-                    "category": category_name,
+                    "category_name": category_name,
+                    "category_display_name": category_display_name,
+                    "category_description": category_description,
                     "name": field_name,
+                    "display_name": setting_display_name,
                     "current_value": current_value,
                     "default_value": default_value,
-                    "description": field_info.description or "",
+                    "description": setting_description,
+                    "hint": setting_hint if setting_hint != setting_hint_key else "",
                     "access_level": access_level,
                     "type": str(field_info.annotation) if hasattr(field_info, 'annotation') else str(type(current_value).__name__)
                 })
@@ -330,7 +358,7 @@ class SettingsRegistry:
         """Get information for a specific setting."""
         all_settings = self._get_all_settings_metadata()
         for setting in all_settings:
-            if setting['category'] == category and setting['name'] == name:
+            if setting['category_name'] == category and setting['name'] == name:
                 return setting
         return None
     
@@ -360,3 +388,144 @@ class SettingsRegistry:
         
         # If validation passes, update the actual model
         setattr(category_model, name, value)
+
+    # Language management methods
+    
+    def get_available_languages(self) -> List[Dict[str, str]]:
+        """Get list of available languages for the interface.
+        
+        Returns:
+            List[Dict[str, str]]: List of available languages with code and name.
+        """
+        translation_loader = get_translation_loader()
+        return translation_loader.get_available_languages()
+    
+    def get_current_language(self) -> str:
+        """Get the current interface language.
+        
+        Returns:
+            str: Current language code.
+        """
+        # Get from UI settings
+        return self.app_settings.ui.language
+    
+    def set_language(self, language_code: str) -> bool:
+        """Set the interface language.
+        
+        Args:
+            language_code (str): Language code to set.
+            
+        Returns:
+            bool: True if language was successfully set.
+            
+        Raises:
+            ValueError: If language is not available.
+        """
+        translation_loader = get_translation_loader()
+        
+        # Check if language is available
+        available_languages = [lang["code"] for lang in translation_loader.get_available_languages()]
+        if language_code not in available_languages:
+            available_str = ", ".join(available_languages)
+            error_msg = translate("errors.language_not_found", language=language_code)
+            raise ValueError(f"{error_msg}. Available: {available_str}")
+        
+        # Set in translation loader
+        if translation_loader.set_language(language_code):
+            # Update UI settings
+            try:
+                self.set_setting("ui", "language", language_code)
+                self.logger.info(translate("info.language_changed", language=language_code))
+                return True
+            except Exception as e:
+                self.logger.error(f"Failed to update language setting: {e}")
+                return False
+        return False
+    
+    def reload_translations(self) -> None:
+        """Reload translation files from disk."""
+        translation_loader = get_translation_loader()
+        translation_loader.reload_translations()
+        self.logger.info("Translations reloaded")
+
+    # File-based import/export methods
+    
+    def export_settings_to_file(self, file_path: str, format: Optional[str] = None) -> bool:
+        """Export settings to a file.
+        
+        Args:
+            file_path (str): Path to export file.
+            format (Optional[str]): Export format. If None, detected from file extension.
+            
+        Returns:
+            bool: True if export was successful.
+        """
+        try:
+            from pathlib import Path
+            path = Path(file_path)
+            
+            if format is None:
+                # Detect format from file extension
+                suffix = path.suffix.lower()
+                if suffix == ".json":
+                    format = "json"
+                elif suffix in (".yaml", ".yml"):
+                    format = "yaml"
+                else:
+                    format = "toml"  # Default
+            
+            # Export settings to string
+            settings_data = self.export_settings(format)
+            
+            # Write to file
+            with open(path, 'w', encoding='utf-8') as f:
+                f.write(settings_data)
+            
+            self.logger.info(f"Settings exported to {file_path} in {format} format")
+            return True
+            
+        except Exception as e:
+            self.logger.error(f"Failed to export settings to {file_path}: {e}")
+            return False
+    
+    def import_settings_from_file(self, file_path: str, format: Optional[str] = None, force: bool = False) -> bool:
+        """Import settings from a file.
+        
+        Args:
+            file_path (str): Path to import file.
+            format (Optional[str]): Import format. If None, detected from file extension.
+            force (bool): Force importing protected values.
+            
+        Returns:
+            bool: True if import was successful.
+        """
+        try:
+            from pathlib import Path
+            path = Path(file_path)
+            
+            if not path.exists():
+                raise FileNotFoundError(f"File not found: {file_path}")
+            
+            if format is None:
+                # Detect format from file extension
+                suffix = path.suffix.lower()
+                if suffix == ".json":
+                    format = "json"
+                elif suffix in (".yaml", ".yml"):
+                    format = "yaml"
+                else:
+                    format = "toml"  # Default
+            
+            # Read file content
+            with open(path, 'r', encoding='utf-8') as f:
+                data = f.read()
+            
+            # Import settings from string
+            result = self.import_settings(data, format, force)
+            
+            self.logger.info(f"Settings imported from {file_path} in {format} format")
+            return True
+            
+        except Exception as e:
+            self.logger.error(f"Failed to import settings from {file_path}: {e}")
+            return False

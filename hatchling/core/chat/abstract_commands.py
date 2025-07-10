@@ -13,7 +13,7 @@ from prompt_toolkit.formatted_text import FormattedText
 from prompt_toolkit.styles import Style
 
 from hatchling.core.logging.session_debug_log import SessionDebugLog
-from hatchling.config.settings import ChatSettings
+from hatchling.config.settings import AppSettings
 
 from hatch import HatchEnvironmentManager
 
@@ -25,12 +25,12 @@ class AbstractCommands(ABC):
     command handlers should implement. Subclasses must implement the abstract
     methods to define their specific commands and behavior.
     """
-    def __init__(self, chat_session, settings: ChatSettings, env_manager: HatchEnvironmentManager, debug_log: SessionDebugLog, style: Optional[Style] = None):
+    def __init__(self, chat_session, settings: AppSettings, env_manager: HatchEnvironmentManager, debug_log: SessionDebugLog, style: Optional[Style] = None):
         """Initialize the command handler.
         
         Args:
             chat_session: The chat session this handler is associated with.
-            settings (ChatSettings): The chat settings to use.
+            settings (AppSettings): The chat settings to use.
             env_manager (HatchEnvironmentManager): The Hatch environment manager.
             debug_log (SessionDebugLog): Logger for command operations.
             style (Optional[Style]): Style for formatting command output.

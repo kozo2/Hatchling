@@ -49,10 +49,10 @@ class TestSettingsRegistry(unittest.TestCase):
 
     def test_list_all_settings(self):
         settings_list = self.registry.list_settings()
-        categories = {s['category'] for s in settings_list}
+        categories = {s['category_name'] for s in settings_list}
         expected_categories = {'llm', 'paths', 'tool_calling', 'ui'}
         self.assertEqual(categories, expected_categories)
-        setting_names = {f"{s['category']}:{s['name']}" for s in settings_list}
+        setting_names = {f"{s['category_name']}:{s['name']}" for s in settings_list}
         expected_settings = {
             'llm:api_url', 'llm:model',
             'paths:envs_dir',
@@ -63,7 +63,7 @@ class TestSettingsRegistry(unittest.TestCase):
 
     def test_get_setting_valid(self):
         setting_info = self.registry.get_setting('llm', 'model')
-        self.assertEqual(setting_info['category'], 'llm')
+        self.assertEqual(setting_info['category_name'], 'llm')
         self.assertEqual(setting_info['name'], 'model')
         self.assertEqual(setting_info['current_value'], 'mistral-small3.1')
         self.assertEqual(setting_info['access_level'], SettingAccessLevel.NORMAL)
@@ -129,12 +129,12 @@ class TestSettingsRegistry(unittest.TestCase):
 
     def test_search_exact_match(self):
         results = self.registry.list_settings('llm')
-        categories = {s['category'] for s in results}
+        categories = {s['category_name'] for s in results}
         self.assertEqual(categories, {'llm'})
 
     def test_search_fuzzy_match(self):
         results = self.registry.list_settings('model')
-        setting_names = {f"{s['category']}:{s['name']}" for s in results}
+        setting_names = {f"{s['category_name']}:{s['name']}" for s in results}
         self.assertIn('llm:model', setting_names)
 
 

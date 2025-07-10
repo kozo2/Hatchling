@@ -51,8 +51,21 @@ def run_development_tests(phase=None):
             logger.error(f"Phase 1 tests failed: {e}")
             success = False
     
+    if phase is None or phase == 2:
+        logger.info("Running Phase 2 development tests...")
+        try:
+            from tests.dev_test_phase2_i18n import run_phase2_tests
+            if not run_phase2_tests():
+                success = False
+        except ImportError as e:
+            logger.error(f"Could not import Phase 2 tests: {e}")
+            success = False
+        except Exception as e:
+            logger.error(f"Phase 2 tests failed: {e}")
+            success = False
+    
     # Add future phases here
-    # if phase is None or phase == 2:
+    # if phase is None or phase == 3:
     #     ...
     
     return success

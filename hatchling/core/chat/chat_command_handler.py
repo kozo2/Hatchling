@@ -1,7 +1,7 @@
 """Chat command handler module for processing user commands in the chat interface.
 
 This module provides a central handler for all chat commands by combining
-base commands and Hatch-specific commands into a unified interface.
+base commands, Hatch-specific commands, and settings commands into a unified interface.
 """
 
 import logging
@@ -10,37 +10,42 @@ from typing import Tuple, Optional
 from prompt_toolkit.styles import Style
 
 from hatchling.core.logging.session_debug_log import SessionDebugLog
-from hatchling.config.settings import ChatSettings
+from hatchling.config.settings import AppSettings
 from hatchling.core.chat.base_commands import BaseChatCommands
 from hatchling.core.chat.hatch_commands import HatchCommands
+from hatchling.core.chat.settings_commands import SettingsCommands
+from hatchling.config.settings_registry import SettingsRegistry
 
 from hatch import HatchEnvironmentManager
 
 
 class ChatCommandHandler:
     """Handles processing of command inputs in the chat interface."""    
-    def __init__(self, chat_session, settings: ChatSettings, env_manager: HatchEnvironmentManager, debug_log: SessionDebugLog, style: Optional[Style] = None):
+    def __init__(self, chat_session, settings: AppSettings, env_manager: HatchEnvironmentManager, debug_log: SessionDebugLog, style: Optional[Style] = None, settings_registry: Optional[SettingsRegistry] = None):
         """Initialize the command handler.
         
         Args:
             chat_session: The chat session this handler is associated with.
-            settings (ChatSettings): The chat settings to use.
+            settings (AppSettings): The chat settings to use.
             env_manager (HatchEnvironmentManager): The Hatch environment manager.
             debug_log (SessionDebugLog): Logger for command operations.
             style (Optional[Style]): Style for formatting command output.
+            settings_registry (Optional[SettingsRegistry]): Settings registry for settings commands.
         """
 
         self.base_commands = BaseChatCommands(chat_session, settings, env_manager, debug_log, style)
         self.hatch_commands = HatchCommands(chat_session, settings, env_manager, debug_log, style)
+        self.settings_commands = SettingsCommands(chat_session, settings, env_manager, debug_log, style, settings_registry)
 
         self._register_commands()
     
     def _register_commands(self) -> None:
         """Register all available chat commands with their handlers."""
-        # Combine all commands from both handlers
+        # Combine all commands from all handlers
         self.commands = {}
         self.commands.update(self.base_commands.get_command_metadata())
         self.commands.update(self.hatch_commands.get_command_metadata())
+        self.commands.update(self.settings_commands.get_command_metadata())
         
         # Keep old format for backward compatibility
         self.sync_commands = {}
@@ -60,6 +65,7 @@ class ChatCommandHandler:
         
         self.base_commands.print_commands_help()
         self.hatch_commands.print_commands_help()
+        self.settings_commands.print_commands_help()
             
         print("======================\n")
     

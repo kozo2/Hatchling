@@ -14,6 +14,8 @@ from pathlib import Path
 
 from hatch import HatchEnvironmentManager
 
+from hatchling.config.i18n import get_available_languages
+
 
 class CommandCompleter(Completer):
     """Main completer class that provides autocompletion for chat commands."""
@@ -327,7 +329,17 @@ class CommandCompleter(Completer):
                     display_meta=display_meta,
                     style=style
                 )
-                
+        
+        elif completer_type == 'languages':
+            languages = get_available_languages()
+            for lang in languages:
+                yield Completion(
+                    text=lang['code'],
+                    start_position=start_position,
+                    display=lang['code'],
+                    display_meta=lang.get('name', '')
+                )
+
         # For 'none' type, no completions are provided
         
     def _get_environments(self) -> List[str]:
