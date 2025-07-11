@@ -10,26 +10,12 @@ import sys
 from pathlib import Path
 from typing import Dict, Any, Optional, List
 
-try:
-    import tomli_w as toml_write
-    import tomllib as toml_read
-except ImportError:
-    try:
-        import toml
-        toml_write = toml
-        toml_read = toml
-    except ImportError:
-        toml_write = None
-        toml_read = None
+import tomli_w as toml_write
+import tomli as toml_read
+import yaml
 
-try:
-    import yaml
-except ImportError:
-    yaml = None
-
-from prompt_toolkit import print_formatted_text
+from prompt_toolkit import PromptSession, print_formatted_text
 from prompt_toolkit.formatted_text import FormattedText
-from prompt_toolkit.shortcuts import confirm
 
 from hatchling.core.chat.abstract_commands import AbstractCommands
 from hatchling.config.settings_registry import SettingsRegistry
@@ -50,8 +36,12 @@ class SettingsCommands(AbstractCommands):
             style: Style for formatting command output.
             settings_registry (Optional[SettingsRegistry]): Settings registry instance.
         """
-        super().__init__(chat_session, settings, env_manager, debug_log, style)
+        # Settings registry is used when handling the completion of settings commands
+        # So, given that AbstractCommands is registering the commands, we need to assign
+        # the settings_registry before calling super().__init__()
         self.settings_registry = settings_registry or SettingsRegistry(settings)
+
+        super().__init__(chat_session, settings, env_manager, debug_log, style)
     
     def _register_commands(self) -> None:
         """Register all settings-related commands."""
@@ -62,7 +52,7 @@ class SettingsCommands(AbstractCommands):
                 'is_async': False,
                 'args': {
                     'filter': {
-                        'positional': False,
+                        'positional': True,
                         'description': translate("commands.args.filter_description"),
                         'default': None,
                         'required': False
@@ -84,6 +74,8 @@ class SettingsCommands(AbstractCommands):
                 'args': {
                     'setting': {
                         'positional': True,
+                        'completer_type': 'suggestions',
+                        'values': self._get_available_settings(),
                         'description': translate("commands.args.setting_description"),
                         'required': True
                     }
@@ -92,10 +84,12 @@ class SettingsCommands(AbstractCommands):
             'settings:set': {
                 'handler': self._cmd_settings_set,
                 'description': translate("commands.settings.set_description"),
-                'is_async': False,
+                'is_async': True,
                 'args': {
                     'setting': {
                         'positional': True,
+                        'completer_type': 'suggestions',
+                        'values': self._get_available_settings(),
                         'description': translate("commands.args.setting_description"),
                         'required': True
                     },
@@ -103,16 +97,25 @@ class SettingsCommands(AbstractCommands):
                         'positional': True,
                         'description': translate("commands.args.value_description"),
                         'required': True
+                    },
+                    'force-confirm': {
+                        'positional': False,
+                        'description': translate("commands.args.force_description"),
+                        'default': False,
+                        'is_flag': True,
+                        'required': False
                     }
                 }
             },
             'settings:reset': {
                 'handler': self._cmd_settings_reset,
                 'description': translate("commands.settings.reset_description"),
-                'is_async': False,
+                'is_async': True,
                 'args': {
                     'setting': {
                         'positional': True,
+                        'completer_type': 'suggestions',
+                        'values': self._get_available_settings(),
                         'description': translate("commands.args.setting_description"),
                         'required': True
                     },
@@ -132,11 +135,14 @@ class SettingsCommands(AbstractCommands):
                 'args': {
                     'file': {
                         'positional': True,
+                        'completer_type': 'path',
                         'description': translate("commands.args.file_description"),
                         'required': True
                     },
                     'format': {
                         'positional': False,
+                        'completer_type': 'suggestions',
+                        'values': ["json", "yaml", "toml"],
                         'description': translate("commands.args.format_description"),
                         'default': None,
                         'required': False
@@ -146,7 +152,7 @@ class SettingsCommands(AbstractCommands):
             'settings:import': {
                 'handler': self._cmd_settings_import,
                 'description': translate("commands.settings.import_description"),
-                'is_async': False,
+                'is_async': True,
                 'args': {
                     'file': {
                         'positional': True,
@@ -154,9 +160,16 @@ class SettingsCommands(AbstractCommands):
                         'description': translate("commands.args.file_description"),
                         'required': True
                     },
-                    'force': {
+                    'force-confirm': {
                         'positional': False,
                         'description': translate("commands.args.force_description"),
+                        'default': False,
+                        'is_flag': True,
+                        'required': False
+                    },
+                    'force-protected': {
+                        'positional': False,
+                        'description': translate("commands.args.force_protected_description"),
                         'default': False,
                         'is_flag': True,
                         'required': False
@@ -245,7 +258,7 @@ class SettingsCommands(AbstractCommands):
             self._print_error(translate("errors.get_setting_failed", error=str(e)))
         return True
 
-    def _cmd_settings_set(self, args: str) -> bool:
+    async def _cmd_settings_set(self, args: str) -> bool:
         """Set the value of a specific setting.
 
         Args:
@@ -254,13 +267,13 @@ class SettingsCommands(AbstractCommands):
         Returns:
             bool: True to continue the chat session, False to exit.
         """
-        arg_defs = {
-            'setting': {'positional': True, 'required': True},
-            'value': {'positional': True, 'required': True}
-        }
+        arg_defs = self.commands['settings:set']['args']
+
         parsed_args = self._parse_args(args, arg_defs)
         setting_path = parsed_args.get('setting')
         value = parsed_args.get('value')
+        force_confirm = parsed_args.get('force-confirm', False)
+        force_protected = parsed_args.get('force-protected', False)
 
         if not setting_path or value is None:
             self._print_error(translate("errors.setting_and_value_required"))
@@ -272,9 +285,15 @@ class SettingsCommands(AbstractCommands):
 
         try:
             category, name = self._parse_setting_path(setting_path)
+
+            if not force_confirm:
+                if not await self._request_user_consent(translate("prompts.confirm_set", setting=f"{category}:{name}", value=value)):
+                    self._print_info(translate("info.operation_cancelled"))
+                    return True
+
             current_setting = self.settings_registry.get_setting(category, name)
             typed_value = self._convert_value(value, current_setting["current_value"])
-            success = self.settings_registry.set_setting(category, name, typed_value)
+            success = self.settings_registry.set_setting(category, name, typed_value, force=force_protected)
             if success:
                 self._print_success(translate("info.setting_updated",
                                               setting=f"{category}:{name}",
@@ -287,7 +306,7 @@ class SettingsCommands(AbstractCommands):
             self._print_error(translate("errors.set_setting_failed", error=str(e)))
         return True
 
-    def _cmd_settings_reset(self, args: str) -> bool:
+    async def _cmd_settings_reset(self, args: str) -> bool:
         """Reset a setting to its default value.
 
         Args:
@@ -315,7 +334,7 @@ class SettingsCommands(AbstractCommands):
         try:
             category, name = self._parse_setting_path(setting_path)
             if not force:
-                if not confirm(translate("prompts.confirm_reset", setting=f"{category}:{name}")):
+                if not await self._request_user_consent(translate("prompts.confirm_reset", setting=f"{category}:{name}")):
                     self._print_info(translate("info.operation_cancelled"))
                     return True
 
@@ -329,6 +348,26 @@ class SettingsCommands(AbstractCommands):
         except Exception as e:
             self._print_error(translate("errors.reset_setting_failed", error=str(e)))
         return True
+
+    async def _request_user_consent(self, message: str) -> bool:
+        """Request user consent for the installation plan.
+        
+        Args:
+            message (str): Message to display for confirmation.
+
+        Returns:
+            bool: True if user approves, False otherwise.
+        """        
+        # Request confirmation
+        session = PromptSession()
+        while True:
+            response = (await session.prompt_async(f"\n{message} [y/N]: ")).strip().lower()
+            if response in ['y', 'yes']:
+                return True
+            elif response in ['n', 'no', '']:
+                return False
+            else:
+                print("Please enter 'y' for yes or 'n' for no.")
 
     def _cmd_settings_export(self, args: str) -> bool:
         """Export settings to a file.
@@ -370,7 +409,7 @@ class SettingsCommands(AbstractCommands):
             self._print_error(translate("errors.export_settings_failed", error=str(e)))
         return True
 
-    def _cmd_settings_import(self, args: str) -> bool:
+    async def _cmd_settings_import(self, args: str) -> bool:
         """Import settings from a file.
 
         Args:
@@ -381,11 +420,13 @@ class SettingsCommands(AbstractCommands):
         """
         arg_defs = {
             'file': {'positional': True, 'required': True},
-            'force': {'positional': False, 'default': False, 'is_flag': True}
+            'force-confirm': {'positional': False, 'default': False, 'is_flag': True},
+            'force-protected': {'positional': False, 'default': False, 'is_flag': True}
         }
         parsed_args = self._parse_args(args, arg_defs)
         file_path = parsed_args.get('file')
-        force = parsed_args.get('force', False)
+        force_confirm = parsed_args.get('force-confirm', False)
+        force_protected = parsed_args.get('force-protected', False)
 
         if not file_path:
             self._print_error(translate("errors.file_path_required"))
@@ -395,19 +436,18 @@ class SettingsCommands(AbstractCommands):
             self._print_error(translate("errors.settings_registry_not_available"))
             return True
 
-        from pathlib import Path
         file_path_obj = Path(file_path)
         if not file_path_obj.exists():
             self._print_error(translate("errors.file_not_found", file=str(file_path_obj)))
             return True
 
         try:
-            if not force:
-                if not confirm(translate("prompts.confirm_import", file=str(file_path_obj))):
+            if not force_confirm:
+                if not await self._request_user_consent(translate("prompts.confirm_import", file=str(file_path_obj))):
                     self._print_info(translate("info.operation_cancelled"))
                     return True
 
-            success = self.settings_registry.import_settings_from_file(str(file_path_obj), force=force)
+            success = self.settings_registry.import_settings_from_file(str(file_path_obj), force=force_protected)
             if success:
                 self._print_success(translate("info.settings_imported", file=str(file_path_obj)))
             else:
@@ -554,10 +594,8 @@ class SettingsCommands(AbstractCommands):
             current_category = None
             for setting in settings:
                 # Group by category
-                if current_category != setting["category_name"]:
-                    current_category = setting["category_name"]
-                    category_display_name = setting.get("category_display_name", setting["category_name"])
-                    self._print_subheader(f"[{category_display_name}] ({setting['category_name']})")
+                category_display_name = setting.get("category_display_name", setting["category_name"])
+                self._print_subheader(f"[{category_display_name}] ({setting['category_name']})")
 
                 # Format setting info
                 display_name = setting.get("display_name", setting["name"])
@@ -594,6 +632,17 @@ class SettingsCommands(AbstractCommands):
         
         if setting.get("hint"):
             self._print_info(f"Hint: {setting['hint']}")
+
+    def _get_available_settings(self) -> List[str]:
+        """Get a list of all available settings in the registry.
+
+        Returns:
+            List[str]: List of setting names.
+        """
+        if not self.settings_registry:
+            return []
+
+        return [f"{setting['category_name']}:{setting['name']}" for setting in self.settings_registry.list_settings()]
     
     def _print_header(self, text: str) -> None:
         """Print a formatted header."""

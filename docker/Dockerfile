@@ -1,10 +1,9 @@
 FROM python:3.12-slim
 
-# Use a fixed path for build steps
-ENV HATCHLING_DIR=/opt/hatchling
+ENV HATCHLING_SOURCE_DIR=/opt/Hatchling
 
 # Just creating the directory
-RUN mkdir -p ${HATCHLING_DIR}
+RUN mkdir -p ${HATCHLING_SOURCE_DIR}
 
 
 # Install system dependencies
@@ -49,10 +48,10 @@ ENV PYTHONDONTWRITEBYTECODE=1
 ENV PYTHONUNBUFFERED=1
 
 # Copy the current directory contents into the container
-COPY . ${HATCHLING_DIR}
+COPY . ${HATCHLING_SOURCE_DIR}
 
 # Set working directory
-WORKDIR ${HATCHLING_DIR}
+WORKDIR ${HATCHLING_SOURCE_DIR}
 
 # Copy the entrypoint script
 RUN chmod +x ./docker/entrypoint.sh

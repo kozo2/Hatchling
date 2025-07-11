@@ -6,22 +6,10 @@ and provides listing, getting, setting, resetting, import/export, and search cap
 
 import re
 import json
-try:
-    import tomli_w as toml_write
-    import tomllib as toml_read
-except ImportError:
-    try:
-        import toml
-        toml_write = toml
-        toml_read = toml
-    except ImportError:
-        toml_write = None
-        toml_read = None
-
-try:
-    import yaml
-except ImportError:
-    yaml = None
+from pathlib import Path
+import tomli_w as toml_write
+import tomli as toml_read
+import yaml
 from typing import Dict, List, Tuple, Any, Optional, Union
 from difflib import SequenceMatcher
 
@@ -66,6 +54,8 @@ class SettingsRegistry:
             List[Dict[str, Any]]: List of setting information dictionaries.
         """
         all_settings = self._get_all_settings_metadata()
+
+        self.logger.debug(f"Listing settings: {json.dumps(self.make_serializable(all_settings), indent=2)}")
         
         if not filter_regex:
             return all_settings
@@ -74,10 +64,7 @@ class SettingsRegistry:
         exact_matches = []
         for setting in all_settings:
             if setting['category_name']+":"+setting['name'] == filter_regex:
-                exact_matches.append(setting)
-        
-        if exact_matches:
-            return exact_matches
+                return [setting]
         
         # Stage 2: Category-wide listing
         category_matches = []
@@ -203,6 +190,23 @@ class SettingsRegistry:
         default_value = setting_info['default_value']
         return self.set_setting(category, name, default_value, force)
     
+    def make_serializable(self, obj: Any) -> Any:
+        """Convert an object to a serializable format.
+        
+        Args:
+            obj (Any): The object to convert.
+            
+        Returns:
+            Any: A serializable version of the object.
+        """
+        if isinstance(obj, dict):
+            return {k: self.make_serializable(v) for k, v in obj.items()}
+        elif isinstance(obj, list):
+            return [self.make_serializable(i) for i in obj]
+        elif isinstance(obj, Path):
+            return str(obj)
+        return obj
+
     def export_settings(self, format: str = "toml") -> str:
         """Export all settings to a formatted string.
         
@@ -216,16 +220,13 @@ class SettingsRegistry:
             ValueError: If format is not supported.
         """
         settings_dict = self.app_settings.model_dump()
+        settings_dict = self.make_serializable(settings_dict)
         
         if format.lower() == "toml":
-            if toml_write is None:
-                raise ValueError("TOML support not available. Install 'tomli-w' or 'toml'")
             return toml_write.dumps(settings_dict)
         elif format.lower() == "json":
-            return json.dumps(self.app_settings.model_dump_json(), indent=2)
+            return json.dumps(settings_dict, indent=2)
         elif format.lower() == "yaml":
-            if yaml is None:
-                raise ValueError("YAML support not available. Install 'PyYAML'")
             return yaml.dump(settings_dict, default_flow_style=False)
         else:
             raise ValueError(f"Unsupported export format: {format}")
@@ -247,14 +248,10 @@ class SettingsRegistry:
         # Parse the data
         try:
             if format.lower() == "toml":
-                if toml_read is None:
-                    raise ValueError("TOML support not available. Install 'tomllib' or 'toml'")
                 parsed_data = toml_read.loads(data)
             elif format.lower() == "json":
                 parsed_data = json.loads(data)
             elif format.lower() == "yaml":
-                if yaml is None:
-                    raise ValueError("YAML support not available. Install 'PyYAML'")
                 parsed_data = yaml.safe_load(data)
             else:
                 raise ValueError(f"Unsupported import format: {format}")
@@ -277,11 +274,17 @@ class SettingsRegistry:
                     self.set_setting(category_name, setting_name, value, force)
                     report["successful"].append(f"{category_name}:{setting_name}")
                 except ValueError as e:
-                    if "read-only" in str(e) or ("protected" in str(e) and not force):
+                    if "read-only" in str(e):
+                        self.logger.warning(f"{category_name}:{setting_name} is read-only and cannot be modified --> skipped")
+                        report["skipped"].append(f"{category_name}:{setting_name} ({str(e)})")
+                    elif("protected" in str(e) and not force):
+                        self.logger.warning(f"{category_name}:{setting_name} is protected and cannot be modified without force --> skipped")
                         report["skipped"].append(f"{category_name}:{setting_name} ({str(e)})")
                     else:
+                        self.logger.error(f"Failed to set {category_name}:{setting_name} --> {str(e)}")
                         report["failed"].append(f"{category_name}:{setting_name} ({str(e)})")
                 except Exception as e:
+                    self.logger.error(f"Unexpected error setting {category_name}:{setting_name} --> {str(e)}")
                     report["failed"].append(f"{category_name}:{setting_name} ({str(e)})")
         
         # Log the import operation
@@ -308,7 +311,7 @@ class SettingsRegistry:
             category_model_class = type(_category_model)
             
             # Get translated category information
-            category_display_name = translate(f"settings.{category_name}.category_name")
+            category_display_name = translate(f"settings.{category_name}.category_display_name")
             category_description = translate(f"settings.{category_name}.category_description")
             
             for field_name, field_info in category_model_class.model_fields.items():
@@ -461,29 +464,43 @@ class SettingsRegistry:
             bool: True if export was successful.
         """
         try:
-            from pathlib import Path
             path = Path(file_path)
-            
-            if format is None:
-                # Detect format from file extension
+            allowed_formats = {"json", "toml", "yaml"}
+            # Determine format and file path
+            if format:
+                fmt = format.lower()
+                if fmt not in allowed_formats:
+                    raise ValueError(f"Unsupported export format: {format}")
+                export_path = path.with_suffix(f".{fmt}")
+            else:
                 suffix = path.suffix.lower()
                 if suffix == ".json":
-                    format = "json"
+                    fmt = "json"
                 elif suffix in (".yaml", ".yml"):
-                    format = "yaml"
+                    fmt = "yaml"
                 else:
-                    format = "toml"  # Default
-            
+                    fmt = "toml"
+                export_path = path if path.suffix else path.with_suffix(f".{fmt}")
+
             # Export settings to string
-            settings_data = self.export_settings(format)
-            
-            # Write to file
-            with open(path, 'w', encoding='utf-8') as f:
-                f.write(settings_data)
-            
-            self.logger.info(f"Settings exported to {file_path} in {format} format")
+            settings_data = self.export_settings(fmt)
+
+            # Write to file according to format
+            if fmt == "json":
+                with open(export_path, "w", encoding="utf-8") as f:
+                    f.write(settings_data)
+            elif fmt == "yaml":
+                with open(export_path, "w", encoding="utf-8") as f:
+                    f.write(settings_data)
+            elif fmt == "toml":
+                with open(export_path, "w", encoding="utf-8") as f:
+                    f.write(settings_data)
+            else:
+                raise ValueError(f"Unsupported export format: {fmt}")
+
+            self.logger.info(f"Settings exported to {export_path} in {fmt} format")
             return True
-            
+
         except Exception as e:
             self.logger.error(f"Failed to export settings to {file_path}: {e}")
             return False
@@ -500,7 +517,6 @@ class SettingsRegistry:
             bool: True if import was successful.
         """
         try:
-            from pathlib import Path
             path = Path(file_path)
             
             if not path.exists():
