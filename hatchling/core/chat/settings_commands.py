@@ -206,10 +206,8 @@ class SettingsCommands(AbstractCommands):
         Returns:
             bool: True to continue the chat session, False to exit.
         """
-        arg_defs = {
-            'filter': {'positional': True, 'default': None},
-            'format': {'positional': False, 'default': "table"}
-        }
+        arg_defs = self.commands['settings:list']['args']
+
         parsed_args = self._parse_args(args, arg_defs)
         filter_pattern = parsed_args.get('filter')
         output_format = parsed_args.get('format', "table")
@@ -234,9 +232,8 @@ class SettingsCommands(AbstractCommands):
         Returns:
             bool: True to continue the chat session, False to exit.
         """
-        arg_defs = {
-            'setting': {'positional': True, 'required': True}
-        }
+        arg_defs = self.commands['settings:get']['args']
+
         parsed_args = self._parse_args(args, arg_defs)
         setting_path = parsed_args.get('setting')
 
@@ -315,10 +312,8 @@ class SettingsCommands(AbstractCommands):
         Returns:
             bool: True to continue the chat session, False to exit.
         """
-        arg_defs = {
-            'setting': {'positional': True, 'required': True},
-            'force': {'positional': False, 'default': False, 'is_flag': True}
-        }
+        arg_defs = self.commands['settings:reset']['args']
+
         parsed_args = self._parse_args(args, arg_defs)
         setting_path = parsed_args.get('setting')
         force = parsed_args.get('force', False)
@@ -378,10 +373,8 @@ class SettingsCommands(AbstractCommands):
         Returns:
             bool: True to continue the chat session, False to exit.
         """
-        arg_defs = {
-            'file': {'positional': True, 'required': True},
-            'format': {'positional': False, 'default': None}
-        }
+        arg_defs = self.commands['settings:export']['args']
+
         parsed_args = self._parse_args(args, arg_defs)
         file_path = parsed_args.get('file')
         file_format = parsed_args.get('format')
@@ -418,11 +411,8 @@ class SettingsCommands(AbstractCommands):
         Returns:
             bool: True to continue the chat session, False to exit.
         """
-        arg_defs = {
-            'file': {'positional': True, 'required': True},
-            'force-confirm': {'positional': False, 'default': False, 'is_flag': True},
-            'force-protected': {'positional': False, 'default': False, 'is_flag': True}
-        }
+        arg_defs = self.commands['settings:import']['args']
+
         parsed_args = self._parse_args(args, arg_defs)
         file_path = parsed_args.get('file')
         force_confirm = parsed_args.get('force-confirm', False)
@@ -490,9 +480,8 @@ class SettingsCommands(AbstractCommands):
         Returns:
             bool: True to continue the chat session, False to exit.
         """
-        arg_defs = {
-            'language': {'positional': True, 'required': True}
-        }
+        arg_defs = self.commands['settings:language:set']['args']
+
         parsed_args = self._parse_args(args, arg_defs)
         language_code = parsed_args.get('language')
 
