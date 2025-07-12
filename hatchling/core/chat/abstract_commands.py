@@ -15,7 +15,6 @@ from prompt_toolkit.styles import Style
 from hatchling.core.logging.session_debug_log import SessionDebugLog
 from hatchling.config.settings import AppSettings
 from hatchling.config.settings_registry import SettingsRegistry
-from hatchling.config.i18n import translate
 
 from hatch import HatchEnvironmentManager
 
@@ -126,24 +125,9 @@ class AbstractCommands(ABC):
             ('class:command.description', f"{cmd_info['description']}")
         ]
     
-    def set_commands_language(self, language_code: str) -> None:
-        """Set the language for all commands.
-        
-        Args:
-            language_code (str): The language code to set.
-        """
-        if not self.settings_registry:
-            self.logger.error(translate("errors.settings_registry_not_available"))
-
-        try:
-            success = self.settings_registry.set_language(language_code)
-            if success:
-                self._register_commands()
-                self.logger.info(translate("info.language_changed", language=language_code))
-            else:
-                self.logger.error(translate("errors.set_language_failed", language=language_code))
-        except Exception as e:
-            self.logger.error(str(e))
+    def reload_commands(self) -> None:
+        """Reload all commands to apply the current language settings."""
+        self._register_commands()  # Re-register commands to apply new language
     
     def _print_command_help(self, command: str) -> None:
         """Print help for a specific command.

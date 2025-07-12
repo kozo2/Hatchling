@@ -18,13 +18,12 @@ from prompt_toolkit import PromptSession, print_formatted_text
 from prompt_toolkit.formatted_text import FormattedText
 
 from hatchling.core.chat.abstract_commands import AbstractCommands
-from hatchling.config.settings_registry import SettingsRegistry
 from hatchling.config.i18n import translate
 
 
 class SettingsCommands(AbstractCommands):
     """Handles settings-related command operations in the chat interface."""
-    
+
     def _register_commands(self) -> None:
         """Register all settings-related commands."""
         self.commands = {

@@ -15,13 +15,14 @@ from hatchling.core.chat.base_commands import BaseChatCommands
 from hatchling.core.chat.hatch_commands import HatchCommands
 from hatchling.core.chat.settings_commands import SettingsCommands
 from hatchling.config.settings_registry import SettingsRegistry
+from hatchling.config.i18n import translate
 
 from hatch import HatchEnvironmentManager
 
 
 class ChatCommandHandler:
     """Handles processing of command inputs in the chat interface."""    
-    def __init__(self, chat_session, settings: AppSettings, env_manager: HatchEnvironmentManager, debug_log: SessionDebugLog, style: Optional[Style] = None, settings_registry: Optional[SettingsRegistry] = None):
+    def __init__(self, chat_session, settings: AppSettings, env_manager: HatchEnvironmentManager, debug_log: SessionDebugLog, style: Optional[Style] = None):
         """Initialize the command handler.
         
         Args:
@@ -30,12 +31,14 @@ class ChatCommandHandler:
             env_manager (HatchEnvironmentManager): The Hatch environment manager.
             debug_log (SessionDebugLog): Logger for command operations.
             style (Optional[Style]): Style for formatting command output.
-            settings_registry (Optional[SettingsRegistry]): Settings registry for settings commands.
         """
 
-        self.base_commands = BaseChatCommands(chat_session, settings, env_manager, debug_log, style, settings_registry)
-        self.hatch_commands = HatchCommands(chat_session, settings, env_manager, debug_log, style, settings_registry)
-        self.settings_commands = SettingsCommands(chat_session, settings, env_manager, debug_log, style, settings_registry)
+        self.settings_registry = SettingsRegistry(settings)
+        self.base_commands = BaseChatCommands(chat_session, settings, env_manager, debug_log, style, self.settings_registry)
+        self.hatch_commands = HatchCommands(chat_session, settings, env_manager, debug_log, style, self.settings_registry)
+        self.settings_commands = SettingsCommands(chat_session, settings, env_manager, debug_log, style, self.settings_registry)
+
+        self.logger = debug_log
 
         self._register_commands()
     
@@ -75,10 +78,21 @@ class ChatCommandHandler:
         Args:
             language_code (str): The language code to set.
         """
-        self.base_commands.set_commands_language(language_code)
-        self.hatch_commands.set_commands_language(language_code)
-        self.settings_commands.set_commands_language(language_code)
-    
+        if not self.settings_registry:
+            self.logger.error(translate("errors.settings_registry_not_available"))
+
+        try:
+            success = self.settings_registry.set_language(language_code)
+            if success:
+                self.base_commands.reload_commands()
+                self.hatch_commands.reload_commands()
+                self.settings_commands.reload_commands()
+            else:
+                self.logger.error(translate("errors.set_language_failed", language=language_code))
+        except Exception as e:
+            self.logger.error(str(e))
+        
+
     async def process_command(self, user_input: str) -> Tuple[bool, bool]:
         """Process a potential command from user input.
         
