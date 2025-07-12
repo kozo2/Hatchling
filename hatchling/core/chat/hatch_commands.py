@@ -20,36 +20,37 @@ from hatchling.mcp_utils.manager import mcp_manager
 # from hatch import HatchEnvironmentManager
 from hatch import create_package_template
 
+from hatchling.config.i18n import translate
 
 class HatchCommands(AbstractCommands):
     """Handles Hatch package manager commands in the chat interface."""
 
     def _register_commands(self) -> None:
         """Register all available Hatch package manager commands."""
-        # New standardized command registration format
+        
         self.commands = {
             # Environment commands
             'hatch:env:list': {
                 'handler': self._cmd_env_list,
-                'description': "List all available Hatch environments",
+                'description': translate('commands.hatch.env_list_description'),
                 'is_async': False,
                 'args': {}
             },
             'hatch:env:create': {
                 'handler': self._cmd_env_create,
-                'description': "Create a new Hatch environment",
+                'description': translate('commands.hatch.env_create_description'),
                 'is_async': False,
                 'args': {
                     'name': {
                         'positional': True,
                         'completer_type': 'none',
-                        'description': "Name for the new environment",
+                        'description': translate('commands.args.env_name_description'),
                         'required': True
                     },
                     'description': {
                         'positional': False,
                         'completer_type': 'none',
-                        'description': "Description for the environment",
+                        'description': translate('commands.args.env_description_description'),
                         'aliases': ['D'],
                         'default': '',
                         'required': False
@@ -57,14 +58,14 @@ class HatchCommands(AbstractCommands):
                     'python-version': {
                         'positional': False,
                         'completer_type': 'none',
-                        'description': "Python version for the environment (e.g., 3.11, 3.12)",
+                        'description': translate('commands.args.python_version_description'),
                         'default': None,
                         'required': False
                     },
                     'no-python': {
                         'positional': False,
                         'completer_type': 'none',
-                        'description': "Don't create a Python environment using conda/mamba",
+                        'description': translate('commands.args.no_python_description'),
                         'default': False,
                         'is_flag': True,
                         'required': False
@@ -72,7 +73,7 @@ class HatchCommands(AbstractCommands):
                     'no-hatch-mcp-server': {
                         'positional': False,
                         'completer_type': 'none',
-                        'description': "Don't install hatch_mcp_server in the new environment",
+                        'description': translate('commands.args.no_hatch_mcp_server_description'),
                         'default': False,
                         'is_flag': True,
                         'required': False
@@ -80,7 +81,7 @@ class HatchCommands(AbstractCommands):
                     'hatch_mcp_server_tag': {
                         'positional': False,
                         'completer_type': 'none',
-                        'description': "Git tag/branch reference for hatch_mcp_server installation (e.g., 'dev', 'v0.1.0')",
+                        'description': translate('commands.args.hatch_mcp_server_tag_description'),
                         'default': None,
                         'required': False
                     }
@@ -88,32 +89,32 @@ class HatchCommands(AbstractCommands):
             },
             'hatch:env:remove': {
                 'handler': self._cmd_env_remove,
-                'description': "Remove a Hatch environment",
+                'description': translate('commands.hatch.env_remove_description'),
                 'is_async': False,
                 'args': {
                     'name': {
                         'positional': True,
                         'completer_type': 'environment',
-                        'description': "Name of the environment to remove",
+                        'description': translate('commands.args.env_remove_name_description'),
                         'required': True
                     }
                 }
             },
             'hatch:env:current': {
                 'handler': self._cmd_env_current,
-                'description': "Show the current Hatch environment",
+                'description': translate('commands.hatch.env_current_description'),
                 'is_async': False,
                 'args': {}
             },
             'hatch:env:use': {
                 'handler': self._cmd_env_use,
-                'description': "Set the current Hatch environment",
+                'description': translate('commands.hatch.env_use_description'),
                 'is_async': True,
                 'args': {
                     'name': {
                         'positional': True,
                         'completer_type': 'environment',
-                        'description': "Name of the environment to use",
+                        'description': translate('commands.args.env_use_name_description'),
                         'required': True
                     }
                 }
@@ -121,19 +122,19 @@ class HatchCommands(AbstractCommands):
             # Package commands
             'hatch:pkg:add': {
                 'handler': self._cmd_pkg_add,
-                'description': "Add a package to an environment",
+                'description': translate('commands.hatch.pkg_add_description'),
                 'is_async': False,
                 'args': {
                     'package_path_or_name': {
                         'positional': True,
                         'completer_type': 'local_package',
-                        'description': "Path or name of the package to add",
+                        'description': translate('commands.args.package_path_or_name_description'),
                         'required': True
                     },
                     'env': {
                         'positional': False,
                         'completer_type': 'environment',
-                        'description': "Environment to add the package to",
+                        'description': translate('commands.args.env_target_description'),
                         'aliases': ['e'],
                         'default': None,
                         'required': False
@@ -141,7 +142,7 @@ class HatchCommands(AbstractCommands):
                     'version': {
                         'positional': False,
                         'completer_type': 'none',
-                        'description': "Version of the package to add",
+                        'description': translate('commands.args.package_version_description'),
                         'aliases': ['v'],
                         'default': None,
                         'required': False
@@ -149,7 +150,7 @@ class HatchCommands(AbstractCommands):
                     'force-download': {
                         'positional': False,
                         'completer_type': 'none',
-                        'description': "Force download even if already available",
+                        'description': translate('commands.args.force_download_description'),
                         'aliases': ['f'],
                         'default': False,
                         'is_flag': True,
@@ -158,7 +159,7 @@ class HatchCommands(AbstractCommands):
                     'refresh-registry': {
                         'positional': False,
                         'completer_type': 'none',
-                        'description': "Refresh the registry before installing",
+                        'description': translate('commands.args.refresh_registry_description'),
                         'aliases': ['r'],
                         'default': False,
                         'is_flag': True,
@@ -167,7 +168,7 @@ class HatchCommands(AbstractCommands):
                     'auto-approve': {
                         'positional': False,
                         'completer_type': 'none',
-                        'description': "Skip user consent prompt for automation scenarios",
+                        'description': translate('commands.args.auto_approve_description'),
                         'aliases': ['y'],
                         'default': False,
                         'is_flag': True,
@@ -177,19 +178,19 @@ class HatchCommands(AbstractCommands):
             },
             'hatch:pkg:remove': {
                 'handler': self._cmd_pkg_remove,
-                'description': "Remove a package from an environment",
+                'description': translate('commands.hatch.pkg_remove_description'),
                 'is_async': False,
                 'args': {
                     'package_name': {
                         'positional': True,
                         'completer_type': 'package',
-                        'description': "Name of the package to remove",
+                        'description': translate('commands.args.package_name_description'),
                         'required': True
                     },
                     'env': {
                         'positional': False,
                         'completer_type': 'environment',
-                        'description': "Environment to remove the package from",
+                        'description': translate('commands.args.env_remove_package_description'),
                         'aliases': ['e'],
                         'default': None,
                         'required': False
@@ -198,13 +199,13 @@ class HatchCommands(AbstractCommands):
             },
             'hatch:pkg:list': {
                 'handler': self._cmd_pkg_list,
-                'description': "List packages in an environment",
+                'description': translate('commands.hatch.pkg_list_description'),
                 'is_async': False,
                 'args': {
                     'env': {
                         'positional': False,
                         'completer_type': 'environment',
-                        'description': "Environment to list packages from",
+                        'description': translate('commands.args.env_list_packages_description'),
                         'aliases': ['e'],
                         'default': None,
                         'required': False
@@ -212,21 +213,21 @@ class HatchCommands(AbstractCommands):
                 }
             },
             # Package creation command
-            'hatch:create': {
+            'hatch:pkg:create': {
                 'handler': self._cmd_create_package,
-                'description': "Create a new package template",
+                'description': translate('commands.hatch.pkg_create_description'),
                 'is_async': False,
                 'args': {
                     'name': {
                         'positional': True,
                         'completer_type': 'none',
-                        'description': "Name of the package to create",
+                        'description': translate('commands.args.package_create_name_description'),
                         'required': True
                     },
                     'dir': {
                         'positional': False,
                         'completer_type': 'path',
-                        'description': "Directory to create the package in",
+                        'description': translate('commands.args.dir_description'),
                         'aliases': ['d'],
                         'default': '.',
                         'required': False
@@ -234,7 +235,7 @@ class HatchCommands(AbstractCommands):
                     'description': {
                         'positional': False,
                         'completer_type': 'none',
-                        'description': "Description of the package",
+                        'description': translate('commands.args.package_description_description'),
                         'aliases': ['D'],
                         'default': '',
                         'required': False
@@ -242,15 +243,15 @@ class HatchCommands(AbstractCommands):
                 }
             },
             # Package validation command
-            'hatch:validate': {
+            'hatch:pkg:validate': {
                 'handler': self._cmd_validate_package,
-                'description': "Validate a package",
+                'description': translate('commands.hatch.pkg_validate_description'),
                 'is_async': False,
                 'args': {
                     'package_dir': {
                         'positional': True,
                         'completer_type': 'path',
-                        'description': "Directory of the package to validate",
+                        'description': translate('commands.args.package_dir_description'),
                         'required': True
                     }
                 }
@@ -258,27 +259,27 @@ class HatchCommands(AbstractCommands):
             # Python environment management commands
             'hatch:env:python:init': {
                 'handler': self._cmd_env_python_init,
-                'description': "Initialize Python environment for a Hatch environment",
+                'description': translate('commands.hatch.env_python_init_description'),
                 'is_async': False,
                 'args': {
                     'hatch_env': {
                         'positional': False,
                         'completer_type': 'environment',
-                        'description': "Hatch environment name (default: current environment)",
+                        'description': translate('commands.args.hatch_env_description'),
                         'default': None,
                         'required': False
                     },
                     'python-version': {
                         'positional': False,
                         'completer_type': 'none',
-                        'description': "Python version (e.g., 3.11, 3.12)",
+                        'description': translate('commands.args.python_version_description'),
                         'default': None,
                         'required': False
                     },
                     'force': {
                         'positional': False,
                         'completer_type': 'none',
-                        'description': "Force recreation if exists",
+                        'description': translate('commands.args.force_recreation_description'),
                         'default': False,
                         'is_flag': True,
                         'required': False
@@ -286,7 +287,7 @@ class HatchCommands(AbstractCommands):
                     'no-hatch-mcp-server': {
                         'positional': False,
                         'completer_type': 'none',
-                        'description': "Don't install hatch_mcp_server wrapper in the Python environment",
+                        'description': translate('commands.args.no_hatch_mcp_server_wrapper_description'),
                         'default': False,
                         'is_flag': True,
                         'required': False
@@ -294,7 +295,7 @@ class HatchCommands(AbstractCommands):
                     'hatch_mcp_server_tag': {
                         'positional': False,
                         'completer_type': 'none',
-                        'description': "Git tag/branch reference for hatch_mcp_server wrapper installation (e.g., 'dev', 'v0.1.0')",
+                        'description': translate('commands.args.hatch_mcp_server_tag_description'),
                         'default': None,
                         'required': False
                     }
@@ -302,20 +303,20 @@ class HatchCommands(AbstractCommands):
             },
             'hatch:env:python:info': {
                 'handler': self._cmd_env_python_info,
-                'description': "Show Python environment information",
+                'description': translate('commands.hatch.env_python_info_description'),
                 'is_async': False,
                 'args': {
                     'hatch_env': {
                         'positional': False,
                         'completer_type': 'environment',
-                        'description': "Hatch environment name (default: current environment)",
+                        'description': translate('commands.args.hatch_env_description'),
                         'default': None,
                         'required': False
                     },
                     'detailed': {
                         'positional': False,
                         'completer_type': 'none',
-                        'description': "Show detailed diagnostics",
+                        'description': translate('commands.args.detailed_description'),
                         'default': False,
                         'is_flag': True,
                         'required': False
@@ -324,20 +325,20 @@ class HatchCommands(AbstractCommands):
             },
             'hatch:env:python:remove': {
                 'handler': self._cmd_env_python_remove,
-                'description': "Remove Python environment",
+                'description': translate('commands.hatch.env_python_remove_description'),
                 'is_async': False,
                 'args': {
                     'hatch_env': {
                         'positional': False,
                         'completer_type': 'environment',
-                        'description': "Hatch environment name (default: current environment)",
+                        'description': translate('commands.args.hatch_env_description'),
                         'default': None,
                         'required': False
                     },
                     'force': {
                         'positional': False,
                         'completer_type': 'none',
-                        'description': "Force removal without confirmation",
+                        'description': translate('commands.args.force_removal_description'),
                         'default': False,
                         'is_flag': True,
                         'required': False
@@ -346,20 +347,20 @@ class HatchCommands(AbstractCommands):
             },
             'hatch:env:python:shell': {
                 'handler': self._cmd_env_python_shell,
-                'description': "Launch Python shell in environment",
+                'description': translate('commands.hatch.env_python_shell_description'),
                 'is_async': False,
                 'args': {
                     'hatch_env': {
                         'positional': False,
                         'completer_type': 'environment',
-                        'description': "Hatch environment name (default: current environment)",
+                        'description': translate('commands.args.hatch_env_description'),
                         'default': None,
                         'required': False
                     },
                     'cmd': {
                         'positional': False,
                         'completer_type': 'none',
-                        'description': "Command to run in the shell (optional)",
+                        'description': translate('commands.args.cmd_description'),
                         'default': None,
                         'required': False
                     }
@@ -367,20 +368,20 @@ class HatchCommands(AbstractCommands):
             },
             'hatch:env:python:add-hatch-mcp': {
                 'handler': self._cmd_env_python_add_hatch_mcp,
-                'description': "Add hatch_mcp_server wrapper to the environment",
+                'description': translate('commands.hatch.env_python_add_hatch_mcp_description'),
                 'is_async': False,
                 'args': {
                     'hatch_env': {
                         'positional': False,
                         'completer_type': 'environment',
-                        'description': "Hatch environment name. It must possess a valid Python environment. (default: current environment)",
+                        'description': translate('commands.args.hatch_env_special_description'),
                         'default': None,
                         'required': False
                     },
                     'tag': {
                         'positional': False,
                         'completer_type': 'none',
-                        'description': "Git tag/branch reference for wrapper installation (e.g., 'dev', 'v0.1.0')",
+                        'description': translate('commands.args.tag_description'),
                         'default': None,
                         'required': False
                     }

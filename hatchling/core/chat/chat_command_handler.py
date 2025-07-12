@@ -33,8 +33,8 @@ class ChatCommandHandler:
             settings_registry (Optional[SettingsRegistry]): Settings registry for settings commands.
         """
 
-        self.base_commands = BaseChatCommands(chat_session, settings, env_manager, debug_log, style)
-        self.hatch_commands = HatchCommands(chat_session, settings, env_manager, debug_log, style)
+        self.base_commands = BaseChatCommands(chat_session, settings, env_manager, debug_log, style, settings_registry)
+        self.hatch_commands = HatchCommands(chat_session, settings, env_manager, debug_log, style, settings_registry)
         self.settings_commands = SettingsCommands(chat_session, settings, env_manager, debug_log, style, settings_registry)
 
         self._register_commands()
@@ -68,6 +68,16 @@ class ChatCommandHandler:
         self.settings_commands.print_commands_help()
             
         print("======================\n")
+
+    def set_commands_language(self, language_code: str) -> None:
+        """Set the language for all commands.
+        
+        Args:
+            language_code (str): The language code to set.
+        """
+        self.base_commands.set_commands_language(language_code)
+        self.hatch_commands.set_commands_language(language_code)
+        self.settings_commands.set_commands_language(language_code)
     
     async def process_command(self, user_input: str) -> Tuple[bool, bool]:
         """Process a potential command from user input.
@@ -93,6 +103,10 @@ class ChatCommandHandler:
 
         if command == "help":
             self.print_commands_help()
+            return True, True
+        
+        if command == "settings:language:set":
+            self.set_commands_language(args.strip())
             return True, True
         
         # Check if the input is a registered command

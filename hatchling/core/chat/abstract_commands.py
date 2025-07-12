@@ -14,6 +14,8 @@ from prompt_toolkit.styles import Style
 
 from hatchling.core.logging.session_debug_log import SessionDebugLog
 from hatchling.config.settings import AppSettings
+from hatchling.config.settings_registry import SettingsRegistry
+from hatchling.config.i18n import translate
 
 from hatch import HatchEnvironmentManager
 
@@ -25,7 +27,10 @@ class AbstractCommands(ABC):
     command handlers should implement. Subclasses must implement the abstract
     methods to define their specific commands and behavior.
     """
-    def __init__(self, chat_session, settings: AppSettings, env_manager: HatchEnvironmentManager, debug_log: SessionDebugLog, style: Optional[Style] = None):
+    def __init__(self, chat_session,
+                 settings: AppSettings, env_manager: HatchEnvironmentManager,
+                 debug_log: SessionDebugLog, style: Optional[Style] = None,
+                 settings_registry: Optional[SettingsRegistry] = None):
         """Initialize the command handler.
         
         Args:
@@ -39,6 +44,7 @@ class AbstractCommands(ABC):
         self.settings = settings
         self.env_manager = env_manager
         self.logger = debug_log
+        self.settings_registry = settings_registry or SettingsRegistry(self.settings)
         
         # Set up styling - use provided style or create default
         self.style = style or Style.from_dict({
@@ -119,6 +125,25 @@ class AbstractCommands(ABC):
             ('', ' - '),
             ('class:command.description', f"{cmd_info['description']}")
         ]
+    
+    def set_commands_language(self, language_code: str) -> None:
+        """Set the language for all commands.
+        
+        Args:
+            language_code (str): The language code to set.
+        """
+        if not self.settings_registry:
+            self.logger.error(translate("errors.settings_registry_not_available"))
+
+        try:
+            success = self.settings_registry.set_language(language_code)
+            if success:
+                self._register_commands()
+                self.logger.info(translate("info.language_changed", language=language_code))
+            else:
+                self.logger.error(translate("errors.set_language_failed", language=language_code))
+        except Exception as e:
+            self.logger.error(str(e))
     
     def _print_command_help(self, command: str) -> None:
         """Print help for a specific command.

@@ -24,24 +24,6 @@ from hatchling.config.i18n import translate
 
 class SettingsCommands(AbstractCommands):
     """Handles settings-related command operations in the chat interface."""
-
-    def __init__(self, chat_session, settings, env_manager, debug_log, style=None, settings_registry: Optional[SettingsRegistry] = None):
-        """Initialize the settings command handler.
-        
-        Args:
-            chat_session: The chat session this handler is associated with.
-            settings: The chat settings to use.
-            env_manager: The Hatch environment manager.
-            debug_log: Logger for command operations.
-            style: Style for formatting command output.
-            settings_registry (Optional[SettingsRegistry]): Settings registry instance.
-        """
-        # Settings registry is used when handling the completion of settings commands
-        # So, given that AbstractCommands is registering the commands, we need to assign
-        # the settings_registry before calling super().__init__()
-        self.settings_registry = settings_registry or SettingsRegistry(settings)
-
-        super().__init__(chat_session, settings, env_manager, debug_log, style)
     
     def _register_commands(self) -> None:
         """Register all settings-related commands."""
@@ -458,37 +440,12 @@ class SettingsCommands(AbstractCommands):
         return True
 
     def _cmd_language_set(self, args: str) -> bool:
-        """Set the interface language.
-
-        Args:
-            args (str): Command argument [language_code]
-
-        Returns:
-            bool: True to continue the chat session, False to exit.
         """
-        arg_defs = self.commands['settings:language:set']['args']
-
-        parsed_args = self._parse_args(args, arg_defs)
-        language_code = parsed_args.get('language')
-
-        if not language_code:
-            self._print_error(translate("errors.language_code_required"))
-            return True
-
-        if not self.settings_registry:
-            self._print_error(translate("errors.settings_registry_not_available"))
-            return True
-
-        try:
-            success = self.settings_registry.set_language(language_code)
-            if success:
-                self._register_commands()
-                self._print_success(translate("info.language_changed", language=language_code))
-            else:
-                self._print_error(translate("errors.set_language_failed", language=language_code))
-        except Exception as e:
-            self._print_error(str(e))
-        return True
+        List all available languages for settings commands.
+        This command is picked up by the ChatCommandHandler and not here.
+        That's because it concerns all commands, not just settings commands.
+        """
+        pass
 
     # Helper methods
 

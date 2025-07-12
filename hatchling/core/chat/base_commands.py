@@ -50,70 +50,71 @@ class BaseChatCommands(AbstractCommands):
             },
             'show_logs': {
                 'handler': self._cmd_show_logs,
-                'description': "Display session logs",
+                'description': translate("commands.base.show_logs_description"),
                 'is_async': False,
                 'args': {
                     'count': {
                         'positional': True,
                         'completer_type': 'suggestions',
                         'values': ['10', '20', '50', '100'],
-                        'description': 'Number of log entries to show',
+                        'description': translate('commands.args.value_description'),
                         'required': False
                     }
                 }
             },
             'set_log_level': {
                 'handler': self._cmd_set_log_level,
-                'description': "Change log level",
+                'description': translate("commands.base.set_log_level_description"),
                 'is_async': False,
                 'args': {
                     'level': {
                         'positional': True,
                         'completer_type': 'suggestions',
                         'values': ['debug', 'info', 'warning', 'error', 'critical'],
-                        'description': 'Log level name',
+                        'description': translate('commands.args.value_description'),
                         'required': True
                     }
                 }
             },
             'set_max_tool_call_iterations': {
                 'handler': self._cmd_set_max_iterations,
-                'description': "Set max tool call iterations",
+                'description': translate("commands.base.set_max_tool_call_iterations_description"),
                 'is_async': False,
                 'args': {
                     'iterations': {
                         'positional': True,
                         'completer_type': 'none',
-                        'description': 'Number of iterations (positive integer)',
+                        'description': translate('commands.args.value_description'),
                         'required': True
                     }
                 }
             },
             'set_max_working_time': {
                 'handler': self._cmd_set_max_working_time,
-                'description': "Set max working time in seconds",
+                'description': translate("commands.base.set_max_working_time_description"),
                 'is_async': False,
                 'args': {
                     'seconds': {
                         'positional': True,
                         'completer_type': 'none',
-                        'description': 'Time in seconds (positive number)',
+                        'description': translate('commands.args.value_description'),
                         'required': True
                     }
                 }
             },
             'enable_tools': {
                 'handler': self._cmd_enable_tools,
-                'description': "Enable MCP tools",
+                'description': translate("commands.base.enable_tools_description"),
                 'is_async': True,
                 'args': {}
             },
             'disable_tools': {
                 'handler': self._cmd_disable_tools,
-                'description': "Disable MCP tools",
+                'description': translate("commands.base.disable_tools_description"),
                 'is_async': True,
                 'args': {}
-            }        }
+            }
+        }
 
         # Keep old format for backward compatibility
         self.sync_commands = {}
@@ -144,8 +145,8 @@ class BaseChatCommands(AbstractCommands):
 
     def _cmd_help(self, _: str) -> bool:
         """
-        This is the only command that is picked up by the ChatCommandHandler
-        and not here.
+        This command is picked up by the ChatCommandHandler and not here.
+        That's because it concerns all commands, not just base commands.
         """
         pass
     
