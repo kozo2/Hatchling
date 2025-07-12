@@ -1,1 +1,6 @@
-0.3.0.0.0
+MAJOR=1
+MINOR=2
+PATCH=1
+PRERELEASE=dev
+BUILD=b1
+BRANCH=fix/bug-fix
