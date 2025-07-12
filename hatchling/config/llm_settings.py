@@ -14,7 +14,7 @@ class LLMSettings(BaseModel):
         json_schema_extra={"access_level": SettingAccessLevel.PROTECTED},
     )
     model: str = Field(
-        default_factory=lambda: os.environ.get("OLLAMA_MODEL", "mistral-small3.1"),
+        default_factory=lambda: os.environ.get("OLLAMA_MODEL", "llama3.2"),
         description="LLM model to use for chat interactions.",
         json_schema_extra={"access_level": SettingAccessLevel.NORMAL},
     )

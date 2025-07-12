@@ -10,18 +10,7 @@ from pathlib import Path
 from typing import Dict, List, Optional, Any, Union
 from threading import Lock
 
-try:
-    import tomllib
-except ImportError:
-    try:
-        import tomli as tomllib
-    except ImportError:
-        tomllib = None
-
-try:
-    import toml
-except ImportError:
-    toml = None
+import tomli
 
 
 class TranslationLoader:
@@ -204,16 +193,8 @@ class TranslationLoader:
         Raises:
             Exception: If file cannot be read or parsed.
         """
-        if tomllib is not None:
-            # Use tomllib (Python 3.11+) or tomli
-            with open(file_path, 'rb') as f:
-                return tomllib.load(f)
-        elif toml is not None:
-            # Fallback to toml library
-            with open(file_path, 'r', encoding='utf-8') as f:
-                return toml.load(f)
-        else:
-            raise ImportError("No TOML library available. Install tomli or toml.")
+        with open(file_path, 'rb') as f:
+            return tomli.load(f)
     
     def reload_translations(self) -> None:
         """Reload all cached translations from disk."""

@@ -16,7 +16,6 @@ from hatch import HatchEnvironmentManager
 
 from hatchling.config.i18n import get_available_languages
 
-
 class CommandCompleter(Completer):
     """Main completer class that provides autocompletion for chat commands."""
     
@@ -117,8 +116,8 @@ class CommandCompleter(Completer):
             return
             
         # Check if the previous argument was a flag that expects a value
-        if len(args) >= 2 and args[-2].startswith('-'):
-            flag_name = args[-2].lstrip('-')
+        if len(args) >= 1 and args[-1].startswith('-'):
+            flag_name = args[-1].lstrip('-')
             yield from self._get_flag_value_completions(arg_defs, flag_name, current_word)
             return
             
