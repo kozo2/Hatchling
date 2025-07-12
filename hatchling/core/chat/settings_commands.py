@@ -185,6 +185,15 @@ class SettingsCommands(AbstractCommands):
             }
         }
     
+    def print_commands_help(self) -> None:
+        """Print help for all available chat commands."""
+        print_formatted_text(FormattedText([
+            ('class:header', "\n=== Settings Commands ===\n")
+        ]), style=self.style)
+
+        # Call parent class method to print formatted commands
+        super().print_commands_help()
+    
     def _cmd_settings_list(self, args: str) -> bool:
         """List all available settings with optional filtering.
 
