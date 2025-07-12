@@ -104,6 +104,13 @@ class SettingsCommands(AbstractCommands):
                         'default': False,
                         'is_flag': True,
                         'required': False
+                    },
+                    'force-protected': {
+                        'positional': False,
+                        'description': translate("commands.args.force_protected_description"),
+                        'default': False,
+                        'is_flag': True,
+                        'required': False
                     }
                 }
             },
@@ -144,7 +151,7 @@ class SettingsCommands(AbstractCommands):
                         'completer_type': 'suggestions',
                         'values': ["json", "yaml", "toml"],
                         'description': translate("commands.args.format_description"),
-                        'default': None,
+                        'default': "toml",
                         'required': False
                     }
                 }
@@ -344,26 +351,6 @@ class SettingsCommands(AbstractCommands):
             self._print_error(translate("errors.reset_setting_failed", error=str(e)))
         return True
 
-    async def _request_user_consent(self, message: str) -> bool:
-        """Request user consent for the installation plan.
-        
-        Args:
-            message (str): Message to display for confirmation.
-
-        Returns:
-            bool: True if user approves, False otherwise.
-        """        
-        # Request confirmation
-        session = PromptSession()
-        while True:
-            response = (await session.prompt_async(f"\n{message} [y/N]: ")).strip().lower()
-            if response in ['y', 'yes']:
-                return True
-            elif response in ['n', 'no', '']:
-                return False
-            else:
-                print("Please enter 'y' for yes or 'n' for no.")
-
     def _cmd_settings_export(self, args: str) -> bool:
         """Export settings to a file.
 
@@ -386,8 +373,7 @@ class SettingsCommands(AbstractCommands):
         if not self.settings_registry:
             self._print_error(translate("errors.settings_registry_not_available"))
             return True
-
-        from pathlib import Path
+        
         file_path_obj = Path(file_path)
         if not file_format:
             file_format = self._detect_format(file_path_obj)
@@ -505,6 +491,26 @@ class SettingsCommands(AbstractCommands):
         return True
 
     # Helper methods
+
+    async def _request_user_consent(self, message: str) -> bool:
+        """Request user consent for the installation plan.
+        
+        Args:
+            message (str): Message to display for confirmation.
+
+        Returns:
+            bool: True if user approves, False otherwise.
+        """        
+        # Request confirmation
+        session = PromptSession()
+        while True:
+            response = (await session.prompt_async(f"\n{message} [y/N]: ")).strip().lower()
+            if response in ['y', 'yes']:
+                return True
+            elif response in ['n', 'no', '']:
+                return False
+            else:
+                print("Please enter 'y' for yes or 'n' for no.")
     
     def _parse_setting_path(self, setting_path: str) -> tuple[str, str]:
         """Parse a setting path in format 'category:name'.
@@ -580,7 +586,6 @@ class SettingsCommands(AbstractCommands):
             # Table format (default)
             self._print_header(translate("headers.settings_list"))
             
-            current_category = None
             for setting in settings:
                 # Group by category
                 category_display_name = setting.get("category_display_name", setting["category_name"])
