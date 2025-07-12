@@ -14,21 +14,21 @@ from prompt_toolkit.document import Document
 class ChatCommandLexer(Lexer):
     """Custom lexer for highlighting chat commands in real-time."""
     
-    def __init__(self, command_metadata: Dict[str, Dict[str, Any]]):
+    def __init__(self, commands: Dict[str, Dict[str, Any]]):
         """Initialize the lexer with command metadata.
         
         Args:
-            command_metadata: Dictionary containing command information including
+            commands: Dictionary containing command information including
                             command names, arguments, and their types.
         """
-        self.command_metadata = command_metadata
+        self.commands = commands
         
         # Build command patterns
-        self.command_names = set(command_metadata.keys())
+        self.command_names = set(commands.keys())
         
         # Build argument patterns for each command
         self.command_args = {}
-        for cmd_name, cmd_info in command_metadata.items():
+        for cmd_name, cmd_info in commands.items():
             if 'args' in cmd_info:
                 self.command_args[cmd_name] = cmd_info['args']
     
@@ -89,7 +89,7 @@ class ChatCommandLexer(Lexer):
         # Check if it's a valid command
         if command in self.command_names:
             # Get command group for styling
-            cmd_info = self.command_metadata[command]
+            cmd_info = self.commands[command]
             group = 'hatch' if command.startswith('hatch:') else 'base'
 
             tokens.append((f'command.{group}', command))

@@ -7,14 +7,19 @@ base commands, Hatch-specific commands, and settings commands into a unified int
 import logging
 from typing import Tuple, Optional
 
+from prompt_toolkit.completion import FuzzyCompleter
 from prompt_toolkit.styles import Style
 
 from hatchling.core.logging.session_debug_log import SessionDebugLog
+
+from hatchling.core.chat.command_completion import CommandCompleter
+from hatchling.core.chat.command_lexer import ChatCommandLexer
+
+from hatchling.config.settings_registry import SettingsRegistry
 from hatchling.config.settings import AppSettings
 from hatchling.core.chat.base_commands import BaseChatCommands
 from hatchling.core.chat.hatch_commands import HatchCommands
 from hatchling.core.chat.settings_commands import SettingsCommands
-from hatchling.config.settings_registry import SettingsRegistry
 from hatchling.config.i18n import translate
 
 from hatch import HatchEnvironmentManager
@@ -33,7 +38,9 @@ class ChatCommandHandler:
             style (Optional[Style]): Style for formatting command output.
         """
 
+
         self.settings_registry = SettingsRegistry(settings)
+        self.env_manager = env_manager
         self.base_commands = BaseChatCommands(chat_session, settings, env_manager, debug_log, style, self.settings_registry)
         self.hatch_commands = HatchCommands(chat_session, settings, env_manager, debug_log, style, self.settings_registry)
         self.settings_commands = SettingsCommands(chat_session, settings, env_manager, debug_log, style, self.settings_registry)
@@ -46,9 +53,12 @@ class ChatCommandHandler:
         """Register all available chat commands with their handlers."""
         # Combine all commands from all handlers
         self.commands = {}
-        self.commands.update(self.base_commands.get_command_metadata())
-        self.commands.update(self.hatch_commands.get_command_metadata())
-        self.commands.update(self.settings_commands.get_command_metadata())
+        self.commands.update(self.base_commands.reload_commands())
+        self.commands.update(self.hatch_commands.reload_commands())
+        self.commands.update(self.settings_commands.reload_commands())
+
+        self.command_completer = FuzzyCompleter(CommandCompleter(self.commands, self.env_manager))
+        self.command_lexer = ChatCommandLexer(self.commands)
         
         # Keep old format for backward compatibility
         self.sync_commands = {}
@@ -84,9 +94,7 @@ class ChatCommandHandler:
         try:
             success = self.settings_registry.set_language(language_code)
             if success:
-                self.base_commands.reload_commands()
-                self.hatch_commands.reload_commands()
-                self.settings_commands.reload_commands()
+                self._register_commands()  # Re-register commands to apply new language
             else:
                 self.logger.error(translate("errors.set_language_failed", language=language_code))
         except Exception as e:

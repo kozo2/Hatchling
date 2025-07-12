@@ -9,14 +9,11 @@ from prompt_toolkit.history import FileHistory, InMemoryHistory
 from prompt_toolkit.patch_stdout import patch_stdout
 from prompt_toolkit.formatted_text import FormattedText
 from prompt_toolkit.styles import Style
-from prompt_toolkit.completion import FuzzyCompleter
 
 from hatchling.core.logging.logging_manager import logging_manager
 from hatchling.core.llm.model_manager import ModelManager
 from hatchling.core.llm.chat_session import ChatSession
 from hatchling.core.chat.chat_command_handler import ChatCommandHandler
-from hatchling.core.chat.command_completion import CommandCompleterFactory
-from hatchling.core.chat.command_lexer import ChatCommandLexer
 from hatchling.config.settings import AppSettings
 from hatchling.mcp_utils.manager import mcp_manager
 # Import removed - using centralized logging system
@@ -127,13 +124,6 @@ class CLIChat:
         # Initialize command handler
         self.cmd_handler = ChatCommandHandler(self.chat_session, self.settings, self.env_manager, self.logger, self.command_style)
         
-        # Initialize command completer
-        self.command_completer = FuzzyCompleter(CommandCompleterFactory.create_completer(self.cmd_handler))
-
-        # Initialize command lexer for real-time syntax highlighting
-        all_commands = self.cmd_handler.get_all_command_metadata()
-        self.command_lexer = ChatCommandLexer(all_commands)
-        
         return True
     
     async def check_and_pull_model(self, session: aiohttp.ClientSession) -> bool:
@@ -192,8 +182,8 @@ class CLIChat:
                     with patch_stdout():
                         user_message = await self.prompt_session.prompt_async(
                             FormattedText(prompt_message),
-                            completer=self.command_completer,
-                            lexer=self.command_lexer,
+                            completer=self.cmd_handler.command_completer,
+                            lexer=self.cmd_handler.command_lexer,
                             style=self.command_style
                         )
                     

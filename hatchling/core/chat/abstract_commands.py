@@ -125,10 +125,15 @@ class AbstractCommands(ABC):
             ('class:command.description', f"{cmd_info['description']}")
         ]
     
-    def reload_commands(self) -> None:
-        """Reload all commands to apply the current language settings."""
+    def reload_commands(self) -> Dict[str, Any]:
+        """Reload all commands to apply the current language settings.
+
+        Returns:
+            Dict[str, Any]: The reloaded commands dictionary.
+        """
         self._register_commands()  # Re-register commands to apply new language
-    
+        return self.commands
+
     def _print_command_help(self, command: str) -> None:
         """Print help for a specific command.
         

@@ -50,6 +50,11 @@ name = "Répertoire des Environnements"
 description = "Répertoire où les environnements Hatch sont stockés"
 hint = "Chemin du répertoire"
 
+[settings.paths.hatchling_source_dir]
+name = "Répertoire Source de Hatchling"
+description = "Répertoire où le code source de Hatchling est situé"
+hint = "Chemin du répertoire"
+
 [settings.paths.data_dir]
 name = "Répertoire de Données"
 description = "Répertoire pour le stockage des données d'application"
