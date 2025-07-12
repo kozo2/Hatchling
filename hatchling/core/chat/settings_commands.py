@@ -573,9 +573,9 @@ class SettingsCommands(AbstractCommands):
             format_type (str): Output format ("table", "json", or "yaml").
         """
         if format_type == "json":
-            print(json.dumps(settings, indent=2))
+            print(json.dumps(self.settings_registry.make_serializable(settings), indent=2))
         elif format_type == "yaml" and yaml:
-            print(yaml.dump(settings, default_flow_style=False))
+            print(yaml.dump(self.settings_registry.make_serializable(settings), default_flow_style=False))
         else:
             # Table format (default)
             self._print_header(translate("headers.settings_list"))

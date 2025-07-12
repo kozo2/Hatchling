@@ -4,6 +4,7 @@ This module provides a central registry that aggregates all settings, enforces a
 and provides listing, getting, setting, resetting, import/export, and search capabilities.
 """
 
+import enum
 import re
 import json
 from pathlib import Path
@@ -205,6 +206,8 @@ class SettingsRegistry:
             return [self.make_serializable(i) for i in obj]
         elif isinstance(obj, Path):
             return str(obj)
+        elif isinstance(obj, enum.Enum):
+            return obj.value
         return obj
 
     def export_settings(self, format: str = "toml") -> str:
