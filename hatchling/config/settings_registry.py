@@ -34,12 +34,12 @@ class SettingsRegistry:
         Args:
             app_settings (AppSettings): The application settings instance to manage.
         """
-        self.app_settings = app_settings
+        self.settings = app_settings
         self.logger = logging_manager.get_session("hatchling.config.settings_registry")
         
         # Initialize translation loader with current language
         translation_loader = get_translation_loader()
-        current_language = self.app_settings.ui.language
+        current_language = self.settings.ui.language_code
         if current_language != translation_loader.get_current_language():
             translation_loader.set_language(current_language)
     
@@ -222,7 +222,7 @@ class SettingsRegistry:
         Raises:
             ValueError: If format is not supported.
         """
-        settings_dict = self.app_settings.model_dump()
+        settings_dict = self.settings.model_dump()
         settings_dict = self.make_serializable(settings_dict)
         
         if format.lower() == "toml":
@@ -307,7 +307,7 @@ class SettingsRegistry:
         settings_list = []
 
         # Iterate over the main settings model fields to get category names
-        for category_name, _category_model in iter(self.app_settings):
+        for category_name, _category_model in iter(self.settings):
             if not isinstance(_category_model, BaseModel):
                 continue  # Skip non-model fields
 
@@ -370,7 +370,7 @@ class SettingsRegistry:
     
     def _get_setting_value(self, category: str, name: str) -> Any:
         """Get the current value of a setting."""
-        category_model = getattr(self.app_settings, category, None)
+        category_model = getattr(self.settings, category, None)
         if category_model is None:
             raise ValueError(f"Unknown category: {category}")
         
@@ -378,7 +378,7 @@ class SettingsRegistry:
     
     def _set_setting_value(self, category: str, name: str, value: Any) -> None:
         """Set the value of a setting with validation."""
-        category_model = getattr(self.app_settings, category, None)
+        category_model = getattr(self.settings, category, None)
         if category_model is None:
             raise ValueError(f"Unknown category: {category}")
         
@@ -413,7 +413,7 @@ class SettingsRegistry:
             str: Current language code.
         """
         # Get from UI settings
-        return self.app_settings.ui.language
+        return self.settings.ui.language_code
     
     def set_language(self, language_code: str) -> bool:
         """Set the interface language.
@@ -429,19 +429,11 @@ class SettingsRegistry:
         """
         translation_loader = get_translation_loader()
         
-        # Check if language is available
-        available_languages = [lang["code"] for lang in translation_loader.get_available_languages()]
-        if language_code not in available_languages:
-            available_str = ", ".join(available_languages)
-            error_msg = translate("errors.language_not_found", language=language_code)
-            raise ValueError(f"{error_msg}. Available: {available_str}")
-        
         # Set in translation loader
         if translation_loader.set_language(language_code):
             # Update UI settings
             try:
-                self.set_setting("ui", "language", language_code)
-                self.logger.info(translate("info.language_changed", language=language_code))
+                self.set_setting("ui", "language_code", language_code)
                 return True
             except Exception as e:
                 self.logger.error(f"Failed to update language setting: {e}")

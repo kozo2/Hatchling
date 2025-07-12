@@ -20,14 +20,14 @@ class TranslationLoader:
     provides translation lookup with fallback to English, and supports runtime
     language switching.
     """
-    
-    def __init__(self, languages_dir: Optional[Path] = None, default_language: str = "en"):
+
+    def __init__(self, languages_dir: Optional[Path] = None, default_language_code: str = "en"):
         """Initialize the translation loader.
         
         Args:
             languages_dir (Optional[Path]): Directory containing translation files.
                                           Defaults to hatchling/config/languages/
-            default_language (str): Default language code. Defaults to "en".
+            default_language_code (str): Default language code. Defaults to "en".
         """
         if languages_dir is None:
             # Default to the languages directory relative to this file
@@ -35,8 +35,8 @@ class TranslationLoader:
             languages_dir = current_dir / "languages"
         
         self.languages_dir = Path(languages_dir)
-        self.default_language = default_language
-        self.current_language = default_language
+        self.default_language_code = default_language_code
+        self.current_language_code = default_language_code
         
         # Cache for loaded translations
         self._translations_cache: Dict[str, Dict[str, Any]] = {}
@@ -46,7 +46,7 @@ class TranslationLoader:
         self.logger = logging.getLogger(__name__)
         
         # Load default language on initialization
-        self._load_language(self.default_language)
+        self.get_available_languages()  # Pre-load available languages
     
     def get_available_languages(self) -> List[Dict[str, str]]:
         """Get list of available language files.
@@ -63,7 +63,9 @@ class TranslationLoader:
         for file_path in self.languages_dir.glob("*.toml"):
             language_code = file_path.stem
             try:
-                translations = self._load_translation_file(file_path)
+                if language_code not in self._translations_cache:
+                    translations = self._load_language(language_code)
+                translations = self._translations_cache.get(language_code, {})
                 meta = translations.get("meta", {})
                 language_name = meta.get("language_name", language_code.capitalize())
                 
@@ -94,8 +96,8 @@ class TranslationLoader:
         """
         if self._load_language(language_code):
             with self._cache_lock:
-                self.current_language = language_code
-            self.logger.info(f"Language changed to: {language_code}")
+                self.current_language_code = language_code
+            self.logger.debug(f"Language changed to: {language_code}")
             return True
         return False
     
@@ -105,31 +107,31 @@ class TranslationLoader:
         Returns:
             str: Current language code.
         """
-        return self.current_language
+        return self.current_language_code
     
-    def translate(self, key: str, language: Optional[str] = None, **kwargs) -> str:
+    def translate(self, key: str, language_code: Optional[str] = None, **kwargs) -> str:
         """Get translated string for the given key.
         
         Args:
             key (str): Translation key in dot notation (e.g., "settings.llm.model.name")
-            language (Optional[str]): Language code to use. Defaults to current language.
+            language_code (Optional[str]): Language code to use. Defaults to current language.
             **kwargs: Format arguments for string formatting.
             
         Returns:
             str: Translated string, or the key itself if translation not found.
         """
-        if language is None:
-            language = self.current_language
-        
+        if language_code is None:
+            language_code = self.current_language_code
+
         # Ensure the language is loaded
-        if language not in self._translations_cache:
-            if not self._load_language(language):
+        if language_code not in self._translations_cache:
+            if not self._load_language(language_code):
                 # Fall back to default language
-                language = self.default_language
-        
+                language_code = self.default_language_code
+
         with self._cache_lock:
-            translations = self._translations_cache.get(language, {})
-        
+            translations = self._translations_cache.get(language_code, {})
+
         # Navigate through the nested dictionary using dot notation
         value = translations
         for part in key.split('.'):
@@ -137,8 +139,8 @@ class TranslationLoader:
                 value = value[part]
             else:
                 # Key not found, try fallback to English
-                if language != self.default_language:
-                    return self.translate(key, self.default_language, **kwargs)
+                if language_code != self.default_language_code:
+                    return self.translate(key, self.default_language_code, **kwargs)
                 else:
                     # Even English doesn't have the key, return the key itself
                     self.logger.warning(f"Translation key not found: {key}")
@@ -225,33 +227,33 @@ def get_translation_loader() -> TranslationLoader:
     return _translation_loader
 
 
-def init_translation_loader(languages_dir: Optional[Path] = None, default_language: str = "en") -> TranslationLoader:
+def init_translation_loader(languages_dir: Optional[Path] = None, default_language_code: str = "en") -> TranslationLoader:
     """Initialize the global translation loader.
     
     Args:
         languages_dir (Optional[Path]): Directory containing translation files.
-        default_language (str): Default language code.
+        default_language_code (str): Default language code.
         
     Returns:
         TranslationLoader: The initialized translation loader.
     """
     global _translation_loader
-    _translation_loader = TranslationLoader(languages_dir, default_language)
+    _translation_loader = TranslationLoader(languages_dir, default_language_code)
     return _translation_loader
 
 
-def translate(key: str, language: Optional[str] = None, **kwargs) -> str:
+def translate(key: str, language_code: Optional[str] = None, **kwargs) -> str:
     """Convenience function to translate a key using the global loader.
     
     Args:
         key (str): Translation key in dot notation.
-        language (Optional[str]): Language code to use.
+        language_code (Optional[str]): Language code to use.
         **kwargs: Format arguments for string formatting.
         
     Returns:
         str: Translated string.
     """
-    return get_translation_loader().translate(key, language, **kwargs)
+    return get_translation_loader().translate(key, language_code, **kwargs)
 
 
 def set_language(language_code: str) -> bool:
