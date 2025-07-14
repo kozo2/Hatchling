@@ -107,9 +107,16 @@ class SettingsCommands(AbstractCommands):
                         'description': translate("commands.args.setting_description"),
                         'required': True
                     },
-                    'force': {
+                    'force-confirmed': {
                         'positional': False,
                         'description': translate("commands.args.force_description"),
+                        'default': False,
+                        'is_flag': True,
+                        'required': False
+                    },
+                    'force-protected': {
+                        'positional': False,
+                        'description': translate("commands.args.force_protected_description"),
                         'default': False,
                         'is_flag': True,
                         'required': False
@@ -313,7 +320,8 @@ class SettingsCommands(AbstractCommands):
 
         parsed_args = self._parse_args(args, arg_defs)
         setting_path = parsed_args.get('setting')
-        force = parsed_args.get('force', False)
+        force_confirm = parsed_args.get('force-confirm', False)
+        force_protected = parsed_args.get('force-protected', False)
 
         if not setting_path:
             self._print_error(translate("errors.setting_name_required"))
@@ -325,12 +333,12 @@ class SettingsCommands(AbstractCommands):
 
         try:
             category, name = self._parse_setting_path(setting_path)
-            if not force:
+            if not force_confirm:
                 if not await self._request_user_consent(translate("prompts.confirm_reset", setting=f"{category}:{name}")):
                     self._print_info(translate("info.operation_cancelled"))
                     return True
 
-            success = self.settings_registry.reset_setting(category, name)
+            success = self.settings_registry.reset_setting(category, name, force=force_protected)
             if success:
                 self._print_success(translate("info.setting_reset", setting=f"{category}:{name}"))
             else:
