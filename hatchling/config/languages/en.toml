@@ -87,7 +87,7 @@ category_name = "ui"
 category_display_name = "User Interface"
 category_description = "Settings for user interface behavior"
 
-[settings.ui.language]
+[settings.ui.language_code]
 name = "Language"
 description = "Language code for user interface localization"
 hint = "Language code (e.g., en, fr, es)"
