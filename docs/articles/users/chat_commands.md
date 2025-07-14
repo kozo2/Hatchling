@@ -1,5 +1,15 @@
 # Chat Commands
 
+This article is about:
+- Available commands during Hatchling chat sessions
+- Hatch environment and package management commands
+- Configuration and debugging commands
+
+You will learn about:
+- How to use basic chat commands for session management
+- How to manage Hatch environments and packages
+- How to configure logging and tool settings
+
 The following commands are available during chat:
 
 ## Basic Commands
