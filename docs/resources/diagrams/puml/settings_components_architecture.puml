@@ -1,0 +1,63 @@
+@startuml settings_architecture
+!theme plain
+title Settings Architecture
+
+' Interface Layer
+component "CLI Commands" as CLI
+
+' Central Registry Layer
+component "SettingsRegistry\n(Central Hub)" as Registry <<central>>
+
+' Settings Categories (static registration)
+package "AppSettings \n(Aggregate Pydantic Models)" {
+  component "LLMSettings" as LLM
+  component "PathSettings" as Paths
+  component "ToolCallingSettings" as Tools
+  component "UISettings" as UI
+}
+
+' Supporting Systems
+package "Supporting Systems" {
+  component "Translation System\n(i18n)" as i18n
+  component "Configuration Files" as Config
+}
+
+' Interface Layer to Registry
+CLI --> Registry
+Chat --> CLI : list/get/set/reset\n(import/export)
+
+' Registry to Categories (static, not dynamic)
+Registry --> LLM : direct access
+Registry --> Paths : direct access
+Registry --> Tools : direct access
+Registry --> UI : direct access
+
+' Registry to Supporting Systems
+Registry --> Config : persist/load
+Registry --> Validation : validate values
+
+' UISettings to i18n
+UI --> i18n : language selection
+
+' Notes
+note right of Registry
+  Central authority for all
+  settings operations:
+  - Access control
+  - Validation
+  - Search (exact, regex, fuzzy)
+  - Import/Export (TOML, JSON, YAML)
+end note
+
+note bottom of i18n
+  Provides translation for
+  setting names, descriptions,
+  and command help.
+end note
+
+note bottom of UI
+  Changing language triggers
+  i18n system updates.
+end note
+
+@enduml
