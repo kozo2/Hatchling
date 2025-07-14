@@ -1,5 +1,17 @@
 # Docker Setup Instructions
 
+**Previous:** None | **Next:** [Running Hatchling](./running_hatchling.md)
+
+This article is about:
+- Setting up Docker Desktop for running Hatchling
+- Configuring GPU support for LLM acceleration
+- Installing and configuring Ollama Docker container
+
+You will learn about:
+- How to install Docker Desktop on different platforms
+- How to enable GPU support for NVIDIA and AMD cards
+- How to pull and verify the Ollama Docker image
+
 This document provides instructions on how to set up and run the project using Docker.
 
 ## Prerequisites
@@ -18,7 +30,7 @@ This document provides instructions on how to set up and run the project using D
    - Download and install Docker Desktop following the official instructions: https://docs.docker.com/get-docker/
 
 2. **On Windows, connect Docker to WSL**:
-   ![docker_settings_wsl](../resources/images/docker-setup/docker_settings_position.png)
+   ![docker_settings_wsl](../../../../../resources/images/docker-setup/docker_settings_position.png)
    - In Docker Desktop, follow the arrows numbered 1, 2, and 3 on the screenshot to navigate through `Settings` > `Resources` > `WSL Integration`.
    - Either enable integration with your default WSL distro (arrow 4.1) OR select a specific one (arrow 4.2)
    - Click "Apply & Restart" if you make changes (arrow 5)
@@ -48,20 +60,20 @@ This document provides instructions on how to set up and run the project using D
    - Close the terminal
    - Restart Docker
      - For Docker Desktop, click on the three vertical dots icon (arrow 1), then `Restart` (arrow 2)
-   ![docker_restart](../resources/images/docker-setup/docker_restart_large.png)
+   ![docker_restart](../../../resources/images/docker-setup/docker_restart_large.png)
      - On Linux (Ubuntu, Debian, CentOs, Fedora), running: `systemctl restart docker` should do it. You can prepend with `sudo` if necessary.
 
 4. **Pull Ollama Image**:
    - Open a terminal capable of running docker commands.
      - In Docker Desktop you can open it by pressing the `Terminal` button:
-     ![docker_terminal_position](../resources/images/docker-setup/docker_terminal_position.png)
+     ![docker_terminal_position](../../../resources/images/docker-setup/docker_terminal_position.png)
      - Or any terminal of your system that can access to Docker
    - Write `docker pull ollama/ollama` in the terminal and press enter to run it.
      - It will download about 1.6GB (as of May 2025)
      - Once finished, click on the `Images` tab (arrow 1) of Docker Desktop, and check that `ollama/ollama` is available (arrow 2)
-       ![docker_desktop_find_ollama_image](../resources/images/docker-setup/docker_find_image.png)
+       ![docker_desktop_find_ollama_image](../../../resources/images/docker-setup/docker_find_image.png)
        - If it does not show up, try closing Docker Desktop (arrow 1, then arrow 2) and launch it again.
-       ![closing_docker_desktop](../resources/images/docker-setup/docker_quit_large.png)
+       ![closing_docker_desktop](../../../resources/images/docker-setup/docker_quit_large.png)
      - Alternatively, to check that the image exists, you can run the command `docker images -a`. The output should include a line similar to `ollama/ollama   latest    d42df3fe2285   11 days ago   4.85GB` (May 2025)
 
 ## Next Step
@@ -71,3 +83,7 @@ This document provides instructions on how to set up and run the project using D
 ## Additional Resources
 
 - [Docker Documentation](https://docs.docker.com/)
+
+---
+
+**Previous:** None | **Next:** [Running Hatchling](./running_hatchling.md)
