@@ -40,11 +40,11 @@ Hatchling is an interactive CLI-based chat application that integrates local Lar
 
 ## Installation & Running
 
-1. [Docker setup instructions](./docs/articles/docker-setup.md)
+1. [Docker setup instructions](./docs/articles/users/tutorials/Installation/docker-setup.md)
 
-2. [Running Hatchling](./docs/articles/running_hatchling.md)
+2. [Running Hatchling](./docs/articles/users/tutorials/Installation/running_hatchling.md)
 
-3. [In-chat commands](./docs/articles/chat_commands.md)
+3. [In-chat commands](./docs/articles/users/chat_commands.md)
 
 
 ## Extending with your MCP Servers as *Hatch!* Packages
@@ -57,7 +57,7 @@ You can extend Hatchling with custom MCP tools by creating Hatch packages:
     hatch:create .local/<name> --description "Your description here"
     ```
 
-    to populate a folder at directory `HATCH_LOCAL_PACKAGE_DIR/<name>`, where `HATCH_LOCAL_PACKAGE_DIR` is the environment variable   [you can set](./docs/articles/running_hatchling.md#configuration) in the `.env` file.
+    to populate a folder at directory `HATCH_LOCAL_PACKAGE_DIR/<name>`, where `HATCH_LOCAL_PACKAGE_DIR` is the environment variable   [you can set](./docs/articles/users/tutorials/Installation/running_hatchling.md#configuration) in the `.env` file.
 
 2. The `server.py` is the entry point of your MCP server.
 
