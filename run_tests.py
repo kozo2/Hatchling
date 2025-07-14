@@ -64,9 +64,18 @@ def run_development_tests(phase=None):
             logger.error(f"Phase 2 tests failed: {e}")
             success = False
     
-    # Add future phases here
-    # if phase is None or phase == 3:
-    #     ...
+    if phase is None or phase == 3:
+        logger.info("Running Phase 3 development tests...")
+        try:
+            from tests.dev_test_persistent_settings import run_phase3_tests
+            if not run_phase3_tests():
+                success = False
+        except ImportError as e:
+            logger.error(f"Could not import Phase 3 tests: {e}")
+            success = False
+        except Exception as e:
+            logger.error(f"Phase 3 tests failed: {e}")
+            success = False
     
     return success
 
@@ -74,9 +83,17 @@ def run_development_tests(phase=None):
 def run_regression_tests():
     """Run regression tests to ensure existing functionality isn't broken."""
     logger.info("Running regression tests...")
-    
-    # TODO: Implement regression tests for existing ChatSettings functionality
-    logger.info("No regression tests implemented yet")
+    try:
+        from tests.regression_test_persistent_settings import run_regression_tests
+        if not run_regression_tests():
+            return False
+    except ImportError as e:
+        logger.error(f"Could not import regression tests: {e}")
+        return False
+    except Exception as e:
+        logger.error(f"Regression tests failed: {e}")
+        return False
+
     return True
 
 

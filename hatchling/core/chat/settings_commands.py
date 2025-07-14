@@ -141,6 +141,13 @@ class SettingsCommands(AbstractCommands):
                         'description': translate("commands.args.format_description"),
                         'default': "toml",
                         'required': False
+                    },
+                    'all': {
+                        'positional': False,
+                        'description': translate("commands.args.all_settings_description"),
+                        'default': False,
+                        'is_flag': True,
+                        'required': False
                     }
                 }
             },
@@ -363,6 +370,7 @@ class SettingsCommands(AbstractCommands):
         parsed_args = self._parse_args(args, arg_defs)
         file_path = parsed_args.get('file')
         file_format = parsed_args.get('format')
+        all_settings = parsed_args.get('all', False)
 
         if not file_path:
             self._print_error(translate("errors.file_path_required"))
@@ -377,7 +385,7 @@ class SettingsCommands(AbstractCommands):
             file_format = self._detect_format(file_path_obj)
 
         try:
-            success = self.settings_registry.export_settings_to_file(str(file_path_obj), file_format)
+            success = self.settings_registry.export_settings_to_file(str(file_path_obj), file_format, include_read_only=all_settings)
             if success:
                 self._print_success(translate("info.settings_exported", file=str(file_path_obj)))
             else:

@@ -28,13 +28,13 @@ class SettingsRegistry:
     including access control enforcement, validation, and audit logging.
     """
     
-    def __init__(self, app_settings: AppSettings):
+    def __init__(self, app_settings: Optional[AppSettings] = None, load_persistent: bool = True):
         """Initialize the settings registry.
         
         Args:
             app_settings (AppSettings): The application settings instance to manage.
         """
-        self.settings = app_settings
+        self.settings = app_settings or AppSettings()
         self.logger = logging_manager.get_session("hatchling.config.settings_registry")
         
         # Initialize translation loader with current language
@@ -42,6 +42,10 @@ class SettingsRegistry:
         current_language = self.settings.ui.language_code
         if current_language != translation_loader.get_current_language():
             translation_loader.set_language(current_language)
+
+        # Overlay with persistent settings if they exist, and if requested
+        if load_persistent:
+            self.load_persistent_settings()
     
     def list_settings(self, filter_regex: Optional[str] = None) -> List[Dict[str, Any]]:
         """List all settings with optional filtering.
@@ -210,11 +214,12 @@ class SettingsRegistry:
             return obj.value
         return obj
 
-    def export_settings(self, format: str = "toml") -> str:
-        """Export all settings to a formatted string.
+    def export_settings(self, format: str = "toml", include_read_only: bool = False) -> str:
+        """Export settings to a formatted string.
         
         Args:
             format (str, optional): Export format ('toml', 'json', 'yaml'). Defaults to "toml".
+            include_read_only (bool, optional): Whether to include read-only settings. Defaults to False.
             
         Returns:
             str: Serialized settings data.
@@ -222,7 +227,13 @@ class SettingsRegistry:
         Raises:
             ValueError: If format is not supported.
         """
-        settings_dict = self.settings.model_dump()
+        if include_read_only:
+            # Export all settings (original behavior)
+            settings_dict = self.settings.model_dump()
+        else:
+            # Export only non-read-only settings
+            settings_dict = self._get_exportable_settings()
+        
         settings_dict = self.make_serializable(settings_dict)
         
         if format.lower() == "toml":
@@ -448,12 +459,13 @@ class SettingsRegistry:
 
     # File-based import/export methods
     
-    def export_settings_to_file(self, file_path: str, format: Optional[str] = None) -> bool:
+    def export_settings_to_file(self, file_path: str, format: Optional[str] = None, include_read_only: bool = False) -> bool:
         """Export settings to a file.
         
         Args:
             file_path (str): Path to export file.
             format (Optional[str]): Export format. If None, detected from file extension.
+            include_read_only (bool, optional): Whether to include read-only settings. Defaults to False.
             
         Returns:
             bool: True if export was successful.
@@ -478,7 +490,7 @@ class SettingsRegistry:
                 export_path = path if path.suffix else path.with_suffix(f".{fmt}")
 
             # Export settings to string
-            settings_data = self.export_settings(fmt)
+            settings_data = self.export_settings(fmt, include_read_only)
 
             # Write to file according to format
             if fmt == "json":
@@ -540,3 +552,109 @@ class SettingsRegistry:
         except Exception as e:
             self.logger.error(f"Failed to import settings from {file_path}: {e}")
             return False
+    
+    def _get_exportable_settings(self) -> Dict[str, Any]:
+        """Get settings dictionary excluding read-only settings.
+        
+        Returns:
+            Dict[str, Any]: Settings dictionary with read-only settings filtered out.
+        """
+        exportable_dict = {}
+        
+        # Get all settings metadata to check access levels
+        all_settings = self._get_all_settings_metadata()
+        
+        # Group settings by category
+        settings_by_category = {}
+        for setting in all_settings:
+            category = setting['category_name']
+            if category not in settings_by_category:
+                settings_by_category[category] = []
+            settings_by_category[category].append(setting)
+        
+        # Build exportable dict excluding read-only settings
+        for category_name, category_settings in settings_by_category.items():
+            category_dict = {}
+            category_model = getattr(self.settings, category_name, None)
+            if category_model is None:
+                continue
+                
+            for setting in category_settings:
+                setting_name = setting['name']
+                access_level = setting['access_level']
+                
+                # Only include non-read-only settings
+                if access_level != SettingAccessLevel.READ_ONLY:
+                    current_value = getattr(category_model, setting_name)
+                    category_dict[setting_name] = current_value
+            
+            # Only add the category if it has exportable settings
+            if category_dict:
+                exportable_dict[category_name] = category_dict
+        
+        return exportable_dict
+
+    # Persistent settings methods
+    
+    def save_persistent_settings(self, format: str = "toml") -> bool:
+        """Save current settings to the persistent settings file.
+        
+        Args:
+            format (str, optional): Format to save in ('toml', 'json', 'yaml'). Defaults to "toml".
+            
+        Returns:
+            bool: True if save was successful.
+        """
+        try:
+            settings_dir = Path(self.settings.paths.hatchling_settings_dir)
+            settings_dir.mkdir(parents=True, exist_ok=True)
+            
+            settings_file = settings_dir / f"hatchling_settings.{format}"
+            
+            # Export settings excluding read-only (default behavior for persistence)
+            return self.export_settings_to_file(str(settings_file), format, include_read_only=False)
+            
+        except Exception as e:
+            self.logger.error(f"Failed to save persistent settings: {e}")
+            return False
+    
+    def load_persistent_settings(self, format: str = "toml") -> bool:
+        """Load settings from the persistent settings file.
+        
+        Args:
+            format (str, optional): Format to load from ('toml', 'json', 'yaml'). Defaults to "toml".
+            
+        Returns:
+            bool: True if load was successful or no settings file exists.
+        """
+        try:
+            settings_dir = Path(self.settings.paths.hatchling_settings_dir)
+            settings_file = settings_dir / f"hatchling_settings.{format}"
+            
+            if not settings_file.exists():
+                self.logger.warning(f"No persistent settings file found at {settings_file}, using defaults")
+                
+                # Export default settings if file does not exist
+                self.save_persistent_settings(format)
+            
+            # Import settings (will automatically skip read-only and protected without force)
+            success = self.import_settings_from_file(str(settings_file), format, force=True)
+            if success:
+                self.logger.info(f"Loaded persistent settings from {settings_file}")
+            return success
+            
+        except Exception as e:
+            self.logger.error(f"Failed to load persistent settings: {e}")
+            return False
+    
+    def get_persistent_settings_file_path(self, format: str = "toml") -> Path:
+        """Get the path to the persistent settings file.
+        
+        Args:
+            format (str, optional): Format extension. Defaults to "toml".
+            
+        Returns:
+            Path: Path to the persistent settings file.
+        """
+        settings_dir = Path(self.settings.paths.hatchling_settings_dir)
+        return settings_dir / f"hatchling_settings.{format}"

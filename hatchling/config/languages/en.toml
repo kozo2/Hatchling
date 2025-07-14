@@ -55,6 +55,16 @@ name = "Hatchling Source Directory"
 description = "Directory where Hatchling source code is located"
 hint = "Directory path"
 
+[settings.paths.hatchling_cache_dir]
+name = "Hatchling Cache Directory"
+description = "Directory for Hatchling cache and data storage"
+hint = "Directory path"
+
+[settings.paths.hatchling_settings_dir]
+name = "Hatchling Settings Directory"
+description = "Directory for Hatchling settings storage"
+hint = "Directory path"
+
 [settings.paths.data_dir]
 name = "Data Directory"
 description = "Directory for application data storage"
@@ -218,6 +228,7 @@ detailed_description = "Show detailed diagnostics"
 force_removal_description = "Force removal without confirmation"
 cmd_description = "Command to run in the shell (optional)"
 tag_description = "Git tag/branch reference for wrapper installation (e.g., 'dev', 'v0.1.0')"
+all_settings_description = "Include read-only settings in the export"
 
 # Error messages
 [errors]

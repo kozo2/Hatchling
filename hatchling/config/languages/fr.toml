@@ -55,6 +55,16 @@ name = "Répertoire Source de Hatchling"
 description = "Répertoire où le code source de Hatchling est situé"
 hint = "Chemin du répertoire"
 
+[settings.paths.hatchling_cache_dir]
+name = "Répertoire de Cache de Hatchling"
+description = "Répertoire pour le cache et le stockage de données de Hatchling"
+hint = "Chemin du répertoire"
+
+[settings.paths.hatchling_settings_dir]
+name = "Répertoire de Paramètres de Hatchling"
+description = "Répertoire pour le stockage des paramètres de Hatchling"
+hint = "Chemin du répertoire"
+
 [settings.paths.data_dir]
 name = "Répertoire de Données"
 description = "Répertoire pour le stockage des données d'application"
@@ -214,6 +224,7 @@ detailed_description = "Afficher les diagnostics détaillés"
 force_removal_description = "Forcer la suppression sans confirmation"
 cmd_description = "Commande à exécuter dans le shell (optionnel)"
 tag_description = "Référence de tag/branche Git pour l'installation du wrapper (ex: 'dev', 'v0.1.0')"
+all_settings_description = "Inclure les paramètres en lecture seule dans l'exportation"
 
 # Error messages
 [errors]

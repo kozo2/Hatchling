@@ -9,7 +9,7 @@ class TestSettingsModels(unittest.TestCase):
     def test_llm_settings_creation(self):
         llm_settings = LLMSettings()
         self.assertEqual(llm_settings.api_url, "http://localhost:11434/api")
-        self.assertEqual(llm_settings.model, "mistral-small3.1")
+        self.assertEqual(llm_settings.model, "llama3.2")
 
     def test_path_settings_validation(self):
         path_settings = PathSettings()
@@ -31,9 +31,9 @@ class TestSettingsModels(unittest.TestCase):
 
     def test_ui_settings_creation(self):
         ui_settings = UISettings()
-        self.assertEqual(ui_settings.language, "en")
-        ui_settings_custom = UISettings(language="fr")
-        self.assertEqual(ui_settings_custom.language, "fr")
+        self.assertEqual(ui_settings.language_code, "en")
+        ui_settings_custom = UISettings(language_code="fr")
+        self.assertEqual(ui_settings_custom.language_code, "fr")
 
     def test_app_settings_aggregation(self):
         app_settings = AppSettings()
@@ -45,7 +45,7 @@ class TestSettingsModels(unittest.TestCase):
 class TestSettingsRegistry(unittest.TestCase):
     def setUp(self):
         self.app_settings = AppSettings()
-        self.registry = SettingsRegistry(self.app_settings)
+        self.registry = SettingsRegistry(self.app_settings, False)  # Disable auto-load for testing
 
     def test_list_all_settings(self):
         settings_list = self.registry.list_settings()
@@ -55,9 +55,10 @@ class TestSettingsRegistry(unittest.TestCase):
         setting_names = {f"{s['category_name']}:{s['name']}" for s in settings_list}
         expected_settings = {
             'llm:api_url', 'llm:model',
-            'paths:envs_dir',
+            'paths:envs_dir', 'paths:hatchling_cache_dir', 'paths:hatchling_settings_dir',
+            'paths:hatchling_source_dir',
             'tool_calling:max_iterations', 'tool_calling:max_working_time',
-            'ui:language'
+            'ui:language_code'
         }
         self.assertEqual(setting_names, expected_settings)
 
@@ -65,7 +66,7 @@ class TestSettingsRegistry(unittest.TestCase):
         setting_info = self.registry.get_setting('llm', 'model')
         self.assertEqual(setting_info['category_name'], 'llm')
         self.assertEqual(setting_info['name'], 'model')
-        self.assertEqual(setting_info['current_value'], 'mistral-small3.1')
+        self.assertEqual(setting_info['current_value'], 'llama3.2')
         self.assertEqual(setting_info['access_level'], SettingAccessLevel.NORMAL)
         self.assertIn('description', setting_info)
 
@@ -104,27 +105,27 @@ class TestSettingsRegistry(unittest.TestCase):
         result = self.registry.reset_setting('llm', 'model')
         self.assertTrue(result)
         updated_info = self.registry.get_setting('llm', 'model')
-        self.assertEqual(updated_info['current_value'], 'mistral-small3.1')
+        self.assertEqual(updated_info['current_value'], 'llama3.2')
 
     def test_export_settings_json(self):
         exported = self.registry.export_settings('json')
         parsed = json.loads(exported)
         self.assertIn('llm', parsed)
-        self.assertIn('paths', parsed)
+        self.assertNotIn('paths', parsed) # Paths are read-only and not exported
         self.assertIn('tool_calling', parsed)
         self.assertIn('ui', parsed)
 
     def test_import_settings_json(self):
         settings_data = {
             "llm": {"model": "gpt-4"},
-            "ui": {"language": "fr"}
+            "ui": {"language_code": "fr"}
         }
         report = self.registry.import_settings(json.dumps(settings_data), 'json')
         self.assertIn('llm:model', report['successful'])
-        self.assertIn('ui:language', report['successful'])
+        self.assertIn('ui:language_code', report['successful'])
         llm_info = self.registry.get_setting('llm', 'model')
         self.assertEqual(llm_info['current_value'], 'gpt-4')
-        ui_info = self.registry.get_setting('ui', 'language')
+        ui_info = self.registry.get_setting('ui', 'language_code')
         self.assertEqual(ui_info['current_value'], 'fr')
 
     def test_search_exact_match(self):

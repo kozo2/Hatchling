@@ -44,7 +44,7 @@ The following commands are available during chat:
 | `settings:get` | Get the value of a specific setting | `<category:name>` - Setting in format category:name | `settings:get llm:model` |
 | `settings:set` | Set the value of a specific setting | `<category:name> <value>` - Setting and new value<br>`--force-protected` - Force import of protected settings<br>`--force-confirmed` - Force application of settings without asking for user consent<br> | `settings:set llm:model mistral-small` |
 | `settings:reset` | Reset a setting to its default value | `<category:name>` - Setting to reset<br>`--force-protected` - Force import of protected settings<br>`--force-confirmed` - Force application of settings without asking for user consent<br> | `settings:reset llm:api_url` |
-| `settings:export` | Export settings to a file | `<file>` - Output file path<br>`[format]` - Format (toml, json, yaml) | `settings:export config.toml` |
+| `settings:export` | Export settings to a file | `<file>` - Output file path<br>`[format]` - Format (toml, json, yaml)<br>`--all` - Include read-only settings | `settings:export config.toml` |
 | `settings:import` | Import settings from a file | `<file>` - Input file path<br>`--force-protected` - Force import of protected settings<br>`--force-confirmed` - Force application of settings without asking for user consent<br> | `settings:import config.toml --force` |
 
 ## Language Management

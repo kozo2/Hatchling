@@ -31,6 +31,8 @@ Hatchling provides a comprehensive settings system to configure various aspects 
 |---------|-------------|---------|---------|
 | `envs_dir` | Directory where Hatch environments are stored | Auto-detected | `/home/user/.hatch/envs` |
 | `hatchling_source_dir` | Directory where Hatchling source code is located | Auto-detected | `/opt/hatchling/src` |
+| `hatchling_cache_dir` | Directory for Hatchling cache and data storage (read-only after install) | `~/.hatch` or `HATCHLING_CACHE_DIR` | `/home/user/.hatch` |
+| `hatchling_settings_dir` | Directory for Hatchling settings storage (read-only after install) | `hatchling_cache_dir/settings` or `HATCHLING_SETTINGS_DIR` | `/home/user/.hatch/settings` |
 | `data_dir` | Directory for application data storage | Auto-detected | `/home/user/.hatchling/data` |
 | `config_dir` | Directory for configuration files | Auto-detected | `/home/user/.hatchling/config` |
 
@@ -125,6 +127,35 @@ Settings have different access levels that control how they can be modified:
 - **Protected**: Require `--force` flag to modify (sensitive settings)
 - **Read-only**: Cannot be modified (system-computed values)
 
+## Persistent Settings
+
+Hatchling automatically saves and loads user settings to persist your preferences across sessions.
+
+### How It Works
+
+- **On Startup**: Settings are loaded from `hatchling_settings_dir/hatchling_settings.toml`
+- **On Exit**: Current settings are automatically saved to preserve changes
+- **What's Saved**: Only modifiable settings (excludes read-only settings like computed paths)
+
+### Configuration Directories
+
+The cache and settings directories can be configured at install time via environment variables:
+
+| Environment Variable | Purpose | Default |
+|---------------------|---------|---------|
+| `HATCHLING_CACHE_DIR` | Main cache directory | `~/.hatch` |
+| `HATCHLING_SETTINGS_DIR` | Settings storage directory | `$HATCHLING_CACHE_DIR/settings` |
+
+**Note**: These directories become read-only after first use to ensure consistency. In Docker environments, they are typically set via volume mounts.
+
+### Import/Export vs Persistent Settings
+
+- **Persistent settings**: Automatic save/load for session continuity
+- **Import/Export**: Manual operations for backup, sharing, or profile management
+- **Read-only exclusion**: By default, both persistent and export operations exclude read-only settings
+
+Use `settings:export filename --all` to include read-only settings when creating complete configuration backups.
+
 ## Command Reference
 
 For detailed command syntax and examples, see the [Chat Commands documentation](chat_commands.md#settings-management).
@@ -138,6 +169,7 @@ For detailed command syntax and examples, see the [Chat Commands documentation](
 | Set setting value | `settings:set category:name value` |
 | Reset to default | `settings:reset category:name` |
 | Export settings | `settings:export filename` |
+| Export all settings | `settings:export filename --all` |
 | Import settings | `settings:import filename` |
 
 ## Language Support

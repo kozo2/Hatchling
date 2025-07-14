@@ -3,7 +3,7 @@ import sys
 from pathlib import Path
 from hatchling.core.logging.logging_config import configure_logging
 from hatchling.core.logging.logging_manager import logging_manager
-from hatchling.config.settings import AppSettings
+from hatchling.config.settings_registry import SettingsRegistry
 from hatchling.config.i18n import init_translation_loader
 from hatchling.ui.cli_chat import CLIChat
 
@@ -26,9 +26,11 @@ async def main_async():
     Raises:
         Exception: Any unhandled exceptions that occur during execution.
     """
+    settings_registry = None
     try:
-        # Create settings with MCP server path
-        settings = AppSettings()
+    
+        settings_registry = SettingsRegistry()
+        settings = settings_registry.settings
 
         # Initialize translation loader
         init_translation_loader(languages_dir=settings.paths.hatchling_source_dir / "hatchling" / "config" / "languages",
@@ -45,6 +47,12 @@ async def main_async():
         log.info("Application interrupted by user")
     except Exception as e:
         log.error(f"Error in main application: {e}")
+    finally:
+        try:
+            settings_registry.save_persistent_settings()
+            log.info("Persistent settings saved on exit")
+        except Exception as e:
+            log.error(f"Failed to save persistent settings on exit: {e}")
 
 def main():
     """Entry point function that runs the async main function.
