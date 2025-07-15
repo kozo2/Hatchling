@@ -30,14 +30,13 @@ async def main_async():
     try:
     
         settings_registry = SettingsRegistry()
-        settings = settings_registry.settings
 
         # Initialize translation loader
-        init_translation_loader(languages_dir=settings.paths.hatchling_source_dir / "hatchling" / "config" / "languages",
-                                 default_language_code=settings.ui.language_code)
-        
+        init_translation_loader(languages_dir=settings_registry.settings.paths.hatchling_source_dir / "hatchling" / "config" / "languages",
+                                 default_language_code=settings_registry.settings.ui.language_code)
+
         # Create and run CLI chat interface
-        cli_chat = CLIChat(settings)
+        cli_chat = CLIChat(settings_registry)
         
         await cli_chat.initialize_and_run()
         

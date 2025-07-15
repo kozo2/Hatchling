@@ -16,7 +16,7 @@ from hatchling.core.chat.command_completion import CommandCompleter
 from hatchling.core.chat.command_lexer import ChatCommandLexer
 
 from hatchling.config.settings_registry import SettingsRegistry
-from hatchling.config.settings import AppSettings
+from hatchling.config.settings_registry import SettingsRegistry
 from hatchling.core.chat.base_commands import BaseChatCommands
 from hatchling.core.chat.hatch_commands import HatchCommands
 from hatchling.core.chat.settings_commands import SettingsCommands
@@ -27,23 +27,23 @@ from hatch import HatchEnvironmentManager
 
 class ChatCommandHandler:
     """Handles processing of command inputs in the chat interface."""    
-    def __init__(self, chat_session, settings: AppSettings, env_manager: HatchEnvironmentManager, debug_log: SessionDebugLog, style: Optional[Style] = None):
+    def __init__(self, chat_session, settings_registry: SettingsRegistry, env_manager: HatchEnvironmentManager, debug_log: SessionDebugLog, style: Optional[Style] = None):
         """Initialize the command handler.
         
         Args:
             chat_session: The chat session this handler is associated with.
-            settings (AppSettings): The chat settings to use.
+            settings_registry (SettingsRegistry): The settings registry containing configuration.
             env_manager (HatchEnvironmentManager): The Hatch environment manager.
             debug_log (SessionDebugLog): Logger for command operations.
             style (Optional[Style]): Style for formatting command output.
         """
 
 
-        self.settings_registry = SettingsRegistry(settings)
+        self.settings_registry = settings_registry
         self.env_manager = env_manager
-        self.base_commands = BaseChatCommands(chat_session, settings, env_manager, debug_log, style, self.settings_registry)
-        self.hatch_commands = HatchCommands(chat_session, settings, env_manager, debug_log, style, self.settings_registry)
-        self.settings_commands = SettingsCommands(chat_session, settings, env_manager, debug_log, style, self.settings_registry)
+        self.base_commands = BaseChatCommands(chat_session, settings_registry, env_manager, debug_log, style)
+        self.hatch_commands = HatchCommands(chat_session, settings_registry, env_manager, debug_log, style)
+        self.settings_commands = SettingsCommands(chat_session, settings_registry, env_manager, debug_log, style)
 
         self.logger = debug_log
 

@@ -27,9 +27,8 @@ class AbstractCommands(ABC):
     methods to define their specific commands and behavior.
     """
     def __init__(self, chat_session,
-                 settings: AppSettings, env_manager: HatchEnvironmentManager,
-                 debug_log: SessionDebugLog, style: Optional[Style] = None,
-                 settings_registry: Optional[SettingsRegistry] = None):
+                 settings_registry: SettingsRegistry, env_manager: HatchEnvironmentManager,
+                 debug_log: SessionDebugLog, style: Optional[Style] = None):
         """Initialize the command handler.
         
         Args:
@@ -40,10 +39,12 @@ class AbstractCommands(ABC):
             style (Optional[Style]): Style for formatting command output.
         """
         self.chat_session = chat_session
-        self.settings = settings
+
+        self.settings_registry = settings_registry
+        self.settings = settings_registry.settings
+        
         self.env_manager = env_manager
         self.logger = debug_log
-        self.settings_registry = settings_registry or SettingsRegistry(self.settings)
         
         # Set up styling - use provided style or create default
         self.style = style or Style.from_dict({

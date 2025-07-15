@@ -14,23 +14,22 @@ from hatchling.core.logging.logging_manager import logging_manager
 from hatchling.core.llm.model_manager import ModelManager
 from hatchling.core.llm.chat_session import ChatSession
 from hatchling.core.chat.chat_command_handler import ChatCommandHandler
-from hatchling.config.settings import AppSettings
+from hatchling.config.settings_registry import SettingsRegistry
 from hatchling.mcp_utils.manager import mcp_manager
-# Import removed - using centralized logging system
 
 from hatch import HatchEnvironmentManager
 
 class CLIChat:
-    """Command-line interface for chat functionality."""    
-    
-    def __init__(self, settings: AppSettings):
+    """Command-line interface for chat functionality."""
+
+    def __init__(self, settings_registry: SettingsRegistry):
         """Initialize the CLI chat interface.
         
         Args:
-            settings (AppSettings): The chat settings to use.
+            settings (SettingsRegistry): The settings management instance containing configuration.
         """
         # Store settings first
-        self.settings = settings
+        self.settings_registry = settings_registry
         
         # Get a logger - styling is already configured at the application level
         self.logger = logging_manager.get_session("CLIChat")
@@ -74,12 +73,12 @@ class CLIChat:
         })
         
         self.env_manager = HatchEnvironmentManager(
-            environments_dir = self.settings.paths.envs_dir,
+            environments_dir = self.settings_registry.settings.paths.envs_dir,
             cache_ttl = 86400,  # 1 day default
         )
             
         # Create the model manager
-        self.model_manager = ModelManager(settings, self.logger)
+        self.model_manager = ModelManager(self.settings_registry.settings, self.logger)
         
         # Chat session will be initialized during startup
         self.chat_session = None
@@ -95,7 +94,7 @@ class CLIChat:
         available, message = await self.model_manager.check_ollama_service()
         if not available:
             self.logger.error(message)
-            self.logger.error(f"Please ensure the Ollama service is running at {self.settings.llm.api_url} before running this script.")
+            self.logger.error(f"Please ensure the Ollama service is running at {self.settings_registry.settings.llm.api_url} before running this script.")
             return False
         
         self.logger.info(message)
@@ -120,9 +119,9 @@ class CLIChat:
             self.logger.warning("MCP server is not available. Continuing without MCP tools...")
             
         # Initialize chat session
-        self.chat_session = ChatSession(self.settings)
+        self.chat_session = ChatSession(self.settings_registry.settings)
         # Initialize command handler
-        self.cmd_handler = ChatCommandHandler(self.chat_session, self.settings, self.env_manager, self.logger, self.command_style)
+        self.cmd_handler = ChatCommandHandler(self.chat_session, self.settings_registry, self.env_manager, self.logger, self.command_style)
         
         return True
     
@@ -137,13 +136,13 @@ class CLIChat:
         """
         try:
             # Check if model is available
-            is_model_available = await self.model_manager.check_availability(session, self.settings.llm.model)
+            is_model_available = await self.model_manager.check_availability(session, self.settings_registry.settings.llm.model)
             
             if is_model_available:
-                self.logger.info(f"Model {self.settings.llm.model} is already pulled.")
+                self.logger.info(f"Model {self.settings_registry.settings.llm.model} is already pulled.")
                 return True
             else:
-                await self.model_manager.pull_model(session, self.settings.llm.model)
+                await self.model_manager.pull_model(session, self.settings_registry.settings.llm.model)
                 return True
         except Exception as e:
             self.logger.error(f"Error checking/pulling model: {e}")
@@ -155,7 +154,7 @@ class CLIChat:
             self.logger.error("Chat session not initialized. Call initialize() first.")
             return
 
-        self.logger.info(f"Starting interactive chat with {self.settings.llm.model}")
+        self.logger.info(f"Starting interactive chat with {self.settings_registry.settings.llm.model}")
         print_pt(FormattedText([('cyan bold', '\n=== Hatchling Chat Interface ===\n')]))
         self.cmd_handler.print_commands_help()
         

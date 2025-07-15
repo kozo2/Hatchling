@@ -11,8 +11,6 @@ from pathlib import Path
 from prompt_toolkit import print_formatted_text
 from prompt_toolkit.formatted_text import FormattedText
 
-# from hatchling.core.logging.session_debug_log import SessionDebugLog
-# from hatchling.config.settings import AppSettings
 from hatchling.core.chat.abstract_commands import AbstractCommands
 from hatchling.mcp_utils.manager import mcp_manager
 
