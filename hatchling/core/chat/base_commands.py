@@ -13,10 +13,8 @@ from prompt_toolkit.formatted_text import FormattedText
 from hatchling.core.logging.session_debug_log import SessionDebugLog
 from hatchling.core.logging.logging_manager import logging_manager
 from hatchling.mcp_utils.manager import mcp_manager
-from hatchling.config.settings import ChatSettings
 from hatchling.core.chat.abstract_commands import AbstractCommands
-
-from hatch import HatchEnvironmentManager
+from hatchling.config.i18n import translate
 
 
 class BaseChatCommands(AbstractCommands):
@@ -24,98 +22,99 @@ class BaseChatCommands(AbstractCommands):
 
     def _register_commands(self) -> None:
         """Register all available chat commands with their handlers."""
-        # New standardized command registration format
+        # New standardized command registration format with i18n support
         self.commands = {
             'help': {
                 'handler': self._cmd_help,
-                'description': "Display help for available commands",
+                'description': translate("commands.base.help_description"),
                 'is_async': False,
                 'args': {}
             },
             'exit': {
                 'handler': self._cmd_exit,
-                'description': "End the chat session",
+                'description': translate("commands.base.exit_description"),
                 'is_async': False,
                 'args': {}
             },
             'quit': {
                 'handler': self._cmd_exit,
-                'description': "End the chat session (alias for exit)",
+                'description': translate("commands.base.quit_description"),
                 'is_async': False,
                 'args': {}
             },
             'clear': {
                 'handler': self._cmd_clear,
-                'description': "Clear the chat history",
+                'description': translate("commands.base.clear_description"),
                 'is_async': False,
                 'args': {}
             },
             'show_logs': {
                 'handler': self._cmd_show_logs,
-                'description': "Display session logs",
+                'description': translate("commands.base.show_logs_description"),
                 'is_async': False,
                 'args': {
                     'count': {
                         'positional': True,
                         'completer_type': 'suggestions',
                         'values': ['10', '20', '50', '100'],
-                        'description': 'Number of log entries to show',
+                        'description': translate('commands.args.value_description'),
                         'required': False
                     }
                 }
             },
             'set_log_level': {
                 'handler': self._cmd_set_log_level,
-                'description': "Change log level",
+                'description': translate("commands.base.set_log_level_description"),
                 'is_async': False,
                 'args': {
                     'level': {
                         'positional': True,
                         'completer_type': 'suggestions',
                         'values': ['debug', 'info', 'warning', 'error', 'critical'],
-                        'description': 'Log level name',
+                        'description': translate('commands.args.value_description'),
                         'required': True
                     }
                 }
             },
             'set_max_tool_call_iterations': {
                 'handler': self._cmd_set_max_iterations,
-                'description': "Set max tool call iterations",
+                'description': translate("commands.base.set_max_tool_call_iterations_description"),
                 'is_async': False,
                 'args': {
                     'iterations': {
                         'positional': True,
                         'completer_type': 'none',
-                        'description': 'Number of iterations (positive integer)',
+                        'description': translate('commands.args.value_description'),
                         'required': True
                     }
                 }
             },
             'set_max_working_time': {
                 'handler': self._cmd_set_max_working_time,
-                'description': "Set max working time in seconds",
+                'description': translate("commands.base.set_max_working_time_description"),
                 'is_async': False,
                 'args': {
                     'seconds': {
                         'positional': True,
                         'completer_type': 'none',
-                        'description': 'Time in seconds (positive number)',
+                        'description': translate('commands.args.value_description'),
                         'required': True
                     }
                 }
             },
             'enable_tools': {
                 'handler': self._cmd_enable_tools,
-                'description': "Enable MCP tools",
+                'description': translate("commands.base.enable_tools_description"),
                 'is_async': True,
                 'args': {}
             },
             'disable_tools': {
                 'handler': self._cmd_disable_tools,
-                'description': "Disable MCP tools",
+                'description': translate("commands.base.disable_tools_description"),
                 'is_async': True,
                 'args': {}
-            }        }
+            }
+        }
 
         # Keep old format for backward compatibility
         self.sync_commands = {}
@@ -146,8 +145,8 @@ class BaseChatCommands(AbstractCommands):
 
     def _cmd_help(self, _: str) -> bool:
         """
-        This is the only command that is picked up by the ChatCommandHandler
-        and not here.
+        This command is picked up by the ChatCommandHandler and not here.
+        That's because it concerns all commands, not just base commands.
         """
         pass
     

@@ -1,0 +1,280 @@
+# English translation file for Hatchling
+# This serves as both the template and default language
+
+[meta]
+language_code = "en"
+language_name = "English"
+version = "1.0.0"
+
+# Commonly used translations
+[common]
+description = "Description"
+name = "Name"
+default = "Default"
+current = "Current"
+category = "Category"
+
+# Settings translations
+[settings]
+
+[settings.categories]
+llm = "LLM Configuration"
+paths = "Path Configuration" 
+tool_calling = "Tool Calling"
+ui = "User Interface"
+
+# LLM Settings
+[settings.llm]
+category_name = "llm"
+category_display_name = "LLM Configuration"
+category_description = "Settings for Large Language Model configuration"
+
+[settings.llm.api_url]
+name = "API URL"
+description = "URL for the Ollama API endpoint"
+hint = "Example: http://localhost:11434/api"
+
+[settings.llm.model]
+name = "Model"
+description = "LLM model to use for chat interactions"
+hint = "Example: mistral-small3.1"
+
+# Path Settings
+[settings.paths]
+category_name = "paths"
+category_display_name = "Path Configuration"
+category_description = "Settings for file and directory paths"
+
+[settings.paths.envs_dir]
+name = "Environments Directory"
+description = "Directory where Hatch environments are stored"
+hint = "Directory path"
+
+[settings.paths.hatchling_source_dir]
+name = "Hatchling Source Directory"
+description = "Directory where Hatchling source code is located"
+hint = "Directory path"
+
+[settings.paths.hatchling_cache_dir]
+name = "Hatchling Cache Directory"
+description = "Directory for Hatchling cache and data storage"
+hint = "Directory path"
+
+[settings.paths.hatchling_settings_dir]
+name = "Hatchling Settings Directory"
+description = "Directory for Hatchling settings storage"
+hint = "Directory path"
+
+[settings.paths.data_dir]
+name = "Data Directory"
+description = "Directory for application data storage"
+hint = "Directory path"
+
+[settings.paths.config_dir]
+name = "Configuration Directory"
+description = "Directory for configuration files"
+hint = "Directory path"
+
+# Tool Calling Settings
+[settings.tool_calling]
+category_name = "tool_calling"
+category_display_name = "Tool Calling"
+category_description = "Settings for tool calling behavior"
+
+[settings.tool_calling.max_iterations]
+name = "Max Iterations"
+description = "Maximum number of tool calling iterations"
+hint = "Integer value" 
+
+[settings.tool_calling.max_working_time]
+name = "Max Working Time"
+description = "Maximum working time for tool calls"
+hint = "Time in seconds"
+
+# UI Settings
+[settings.ui]
+category_name = "ui"
+category_display_name = "User Interface"
+category_description = "Settings for user interface behavior"
+
+[settings.ui.language_code]
+name = "Language"
+description = "Language code for user interface localization"
+hint = "Language code (e.g., en, fr, es)"
+
+# Command translations
+[commands]
+
+# Base chat commands
+[commands.base]
+help_name = "help"
+help_description = "Display help for available commands"
+exit_name = "exit"
+exit_description = "End the chat session"
+quit_name = "quit"
+quit_description = "End the chat session (alias for exit)"
+clear_name = "clear"
+clear_description = "Clear the chat history"
+
+# Additional base commands
+show_logs_name = "show_logs"
+show_logs_description = "Display session logs"
+set_log_level_name = "set_log_level"
+set_log_level_description = "Change log level"
+set_max_tool_call_iterations_name = "set_max_tool_call_iterations"
+set_max_tool_call_iterations_description = "Set max tool call iterations"
+set_max_working_time_name = "set_max_working_time"
+set_max_working_time_description = "Set max working time in seconds"
+enable_tools_name = "enable_tools"
+enable_tools_description = "Enable MCP tools"
+disable_tools_name = "disable_tools"
+disable_tools_description = "Disable MCP tools"
+
+# Hatch commands
+[commands.hatch]
+
+# Environment management commands
+env_create_name = "hatch:env:create"
+env_create_description = "Create a new Hatch environment"
+env_list_name = "hatch:env:list"
+env_list_description = "List available Hatch environments"
+env_remove_name = "hatch:env:remove"
+env_remove_description = "Remove a Hatch environment"
+env_current_name = "hatch:env:current"
+env_current_description = "Show the current Hatch environment"
+env_use_name = "hatch:env:use"
+env_use_description = "Switch to a different Hatch environment"
+
+# Package management commands
+pkg_add_name = "hatch:pkg:add"
+pkg_add_description = "Add a package to the current environment"
+pkg_remove_name = "hatch:pkg:remove"
+pkg_remove_description = "Remove a package from the current environment"
+pkg_list_name = "hatch:pkg:list"
+pkg_list_description = "List packages in the current environment"
+pkg_create_name = "hatch:pkg:create"
+pkg_create_description = "Create a new package from a template"
+pkg_validate_name = "hatch:pkg:validate"
+pkg_validate_description = "Validate the current package"
+
+# Environment Python commands
+env_python_init_name = "hatch:env:python:init"
+env_python_init_description = "Initialize Python in the environment"
+env_python_info_name = "hatch:env:python:info"
+env_python_info_description = "Show Python info for the environment"
+env_python_remove_name = "hatch:env:python:remove"
+env_python_remove_description = "Remove Python from the environment"
+env_python_shell_name = "hatch:env:python:shell"
+env_python_shell_description = "Open a Python shell in the environment"
+env_python_add_hatch_mcp_name = "hatch:env:python:add_hatch_mcp"
+env_python_add_hatch_mcp_description = "Add Hatch MCP to the Python environment"
+
+# Settings commands
+[commands.settings]
+list_name = "settings:list"
+list_description = "List all available settings"
+get_name = "settings:get"
+get_description = "Get the value of a specific setting"
+set_name = "settings:set"
+set_description = "Set the value of a specific setting"
+reset_name = "settings:reset"
+reset_description = "Reset a setting to its default value"
+import_name = "settings:import"
+import_description = "Import settings from a file"
+export_name = "settings:export"
+export_description = "Export settings to a file"
+save_name = "settings:save"
+save_description = "Save current settings to the default settings file"
+language_list_name = "settings:language:list"
+language_list_description = "List available languages"
+language_set_name = "settings:language:set"
+language_set_description = "Set the interface language"
+
+# Command arguments
+[commands.args]
+name_description = "Name for the resource"
+file_description = "File path"
+format_description = "Output format (table, json, yaml)"
+force_description = "Force the operation without confirmation"
+force_protected_description = "Force setting a protected setting"
+language_description = "Language code to set"
+filter_description = "Filter pattern for settings"
+setting_description = "Setting in format category:name"
+value_description = "Value to set"
+env_name_description = "Name for the new environment"
+env_description_description = "Description for the environment"
+python_version_description = "Python version for the environment (e.g., 3.11, 3.12)"
+no_python_description = "Don't create a Python environment using conda/mamba"
+no_hatch_mcp_server_description = "Don't install hatch_mcp_server in the new environment"
+no_hatch_mcp_server_wrapper_description = "Don't install hatch_mcp_server wrapper in the Python environment"
+hatch_mcp_server_tag_description = "Git tag/branch reference for hatch_mcp_server installation (e.g., 'dev', 'v0.1.0')"
+env_remove_name_description = "Name of the environment to remove"
+env_use_name_description = "Name of the environment to use"
+package_path_or_name_description = "Path or name of the package to add"
+env_target_description = "Environment to add the package to"
+package_version_description = "Version of the package to add"
+force_download_description = "Force download even if already available"
+refresh_registry_description = "Refresh the registry before installing"
+auto_approve_description = "Skip user consent prompt for automation scenarios"
+package_name_description = "Name of the package to remove"
+env_remove_package_description = "Environment to remove the package from"
+env_list_packages_description = "Environment to list packages from"
+package_create_name_description = "Name of the package to create"
+dir_description = "Directory to create the package in"
+package_description_description = "Description of the package"
+package_dir_description = "Directory of the package to validate"
+hatch_env_description = "Hatch environment name (default: current environment)"
+hatch_env_special_description = "Hatch environment name. It must possess a valid Python environment. (default: current environment)"
+force_recreation_description = "Force recreation if exists"
+detailed_description = "Show detailed diagnostics"
+force_removal_description = "Force removal without confirmation"
+cmd_description = "Command to run in the shell (optional)"
+tag_description = "Git tag/branch reference for wrapper installation (e.g., 'dev', 'v0.1.0')"
+all_settings_description = "Include read-only settings in the export"
+
+# Error messages
+[errors]
+invalid_setting = "Invalid setting: {setting}"
+invalid_value = "Invalid value for {setting}: {value}"
+setting_not_found = "Setting not found: {setting}"
+permission_denied = "Permission denied for setting: {setting}"
+file_not_found = "File not found: {file}"
+invalid_format = "Invalid format: {format}"
+language_not_found = "Language not found: {language}"
+translation_key_missing = "Translation key missing: {key}"
+settings_registry_not_available = "Settings registry not available"
+setting_name_required = "Setting name is required"
+setting_and_value_required = "Both setting name and value are required"
+file_path_required = "File path is required"
+language_code_required = "Language code is required"
+invalid_setting_path = "Invalid setting path format: {path}. Use 'category:name'"
+list_settings_failed = "Failed to list settings: {error}"
+get_setting_failed = "Failed to get setting: {error}"
+set_setting_failed = "Failed to set setting: {error}"
+reset_setting_failed = "Failed to reset setting: {error}"
+export_settings_failed = "Failed to export settings: {error}"
+import_settings_failed = "Failed to import settings: {error}"
+list_languages_failed = "Failed to list languages: {error}"
+set_language_failed = "Failed to set language: {error}"
+save_settings_failed = "Failed to save settings: {error}"
+
+# Info messages
+[info]
+setting_updated = "Setting '{setting}' updated to '{value}'"
+setting_reset = "Setting '{setting}' reset to default value"
+settings_imported = "Settings imported from {file}"
+settings_exported = "Settings exported to {file}"
+settings_saved = "Settings saved to default settings file: {file}"
+language_changed = "Language changed to {language}"
+available_languages = "Available languages: {languages}"
+operation_cancelled = "Operation cancelled"
+
+# Headers
+[headers]
+settings_list = "Available Settings"
+available_languages = "Available Languages"
+
+# Prompts
+[prompts]
+confirm_reset = "Are you sure you want to reset '{setting}' to its default value?"
+confirm_import = "Are you sure you want to import settings from '{file}'? This may overwrite current settings."

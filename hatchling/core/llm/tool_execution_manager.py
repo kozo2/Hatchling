@@ -11,19 +11,19 @@ from typing import List, Dict, Tuple, Any, Optional
 
 from hatchling.mcp_utils.manager import mcp_manager
 from hatchling.core.logging.logging_manager import logging_manager
-from hatchling.config.settings import ChatSettings
+from hatchling.config.settings import AppSettings
 
 class ToolExecutionManager:
     """Manages tool execution and tool calling chains."""
     
-    def __init__(self, settings: ChatSettings):
+    def __init__(self, settings: AppSettings):
         """Initialize the tool execution manager.
         
         Args:
-            settings (ChatSettings): The application settings.
+            settings (AppSettings): The application settings.
         """
         self.settings = settings
-        self.logger = logging_manager.get_session(f"ToolExecutionManager-{settings.ollama_model}",
+        self.logger = logging_manager.get_session(f"ToolExecutionManager",
                                       formatter=logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s'))
         self.tools_enabled = False
         
@@ -213,9 +213,9 @@ class ToolExecutionManager:
         elapsed_time = time.time() - self.tool_call_start_time
         
         # Check if we've hit limits
-        reached_max_iterations = self.current_tool_call_iteration >= self.settings.max_tool_call_iteration
-        reached_time_limit = elapsed_time >= self.settings.max_working_time
-        
+        reached_max_iterations = self.current_tool_call_iteration >= self.settings.tool_calling.max_iterations
+        reached_time_limit = elapsed_time >= self.settings.tool_calling.max_working_time
+
         if reached_max_iterations or reached_time_limit:
             # We've reached a limit, return what we have
             limit_reason = "maximum iterations" if reached_max_iterations else "time limit"
@@ -237,7 +237,7 @@ class ToolExecutionManager:
 
         if __tool_results:
             # Process the next step (recursive call)
-            self.logger.info(f"Continuing with tool calling iteration {self.current_tool_call_iteration}/{self.settings.max_tool_call_iteration} ({elapsed_time:.1f}s elapsed)")
+            self.logger.info(f"Continuing with tool calling iteration {self.current_tool_call_iteration}/{self.settings.tool_calling.max_iterations} ({elapsed_time:.1f}s elapsed)")
             _full_response, _message_tool_calls, _tool_results = await self.handle_tool_calling_chain(
                                                             session,
                                                             api_manager, 

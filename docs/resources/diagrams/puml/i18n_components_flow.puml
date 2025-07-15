@@ -1,0 +1,51 @@
+@startuml
+title Translation Process Flow
+
+start
+
+:User requests translation;
+:translate(key, **kwargs);
+
+:Check if language cached;
+
+if (Language in cache?) then
+  :Use cached translations;
+else
+  :Load TOML file;
+note right
+  Translation files are loaded from
+  hatchling/config/languages/ directory
+  following naming convention
+  {lang_code}.toml
+end note
+  :Parse translation data;
+  :Cache translations;
+endif
+
+
+:Navigate key path (e.g., settings.llm.model.name);
+note left
+  Dot notation allows nested
+  access: "settings.llm.model.name"
+  to match actual settings layout
+end note
+
+if (Key found in current language?) then
+  :Get translation value;
+else
+  if (Key found in English fallback?) then
+    :Get English fallback;
+  else
+    :Return original key;
+  endif
+endif
+
+if (Format arguments provided?) then
+  :Apply string formatting {variable} replacements;
+endif
+
+:Return translated string;
+
+stop
+
+@enduml

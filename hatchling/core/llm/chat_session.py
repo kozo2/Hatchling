@@ -5,22 +5,21 @@ from typing import List, Dict, Tuple, Any, Optional
 from hatchling.core.logging.session_debug_log import SessionDebugLog
 from hatchling.mcp_utils.manager import mcp_manager
 from hatchling.core.logging.logging_manager import logging_manager
-from hatchling.config.settings import ChatSettings
+from hatchling.config.settings import AppSettings
 from hatchling.core.chat.message_history import MessageHistory
 from hatchling.core.llm.tool_execution_manager import ToolExecutionManager
 from hatchling.core.llm.api_manager import APIManager
 
 class ChatSession:
-    def __init__(self, settings: ChatSettings):
+    def __init__(self, settings: AppSettings):
         """Initialize a chat session with the specified settings.
         
         Args:
-            settings (ChatSettings): Configuration settings for the chat session.
+            settings (AppSettings): Configuration settings for the chat session.
         """
         self.settings = settings
-        self.model_name = settings.ollama_model
         # Get session-specific logger from the manager
-        self.logger = logging_manager.get_session(f"ChatSession-{self.model_name}",
+        self.logger = logging_manager.get_session(f"ChatSession-{self.settings.llm.model}",
                                   formatter=logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s'))
         
         # Initialize message components
@@ -151,7 +150,7 @@ class ChatSession:
             
             # Create a new payload without tools (we don't want more tool calls in the formatted response)
             payload = {
-                "model": self.model_name,
+                "model": self.settings.llm.model,
                 "messages": clean_history.get_messages(),
                 "stream": True
             }

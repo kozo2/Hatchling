@@ -125,7 +125,6 @@ For example, [earlier](#checking-that-gpu-support-is-enabled--as-expected) the G
 > [!Note]
 > You can adapt the [environment variables](#configuration) to suit your needs (e.g. change the LLM) before you run the following command:
 
-
 **Running Hatchling (recommended approach)**:
 
 By default, the Hatchling container does not start the application automatically. This gives you flexibility to inspect or run any command inside the container.
@@ -158,7 +157,6 @@ Here is a screenshot of what Hatchling typically looks like right after start up
 
 You can receive help about all available commands by writing `help` in the chat. Details about the commands are also available in the [documentation](./chat_commands.md)
 
-
 To close Hatchling, type:
 
 ```bash
@@ -177,8 +175,8 @@ Both commands have the same effect and are aliases.
 
 After you are done inside the container (for example, after running Hatchling), you can exit the bash shell in two ways:
 
-- Type `exit` and press Enter
-- Or press `Ctrl-D`
+* Type `exit` and press Enter
+* Or press `Ctrl-D`
 
 Both methods will close your shell session and return you to your host terminal.
 

@@ -1,46 +1,64 @@
 """Chat command handler module for processing user commands in the chat interface.
 
 This module provides a central handler for all chat commands by combining
-base commands and Hatch-specific commands into a unified interface.
+base commands, Hatch-specific commands, and settings commands into a unified interface.
 """
 
 import logging
 from typing import Tuple, Optional
 
+from prompt_toolkit.completion import FuzzyCompleter
 from prompt_toolkit.styles import Style
 
 from hatchling.core.logging.session_debug_log import SessionDebugLog
-from hatchling.config.settings import ChatSettings
+
+from hatchling.core.chat.command_completion import CommandCompleter
+from hatchling.core.chat.command_lexer import ChatCommandLexer
+
+from hatchling.config.settings_registry import SettingsRegistry
+from hatchling.config.settings_registry import SettingsRegistry
 from hatchling.core.chat.base_commands import BaseChatCommands
 from hatchling.core.chat.hatch_commands import HatchCommands
+from hatchling.core.chat.settings_commands import SettingsCommands
+from hatchling.config.i18n import translate
 
 from hatch import HatchEnvironmentManager
 
 
 class ChatCommandHandler:
     """Handles processing of command inputs in the chat interface."""    
-    def __init__(self, chat_session, settings: ChatSettings, env_manager: HatchEnvironmentManager, debug_log: SessionDebugLog, style: Optional[Style] = None):
+    def __init__(self, chat_session, settings_registry: SettingsRegistry, env_manager: HatchEnvironmentManager, debug_log: SessionDebugLog, style: Optional[Style] = None):
         """Initialize the command handler.
         
         Args:
             chat_session: The chat session this handler is associated with.
-            settings (ChatSettings): The chat settings to use.
+            settings_registry (SettingsRegistry): The settings registry containing configuration.
             env_manager (HatchEnvironmentManager): The Hatch environment manager.
             debug_log (SessionDebugLog): Logger for command operations.
             style (Optional[Style]): Style for formatting command output.
         """
 
-        self.base_commands = BaseChatCommands(chat_session, settings, env_manager, debug_log, style)
-        self.hatch_commands = HatchCommands(chat_session, settings, env_manager, debug_log, style)
+
+        self.settings_registry = settings_registry
+        self.env_manager = env_manager
+        self.base_commands = BaseChatCommands(chat_session, settings_registry, env_manager, debug_log, style)
+        self.hatch_commands = HatchCommands(chat_session, settings_registry, env_manager, debug_log, style)
+        self.settings_commands = SettingsCommands(chat_session, settings_registry, env_manager, debug_log, style)
+
+        self.logger = debug_log
 
         self._register_commands()
     
     def _register_commands(self) -> None:
         """Register all available chat commands with their handlers."""
-        # Combine all commands from both handlers
+        # Combine all commands from all handlers
         self.commands = {}
-        self.commands.update(self.base_commands.get_command_metadata())
-        self.commands.update(self.hatch_commands.get_command_metadata())
+        self.commands.update(self.base_commands.reload_commands())
+        self.commands.update(self.hatch_commands.reload_commands())
+        self.commands.update(self.settings_commands.reload_commands())
+
+        self.command_completer = FuzzyCompleter(CommandCompleter(self.commands, self.env_manager))
+        self.command_lexer = ChatCommandLexer(self.commands)
         
         # Keep old format for backward compatibility
         self.sync_commands = {}
@@ -60,9 +78,29 @@ class ChatCommandHandler:
         
         self.base_commands.print_commands_help()
         self.hatch_commands.print_commands_help()
+        self.settings_commands.print_commands_help()
             
         print("======================\n")
-    
+
+    def set_commands_language(self, language_code: str) -> None:
+        """Set the language for all commands.
+        
+        Args:
+            language_code (str): The language code to set.
+        """
+        if not self.settings_registry:
+            self.logger.error(translate("errors.settings_registry_not_available"))
+
+        try:
+            success = self.settings_registry.set_language(language_code)
+            if success:
+                self._register_commands()  # Re-register commands to apply new language
+            else:
+                self.logger.error(translate("errors.set_language_failed", language=language_code))
+        except Exception as e:
+            self.logger.error(str(e))
+        
+
     async def process_command(self, user_input: str) -> Tuple[bool, bool]:
         """Process a potential command from user input.
         
@@ -87,6 +125,10 @@ class ChatCommandHandler:
 
         if command == "help":
             self.print_commands_help()
+            return True, True
+        
+        if command == "settings:language:set":
+            self.set_commands_language(args.strip())
             return True, True
         
         # Check if the input is a registered command
