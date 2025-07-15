@@ -151,6 +151,21 @@ class SettingsCommands(AbstractCommands):
                     }
                 }
             },
+            'settings:save': {
+                'handler': self._cmd_settings_save,
+                'description': translate("commands.settings.save_description"),
+                'is_async': False,
+                'args': {
+                    'format': {
+                            'positional': False,
+                            'completer_type': 'suggestions',
+                            'values': ["json", "yaml", "toml"],
+                            'description': translate("commands.args.format_description"),
+                            'default': "toml",
+                            'required': False
+                        }
+                }
+            },
             'settings:import': {
                 'handler': self._cmd_settings_import,
                 'description': translate("commands.settings.import_description"),
@@ -392,6 +407,32 @@ class SettingsCommands(AbstractCommands):
                 self._print_error(translate("errors.export_settings_failed", file=str(file_path_obj)))
         except Exception as e:
             self._print_error(translate("errors.export_settings_failed", error=str(e)))
+        return True
+    
+    def _cmd_settings_save(self, args: str) -> bool:
+        """Save current settings to the configured file.
+
+        Args:
+            args (str): Command arguments as a string.
+
+        Returns:
+            bool: True to continue the chat session, False to exit.
+        """
+        arg_defs = self.commands['settings:save']['args']
+
+        parsed_args = self._parse_args(args, arg_defs)
+        file_format = parsed_args.get('format', "toml")
+
+        if not self.settings_registry:
+            self._print_error(translate("errors.settings_registry_not_available"))
+            return True
+
+        try:
+            success = self.settings_registry.save_persistent_settings(file_format)
+            if success:
+                self._print_success(translate("info.settings_saved", file=self.settings_registry.get_persistent_settings_file_path()))
+        except Exception as e:
+            self._print_error(translate("errors.save_settings_failed", error=str(e)))
         return True
 
     async def _cmd_settings_import(self, args: str) -> bool:

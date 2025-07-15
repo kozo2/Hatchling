@@ -179,6 +179,8 @@ import_name = "param:importer"
 import_description = "Importer les paramètres depuis un fichier"
 export_name = "param:exporter"
 export_description = "Exporter les paramètres vers un fichier"
+save_name = "param:sauvegarder"
+save_description = "Sauvegarder les paramètres actuels dans le fichier de paramètres par défaut"
 language_list_name = "param:langue:lister"
 language_list_description = "Lister les langues disponibles"
 language_set_name = "param:langue:définir"
@@ -226,6 +228,7 @@ cmd_description = "Commande à exécuter dans le shell (optionnel)"
 tag_description = "Référence de tag/branche Git pour l'installation du wrapper (ex: 'dev', 'v0.1.0')"
 all_settings_description = "Inclure les paramètres en lecture seule dans l'exportation"
 
+
 # Error messages
 [errors]
 invalid_setting = "Paramètre invalide : {setting}"
@@ -250,6 +253,7 @@ export_settings_failed = "Échec de l'exportation des paramètres : {error}"
 import_settings_failed = "Échec de l'importation des paramètres : {error}"
 list_languages_failed = "Échec de la liste des langues : {error}"
 set_language_failed = "Échec de la définition de la langue : {error}"
+save_settings_failed = "Échec de la sauvegarde des paramètres : {error}"
 
 # Info messages
 [info]
@@ -257,6 +261,7 @@ setting_updated = "Paramètre '{setting}' mis à jour vers '{value}'"
 setting_reset = "Paramètre '{setting}' réinitialisé à la valeur par défaut"
 settings_imported = "Paramètres importés depuis {file}"
 settings_exported = "Paramètres exportés vers {file}"
+settings_saved = "Paramètres sauvegardés dans le fichier de paramètres par défaut : {file}"
 language_changed = "Langue changée vers {language}"
 available_languages = "Langues disponibles : {languages}"
 operation_cancelled = "Opération annulée"
