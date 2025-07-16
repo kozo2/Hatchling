@@ -1,0 +1,45 @@
+name: Validate PR Branches to Main
+
+on:
+  pull_request:
+    branches:
+      - main
+
+jobs:
+  validate-branch:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Validate PR source branch and org membership
+        run: |
+          BRANCH_NAME="${{ github.head_ref }}"
+          AUTHOR="${{ github.event.pull_request.user.login }}"
+          ORG="CrackingShells"
+
+          echo "Checking PR branch: $BRANCH_NAME"
+          echo "PR author: $AUTHOR"
+
+          if [[ "$BRANCH_NAME" =~ ^fix/ ]]; then
+            echo "---"
+            echo "✅ Branch $BRANCH_NAME is allowed for PR to main (fix branch)."
+            exit 0
+          fi
+
+          if [[ "$BRANCH_NAME" == "dev" ]]; then
+            echo "---"
+            echo "🔍 Branch $BRANCH_NAME is a dev branch. Checking org membership..."
+            IS_MEMBER=$(gh api orgs/$ORG/members/$AUTHOR --silent --method GET --field username=$AUTHOR --field org=$ORG --jq '.login' || echo "")
+            if [[ "$IS_MEMBER" != "$AUTHOR" ]]; then
+              echo "---"
+              echo "❌ PR author $AUTHOR is not a member of the organization."
+              gh pr comment ${{ github.event.pull_request.number }} --body "⚠️ Only members of the CrackingShells organization can open PRs from 'dev' to 'main'.\nPlease, rebase your branch on `dev` and open a PR to `dev` instead."
+              exit 1
+            fi
+            echo "---"
+            echo "✅ PR author $AUTHOR is a member of the organization."
+            exit 0
+          fi
+
+          echo "---"
+          echo "❌ Error: Only 'fix/' or 'dev' branches can open PRs to 'main'."
+          gh pr comment ${{ github.event.pull_request.number }} --body "❌ To automate versioning, only branches starting with 'fix/' or 'dev' are allowed to open PRs to 'main'.\nYour branch: $BRANCH_NAME. Please rename your branch.\nMoreover, if you intended to open a PR to 'main', please ensure **you are a member of the CrackingShells organization.**"
+          exit 1

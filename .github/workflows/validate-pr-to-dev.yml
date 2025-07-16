@@ -1,0 +1,27 @@
+name: Validate PR Branches to Dev
+
+on:
+  pull_request:
+    branches:
+      - dev
+
+jobs:
+  validate-branch:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check PR source branch name
+        run: |
+          BRANCH_NAME="${{ github.head_ref }}"
+
+          echo "Checking PR branch: $BRANCH_NAME"
+
+          if [[ "$BRANCH_NAME" =~ ^(feat/|fix/) ]]; then
+            echo "---"
+            echo "✅ Branch $BRANCH_NAME is allowed for PR to dev."
+            exit 0
+          fi
+
+          echo "---"
+          echo "❌ Error: Only 'feat/' and 'fix/' branches can open PRs to 'dev'."
+          gh pr comment ${{ github.event.pull_request.number }} --body "❌ To automate versioning, only branches starting with 'feat/' or 'fix/' are allowed to open PRs to 'dev'.\nYour branch: $BRANCH_NAME. Please rename your branch."
+          exit 1
