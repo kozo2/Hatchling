@@ -56,8 +56,8 @@ You can extend Hatchling with custom MCP tools by creating Hatch packages:
     ```txt
     hatch:create .local/<name> --description "Your description here"
     ```
-
-    to populate a folder at directory `HATCH_LOCAL_PACKAGE_DIR/<name>`, where `HATCH_LOCAL_PACKAGE_DIR` is the environment variable   [you can set](./docs/articles/users/tutorials/Installation/running_hatchling.md#configuration) in the `.env` file.
+    
+to populate a folder at directory `HATCH_LOCAL_PACKAGE_DIR/<name>`, where `HATCH_LOCAL_PACKAGE_DIR` is the environment variable   [you can set](./docs/articles/users/tutorials/Installation/running_hatchling.md#configuration) in the `.env` file.
 
 2. The `server.py` is the entry point of your MCP server.
 

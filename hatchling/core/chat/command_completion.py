@@ -13,19 +13,19 @@ from prompt_toolkit.document import Document
 from pathlib import Path
 
 from hatch import HatchEnvironmentManager
-
+from hatchling.config.i18n import get_available_languages
 
 class CommandCompleter(Completer):
     """Main completer class that provides autocompletion for chat commands."""
     
-    def __init__(self, command_metadata: Dict[str, Dict[str, Any]], env_manager: HatchEnvironmentManager):
+    def __init__(self, commands: Dict[str, Dict[str, Any]], env_manager: HatchEnvironmentManager):
         """Initialize the command completer.
         
         Args:
-            command_metadata: Dictionary containing command metadata from ChatCommandHandler
+            commands: Dictionary containing command metadata from ChatCommandHandler
             env_manager: Hatch environment manager for dynamic completion
         """
-        self.command_metadata = command_metadata
+        self.commands = commands
         self.env_manager = env_manager
         self.path_completer = PathCompleter()
         
@@ -62,13 +62,21 @@ class CommandCompleter(Completer):
         # If we have a command, complete its arguments
         if len(parts) >= 1:
             command = parts[0].lower()
-            if command in self.command_metadata:
+            if command in self.commands:
                 yield from self._get_argument_completions(command, parts[1:], text)
                 return
                 
         # Fallback - no completions available
         return []
+    
+    def set_commands(self, commands: Dict[str, Dict[str, Any]]):
+        """Set the command metadata for this completer.
         
+        Args:
+            commands: Dictionary containing command metadata
+        """
+        self.commands = commands
+
     def _get_command_completions(self, prefix: str) -> Iterable[Completion]:
         """Get completions for command names.
         
@@ -78,7 +86,7 @@ class CommandCompleter(Completer):
         Yields:
             Completion: Command completions
         """
-        for cmd_name, cmd_info in self.command_metadata.items():
+        for cmd_name, cmd_info in self.commands.items():
             if cmd_name.lower().startswith(prefix.lower()):
                 # Calculate the start position for replacement
                 start_position = -len(prefix) if prefix else 0
@@ -101,7 +109,7 @@ class CommandCompleter(Completer):
         Yields:
             Completion: Argument completions
         """
-        cmd_info = self.command_metadata[command]
+        cmd_info = self.commands[command]
         arg_defs = cmd_info.get('args', {})
         
         if not arg_defs:
@@ -115,8 +123,8 @@ class CommandCompleter(Completer):
             return
             
         # Check if the previous argument was a flag that expects a value
-        if len(args) >= 2 and args[-2].startswith('-'):
-            flag_name = args[-2].lstrip('-')
+        if len(args) >= 1 and args[-1].startswith('-'):
+            flag_name = args[-1].lstrip('-')
             yield from self._get_flag_value_completions(arg_defs, flag_name, current_word)
             return
             
@@ -327,7 +335,17 @@ class CommandCompleter(Completer):
                     display_meta=display_meta,
                     style=style
                 )
-                
+        
+        elif completer_type == 'languages':
+            languages = get_available_languages()
+            for lang in languages:
+                yield Completion(
+                    text=lang['code'],
+                    start_position=start_position,
+                    display=lang['code'],
+                    display_meta=lang.get('name', '')
+                )
+
         # For 'none' type, no completions are provided
         
     def _get_environments(self) -> List[str]:
@@ -420,22 +438,3 @@ class CommandCompleter(Completer):
         """Invalidate cached dynamic completions."""
         self._environment_cache = None
         self._package_cache.clear()
-
-
-class CommandCompleterFactory:
-    """Factory class for creating command completers."""
-    
-    @staticmethod
-    def create_completer(command_handler) -> CommandCompleter:
-        """Create a CommandCompleter instance from a ChatCommandHandler.
-        
-        Args:
-            command_handler: ChatCommandHandler instance
-            
-        Returns:
-            CommandCompleter: Configured completer instance
-        """
-        return CommandCompleter(
-            command_metadata=command_handler.commands,
-            env_manager=command_handler.base_commands.env_manager
-        )

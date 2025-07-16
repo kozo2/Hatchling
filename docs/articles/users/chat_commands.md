@@ -1,15 +1,12 @@
-# Chat Commands
+ Chat Commands
 
 This article is about:
 - Available commands during Hatchling chat sessions
-- Hatch environment and package management commands
-- Configuration and debugging commands
 
 You will learn about:
-- How to use basic chat commands for session management
-- How to manage Hatch environments and packages
-- How to configure logging and tool settings
-
+- Command names and effects
+- Available arguments for the commands
+ 
 The following commands are available during chat:
 
 ## Basic Commands
@@ -45,3 +42,22 @@ The following commands are available during chat:
 | `hatch:pkg:list` | List packages in an environment | `--env <env_name>` - Environment name | `hatch:pkg:list --env my-env` |
 | `hatch:create` | Create a new package template | `<name>` - Package name<br>`--dir <dir>` - Target directory<br>`--description <description>` - Package description | `hatch:create my-package --description "My MCP package"` |
 | `hatch:validate` | Validate a package | `<package_dir>` - Path to package directory | `hatch:validate ./my-package` |
+
+## Settings Management
+
+| Command | Description | Arguments | Example |
+|---------|-------------|----------|---------|
+| `settings:list` | List all available settings | `[filter]` - Optional filter pattern | `settings:list` or `settings:list llm` |
+| `settings:get` | Get the value of a specific setting | `<category:name>` - Setting in format category:name | `settings:get llm:model` |
+| `settings:set` | Set the value of a specific setting | `<category:name> <value>` - Setting and new value<br>`--force-protected` - Force import of protected settings<br>`--force-confirmed` - Force application of settings without asking for user consent<br> | `settings:set llm:model mistral-small` |
+| `settings:reset` | Reset a setting to its default value | `<category:name>` - Setting to reset<br>`--force-protected` - Force import of protected settings<br>`--force-confirmed` - Force application of settings without asking for user consent<br> | `settings:reset llm:api_url` |
+| `settings:export` | Export settings to a file | `<file>` - Output file path<br>`[format]` - Format (toml, json, yaml)<br>`--all` - Include read-only settings | `settings:export config.toml` |
+| `settings:import` | Import settings from a file | `<file>` - Input file path<br>`--force-protected` - Force import of protected settings<br>`--force-confirmed` - Force application of settings without asking for user consent<br> | `settings:import config.toml --force` |
+
+## Language Management
+
+| Command | Description | Arguments | Example |
+|---------|-------------|----------|---------|
+| `settings:language:list` | List available interface languages | None | `settings:language:list` |
+| `settings:language:set` | Set the interface language | `<language_code>` - Language code to set | `settings:language:set fr` |
+

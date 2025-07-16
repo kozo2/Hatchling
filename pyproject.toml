@@ -29,8 +29,11 @@ dependencies = [
     "httpx>=0.25.2",
     "anyio>=3.7.1",
     "prompt_toolkit>=3.0.41",
+    "tomli-w==1.2.0",
+    "tomli==2.2.1",
+    "PyYAML>=6.0",
 
-    "hatch @ git+https://github.com/CrackingShells/Hatch.git"
+    "hatch @ git+https://github.com/CrackingShells/Hatch.git@feat/dependency-installers"
 ]
 
 [project.scripts]

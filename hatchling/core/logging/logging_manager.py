@@ -63,6 +63,15 @@ class LoggingManager:
         for handler in root_logger.handlers:
             handler.setLevel(self.log_level)
 
+        # Then set level for all other loggers
+        for logger_name in logging.root.manager.loggerDict:
+            logger = logging.getLogger(logger_name)
+            logger.setLevel(self.log_level)
+            
+            # Also update handlers
+            for handler in logger.handlers:
+                handler.setLevel(self.log_level)
+
     def get_session(self, name: str, 
                    formatter: Optional[logging.Formatter] = None) -> SessionDebugLog:
         """Get a session debug log by name, creating it if it doesn't exist.

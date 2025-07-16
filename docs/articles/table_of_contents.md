@@ -22,16 +22,26 @@ You will learn about:
 
 ### User Guides
 - [Chat Commands](./users/chat_commands.md) - Available commands and usage
+- [Settings](users/settings.md) - Configuration settings and management
+- [Language Support](users/language_support.md) - Multi-language interface support
 
 ## For Developers
 
-### Development Documentation
-*Developer documentation will be added as the project grows*
+Documentation for maintainers and contributors working on Hatchling's codebase.
+
+### Architecture
+
+- [Settings Architecture](devs/settings_architecture.md) - Settings system design and patterns
+- [i18n Support](devs/i18n_support.md) - Internationalization system architecture
+
+### Contributing
+
+- [Contributing Languages](devs/contribution_guides/contributing_languages.md) - How to add new language translations
 
 ## Appendices
 
 ### Reference Materials
-- [Glossary](./appendices/glossary.md) - Key terms and definitions
+- [Glossary](./appendices/glossary.md) - Key terms and definitions, mostly for beginners
 
 ## Resources
 

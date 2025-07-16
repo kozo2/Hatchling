@@ -14,25 +14,22 @@ from hatchling.core.logging.logging_manager import logging_manager
 from hatchling.core.llm.model_manager import ModelManager
 from hatchling.core.llm.chat_session import ChatSession
 from hatchling.core.chat.chat_command_handler import ChatCommandHandler
-from hatchling.core.chat.command_completion import CommandCompleterFactory
-from hatchling.core.chat.command_lexer import ChatCommandLexer
-from hatchling.config.settings import ChatSettings
+from hatchling.config.settings_registry import SettingsRegistry
 from hatchling.mcp_utils.manager import mcp_manager
-# Import removed - using centralized logging system
 
 from hatch import HatchEnvironmentManager
 
 class CLIChat:
-    """Command-line interface for chat functionality."""    
-    
-    def __init__(self, settings: ChatSettings):
+    """Command-line interface for chat functionality."""
+
+    def __init__(self, settings_registry: SettingsRegistry):
         """Initialize the CLI chat interface.
         
         Args:
-            settings (ChatSettings): The chat settings to use.
+            settings (SettingsRegistry): The settings management instance containing configuration.
         """
         # Store settings first
-        self.settings = settings
+        self.settings_registry = settings_registry
         
         # Get a logger - styling is already configured at the application level
         self.logger = logging_manager.get_session("CLIChat")
@@ -76,12 +73,12 @@ class CLIChat:
         })
         
         self.env_manager = HatchEnvironmentManager(
-            environments_dir = self.settings.hatch_envs_dir,
+            environments_dir = self.settings_registry.settings.paths.envs_dir,
             cache_ttl = 86400,  # 1 day default
         )
             
         # Create the model manager
-        self.model_manager = ModelManager(settings, self.logger)
+        self.model_manager = ModelManager(self.settings_registry.settings, self.logger)
         
         # Chat session will be initialized during startup
         self.chat_session = None
@@ -97,13 +94,17 @@ class CLIChat:
         available, message = await self.model_manager.check_ollama_service()
         if not available:
             self.logger.error(message)
-            self.logger.error(f"Please ensure the Ollama service is running at {self.settings.ollama_api_url} before running this script.")
+            self.logger.error(f"Please ensure the Ollama service is running at {self.settings_registry.settings.llm.api_url} before running this script.")
             return False
         
         self.logger.info(message)
         
         # Check if MCP server is available
         self.logger.info("Checking MCP server availability...")
+        
+        # Set environment manager in MCP manager for Python executable resolution
+        mcp_manager.set_hatch_environment_manager(self.env_manager)
+        
         # Get the name of the current environment
         name = self.env_manager.get_current_environment()
         # Retrieve the environment's entry points for the MCP servers
@@ -112,20 +113,15 @@ class CLIChat:
         if mcp_available:
             self.logger.info("MCP server is available! Tool calling is ready to use.")
             self.logger.info("You can enable tools during the chat session by typing 'enable_tools'")
+            # Disconnect after availability check - servers will be reconnected when tools are enabled
+            await mcp_manager.disconnect_all()
         else:
             self.logger.warning("MCP server is not available. Continuing without MCP tools...")
             
         # Initialize chat session
-        self.chat_session = ChatSession(self.settings)
+        self.chat_session = ChatSession(self.settings_registry.settings)
         # Initialize command handler
-        self.cmd_handler = ChatCommandHandler(self.chat_session, self.settings, self.env_manager, self.logger, self.command_style)
-        
-        # Initialize command completer
-        self.command_completer = CommandCompleterFactory.create_completer(self.cmd_handler)
-        
-        # Initialize command lexer for real-time syntax highlighting
-        all_commands = self.cmd_handler.get_all_command_metadata()
-        self.command_lexer = ChatCommandLexer(all_commands)
+        self.cmd_handler = ChatCommandHandler(self.chat_session, self.settings_registry, self.env_manager, self.logger, self.command_style)
         
         return True
     
@@ -140,13 +136,13 @@ class CLIChat:
         """
         try:
             # Check if model is available
-            is_model_available = await self.model_manager.check_availability(session, self.settings.ollama_model)
+            is_model_available = await self.model_manager.check_availability(session, self.settings_registry.settings.llm.model)
             
             if is_model_available:
-                self.logger.info(f"Model {self.settings.ollama_model} is already pulled.")
+                self.logger.info(f"Model {self.settings_registry.settings.llm.model} is already pulled.")
                 return True
             else:
-                await self.model_manager.pull_model(session, self.settings.ollama_model)
+                await self.model_manager.pull_model(session, self.settings_registry.settings.llm.model)
                 return True
         except Exception as e:
             self.logger.error(f"Error checking/pulling model: {e}")
@@ -157,8 +153,8 @@ class CLIChat:
         if not self.chat_session or not self.cmd_handler:
             self.logger.error("Chat session not initialized. Call initialize() first.")
             return
-        
-        self.logger.info(f"Starting interactive chat with {self.settings.ollama_model}")
+
+        self.logger.info(f"Starting interactive chat with {self.settings_registry.settings.llm.model}")
         print_pt(FormattedText([('cyan bold', '\n=== Hatchling Chat Interface ===\n')]))
         self.cmd_handler.print_commands_help()
         
@@ -185,8 +181,8 @@ class CLIChat:
                     with patch_stdout():
                         user_message = await self.prompt_session.prompt_async(
                             FormattedText(prompt_message),
-                            completer=self.command_completer,
-                            lexer=self.command_lexer,
+                            completer=self.cmd_handler.command_completer,
+                            lexer=self.cmd_handler.command_lexer,
                             style=self.command_style
                         )
                     
@@ -228,6 +224,6 @@ class CLIChat:
             return
         
         finally:
-            # Clean up any remaining MCP server processes
-            # We disconnect by default after checking MCP availability
-            await mcp_manager.disconnect_all()
+            # Clean up any remaining MCP server processes only if tools were enabled
+            if self.chat_session and self.chat_session.tool_executor.tools_enabled:
+                await mcp_manager.disconnect_all()
