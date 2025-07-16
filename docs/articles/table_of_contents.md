@@ -1,23 +1,33 @@
 # Documentation Table of Contents
 
-This document provides a comprehensive overview of all available documentation for Hatchling.
+This article is about:
+- Complete overview of all available documentation
+- Organized navigation structure for users and developers
+- Quick access to tutorials, guides, and reference materials
 
-## Users Documentation
+You will learn about:
+- How to navigate the documentation structure
+- Where to find specific information based on your role
+- Available resources for different use cases
 
-Documentation for end users who want to use Hatchling for their projects.
+## For Users
 
 ### Getting Started
+- [Getting Started](./users/GettingStarted.md) - Quick introduction and setup overview
 
-- [Running Hatchling](users/running_hatchling.md) - How to start and run Hatchling
-- [Docker Setup](users/docker-setup.md) - Running Hatchling in Docker containers
+### Tutorials
+- [Installation Guide](./users/tutorials/Installation/) - Step-by-step setup instructions
+  - [Docker Setup](./users/tutorials/Installation/docker-setup.md) - Docker environment setup
+  - [Running Hatchling](./users/tutorials/Installation/running_hatchling.md) - Starting the application
 
-### Core Features
-
-- [Chat Commands](users/chat_commands.md) - Complete reference of available commands
+### User Guides
+- [Chat Commands](./users/chat_commands.md) - Available commands and usage
 - [Settings](users/settings.md) - Configuration settings and management
 - [Language Support](users/language_support.md) - Multi-language interface support
 
-## Developers Documentation
+## For Developers
+
+### Development Documentation
 
 Documentation for maintainers and contributors working on Hatchling's codebase.
 
@@ -33,26 +43,14 @@ Documentation for maintainers and contributors working on Hatchling's codebase.
 ## Appendices
 
 ### Reference Materials
-
-- [Glossary](appendices/glossary.md) - Technical terms and definitions
-
-## Quick Links
-
-### For New Users
-
-1. Start with [Installation](users/docker-setup.md)
-2. [Run Hatchling](users/running_hatchling.md)
-3. Learn basic commands in [Chat Commands](users/chat_commands.md)
-4. Configure your preferences in [Settings](users/settings.md)
-
-### For Translators
-
-1. Read [Contributing Languages](devs/contributing_languages.md)
-2. Check [Language Support](users/language_support.md) for current status
-3. Review translation file format in the languages directory
+- [Glossary](./appendices/glossary.md) - Key terms and definitions
 
 ## Resources
 
-- **Images**: `docs/resources/images/`
-- **Diagrams**: `docs/resources/diagrams/`
-- **Translation Files**: `hatchling/config/languages/`
+### Images and Diagrams
+- [Logo Resources](../resources/images/Logo/) - Hatchling branding materials
+- [Setup Screenshots](../resources/images/docker-setup/) - Visual guides for Docker setup
+- [CLI Screenshots](../resources/images/running-hatchling/) - Application interface examples
+
+### Diagrams
+- [Architecture Diagrams](../resources/diagrams/) - System architecture documentation
