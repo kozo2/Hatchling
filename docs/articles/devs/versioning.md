@@ -1,58 +1,84 @@
-# Hatchling Versioning System Documentation
+# Automated Versioning System
 
-This document provides detailed information about the automated versioning system implemented in Hatchling.
+This article is about:
 
-## Overview
+- The dual-file versioning system in Hatchling
+- How version information is managed for both humans and tools
 
-Hatchling uses an automated semantic versioning system that:
-- Tracks version components in a structured `VERSION` file
-- Automatically increments versions based on branch types
-- Creates releases and pre-releases through GitHub Actions
-- Maintains compatibility with Python setuptools
+You will learn about:
 
-## Version File Structure
+- The structure and purpose of `VERSION.meta` and `VERSION`
+- How to use the versioning scripts and workflows
+- Best practices for version management
 
-The `VERSION` file at the project root stores version information in a structured format:
+Hatchling uses a dual-file versioning system to maintain both human-readable version information and compatibility with Python packaging tools.
 
+## Dual-File Versioning System
+
+### Files
+
+#### VERSION.meta
+
+- Human-readable, structured version information for CI/CD and development
+- Format: Key-value pairs with comments
+- Example:
+
+  ```txt
+  MAJOR=0
+  MINOR=5
+  PATCH=0
+  DEV_NUMBER=0
+  BUILD_NUMBER=1
+  BRANCH=feat/automated-versioning
+  ```
+
+#### VERSION
+
+- Simple version string for setuptools and Python packaging
+- Format: Standard semantic version string
+- Example: `0.5.0.dev0+build1`
+
+## Usage
+
+### For Development
+
+- Read version information from `VERSION.meta` for detailed component access
+- Use `scripts/version_manager.py` to update versions while preserving both formats
+
+### For Building/Packaging
+
+- Run `scripts/prepare_version.py` before building to ensure `VERSION` file is in correct format
+- The build process reads from the simple `VERSION` file
+- `VERSION.meta` is preserved unchanged
+
+### In CI/CD Workflows
+
+- Both files are committed to maintain version history
+- Workflows download and commit both files as artifacts
+- Version increments update both files automatically
+
+## Commands
+
+```bash
+# Get current version
+python scripts/version_manager.py --get
+
+# Increment version components
+python scripts/version_manager.py --increment [major|minor|patch|dev|build]
+
+# Update version for specific branch
+python scripts/version_manager.py --update-for-branch BRANCH_NAME
+
+# Prepare for build (ensures VERSION file is in simple format)
+python scripts/prepare_version.py
 ```
-MAJOR=1
-MINOR=0
-PATCH=3
-PRERELEASE=dev
-BUILD=b1
-BRANCH=feat/example
-```
 
-### Components
+## Benefits
 
-- **MAJOR**: Major version number (breaking changes)
-- **MINOR**: Minor version number (new features)
-- **PATCH**: Patch version number (bug fixes)
-- **PRERELEASE**: Pre-release identifier (`dev` for development versions)
-- **BUILD**: Build number for feature/fix branches (`b1`, `b2`, etc.)
-- **BRANCH**: Current branch name for tracking
-
-## Version Patterns
-
-### Main Branch (`main`)
-- Format: `vMAJOR.MINOR.PATCH`
-- Example: `v1.2.3`
-- Used for: Production releases
-
-### Development Branch (`dev`)
-- Format: `vMAJOR.MINOR.PATCH-dev`
-- Example: `v1.2.3-dev`
-- Used for: Pre-releases and testing
-
-### Feature Branches (`feat/`)
-- Format: `vMAJOR.MINOR.PATCH-dev.bN`
-- Example: `v1.3.0-dev.b1`
-- Increments: Minor version + build number on each push
-
-### Fix Branches (`fix/`)
-- Format: `vMAJOR.MINOR.PATCH-dev.bN`
-- Example: `v1.2.1-dev.b1`
-- Increments: Patch version + build number on each push
+1. **Human Readability**: `VERSION.meta` provides clear, structured version information
+2. **Tool Compatibility**: `VERSION` maintains standard format for setuptools and other tools
+3. **Build Metadata**: Preserves branch, build number, and dev version information
+4. **CI/CD Integration**: Both files are automatically maintained by version management workflows
 
 ## Workflow Examples
 
@@ -82,6 +108,7 @@ BRANCH=feat/example
 **Triggered by**: Pushes to `main` branch
 
 **Actions**:
+
 - Tests the package build
 - Updates version for main branch (removes pre-release suffixes)
 - Creates official release with version tag
@@ -93,6 +120,7 @@ BRANCH=feat/example
 **Triggered by**: Pushes to `dev` branch
 
 **Actions**:
+
 - Tests the package build
 - Updates version for dev branch (adds `-dev` suffix)
 - Creates pre-release with version tag
@@ -104,6 +132,7 @@ BRANCH=feat/example
 **Triggered by**: Pushes to `feat/` and `fix/` branches
 
 **Actions**:
+
 - Tests the package build
 - Updates version based on branch type
 - Increments build number on each push
@@ -115,6 +144,7 @@ BRANCH=feat/example
 **Triggered by**: Weekly schedule or manual dispatch
 
 **Actions**:
+
 - Identifies old tags for cleanup
 - Removes build tags older than 7 days
 - Removes dev tags older than 30 days
@@ -125,11 +155,13 @@ BRANCH=feat/example
 The `scripts/version_manager.py` script provides manual control over versioning:
 
 ### Get Current Version
+
 ```bash
 python scripts/version_manager.py --get
 ```
 
 ### Update Version for Branch
+
 ```bash
 python scripts/version_manager.py --update-for-branch feat/my-feature
 python scripts/version_manager.py --update-for-branch dev
@@ -137,6 +169,7 @@ python scripts/version_manager.py --update-for-branch main
 ```
 
 ### Increment Version Components
+
 ```bash
 python scripts/version_manager.py --increment major
 python scripts/version_manager.py --increment minor
@@ -145,6 +178,7 @@ python scripts/version_manager.py --increment build
 ```
 
 ### Prepare for Building
+
 ```bash
 python scripts/prepare_version.py
 ```
@@ -171,6 +205,7 @@ python tests/test_versioning.py
 ```
 
 This validates:
+
 - Version string generation
 - Branch-based version updates
 - Build number increments
@@ -187,32 +222,53 @@ This validates:
 
 ## Troubleshooting
 
+
 ### VERSION File Format Issues
-If the VERSION file gets corrupted, restore it with proper format:
-```
-MAJOR=1
-MINOR=0
-PATCH=0
-PRERELEASE=
-BUILD=
-BRANCH=main
-```
+
+If the version files get corrupted, restore them as follows:
+
+- For the structured format, restore `VERSION.meta` with:
+
+  ```txt
+  MAJOR=1
+  MINOR=0
+  PATCH=0
+  DEV_NUMBER=0
+  BUILD_NUMBER=0
+  BRANCH=main
+  ```
+
+- For the simple format, regenerate `VERSION` by running:
+
+  ```bash
+  python scripts/prepare_version.py
+  ```
+
+  This will convert the structured `VERSION.meta` to the correct setuptools-compatible `VERSION` file.
 
 ### Build Failures
+
 If builds fail due to version format:
+
 ```bash
 python scripts/prepare_version.py
 ```
 
 ### Testing Version Logic
+
 Run the test suite to verify versioning logic:
+
 ```bash
 python tests/test_versioning.py
 ```
 
 ### Manual Tag Creation
+
 If GitHub Actions fail, manually create tags:
+
 ```bash
+# Ensure VERSION is up to date with VERSION.meta
+python scripts/prepare_version.py
 VERSION=$(python scripts/version_manager.py --get)
 git tag $VERSION
 git push origin $VERSION

@@ -63,8 +63,10 @@ jobs:
         run: |
           pip install dist/*.whl
 
-      - name: Upload VERSION file
+      - name: Upload VERSION files
         uses: actions/upload-artifact@v4
         with:
-          name: version-file
-          path: VERSION
+          name: version-files
+          path: |
+            VERSION
+            VERSION.meta

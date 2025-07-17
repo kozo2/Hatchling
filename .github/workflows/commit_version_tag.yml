@@ -27,17 +27,17 @@ jobs:
       with:
         fetch-depth: 0
 
-    - name: Download VERSION file
+    - name: Download VERSION files
       uses: actions/download-artifact@v4
       with:
-        name: version-file
+        name: version-files
 
-    - name: Commit updated VERSION file
+    - name: Commit updated VERSION files
       run: |
         git config --local user.email "action@github.com"
         git config --local user.name "GitHub Action"
-        git add VERSION
-        git diff --staged --quiet || git commit -m "Update VERSION file in `${{ github.ref_name }}` to ${{ needs.test-build.outputs.version }}"
+        git add VERSION VERSION.meta
+        git diff --staged --quiet || git commit -m "Update VERSION files in \`${{ github.ref_name }}\` to ${{ needs.test-build.outputs.version }}"
         git push
 
     - name: Create lightweight tag

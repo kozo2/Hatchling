@@ -1,7 +1,13 @@
 #!/usr/bin/env python3
 """
-Version management script for Hatchling.
-Handles reading and updating version information based on branch and changes.
+Version management script for Hatchling with dual-file system.
+
+This script manages two version files:
+- VERSION.meta: Structured, human-readable format with detailed version components
+- VERSION: Simple format for setuptools compatibility
+
+The dual-file system preserves detailed version information while maintaining
+compatibility with Python packaging tools.
 """
 
 import os
@@ -15,26 +21,111 @@ from typing import Dict, Tuple, Optional
 class VersionManager:
     def __init__(self, version_file_path: str = "VERSION"):
         self.version_file = Path(version_file_path)
-        if not self.version_file.exists():
-            raise FileNotFoundError(f"VERSION file not found at {version_file_path}")
+        self.version_meta_file = Path(str(version_file_path) + ".meta")
+        
+        # Check if we have a structured meta file, otherwise try to read from VERSION
+        if not self.version_meta_file.exists() and not self.version_file.exists():
+            raise FileNotFoundError(f"Neither VERSION file nor VERSION.meta found at {version_file_path}")
+        
+        # If VERSION.meta doesn't exist but VERSION does, create it from current VERSION
+        if not self.version_meta_file.exists() and self.version_file.exists():
+            self._create_meta_from_simple_version()
+    
+    def _create_meta_from_simple_version(self) -> None:
+        """Create VERSION.meta from a simple VERSION file if it doesn't exist."""
+        try:
+            with open(self.version_file, 'r') as f:
+                simple_version = f.read().strip()
+            
+            # Parse the simple version string to extract components
+            # Example: "0.4.0.dev0+build0" -> MAJOR=0, MINOR=4, PATCH=0, DEV_NUMBER=0, BUILD_NUMBER=0
+            version_parts = simple_version.replace('+build', '.build').replace('.dev', '.dev').split('.')
+            
+            major, minor, patch = version_parts[0], version_parts[1], version_parts[2]
+            dev_number = ""
+            build_number = ""
+            
+            for part in version_parts[3:]:
+                if part.startswith('dev'):
+                    dev_number = part[3:]
+                elif part.startswith('build'):
+                    build_number = part[5:]
+            
+            # Get current branch
+            branch = self.get_current_branch()
+            
+            # Write structured format to VERSION.meta
+            version_data = {
+                'MAJOR': major,
+                'MINOR': minor,
+                'PATCH': patch,
+                'DEV_NUMBER': dev_number,
+                'BUILD_NUMBER': build_number,
+                'BRANCH': branch
+            }
+            self.write_version_meta_file(version_data)
+            
+        except Exception as e:
+            # If we can't parse, create a default meta file
+            default_data = {
+                'MAJOR': '0',
+                'MINOR': '0',
+                'PATCH': '0',
+                'DEV_NUMBER': '',
+                'BUILD_NUMBER': '',
+                'BRANCH': self.get_current_branch()
+            }
+            self.write_version_meta_file(default_data)
     
     def read_version_file(self) -> Dict[str, str]:
-        """Read the VERSION file and parse version components."""
+        """Read the VERSION.meta file and parse version components."""
         version_data = {}
-        with open(self.version_file, 'r') as f:
-            for line in f:
-                line = line.strip()
-                if '=' in line and not line.startswith('#'):
-                    key, value = line.split('=', 1)
-                    version_data[key.strip()] = value.strip()
+        
+        # Always read from VERSION.meta for structured data
+        if self.version_meta_file.exists():
+            with open(self.version_meta_file, 'r') as f:
+                for line in f:
+                    line = line.strip()
+                    if '=' in line and not line.startswith('#'):
+                        key, value = line.split('=', 1)
+                        version_data[key.strip()] = value.strip()
+        else:
+            # Fallback: try to create from simple VERSION file
+            self._create_meta_from_simple_version()
+            return self.read_version_file()
+        
         return version_data
     
     def write_version_file(self, version_data: Dict[str, str]) -> None:
-        """Write version data back to the VERSION file."""
-        with open(self.version_file, 'w') as f:
+        """Write version data to both VERSION.meta (structured) and VERSION (simple)."""
+        # Write structured format to VERSION.meta
+        self.write_version_meta_file(version_data)
+        
+        # Write simple format to VERSION for setuptools compatibility
+        self.write_simple_version_file(version_data)
+    
+    def write_version_meta_file(self, version_data: Dict[str, str]) -> None:
+        """Write version data to VERSION.meta in structured format."""
+        with open(self.version_meta_file, 'w') as f:
+            f.write("# Structured version file for human readability and CI/CD\n")
+            f.write("# This file maintains detailed version component information\n")
+            f.write("# The companion VERSION file contains the simple format for setuptools\n\n")
             for key in ['MAJOR', 'MINOR', 'PATCH', 'DEV_NUMBER', 'BUILD_NUMBER', 'BRANCH']:
                 value = version_data.get(key, '')
                 f.write(f"{key}={value}\n")
+    
+    def write_simple_version_file(self, version_data: Optional[Dict[str, str]] = None) -> None:
+        """Write a simple version string to VERSION file for setuptools compatibility."""
+        if version_data is None:
+            version_data = self.read_version_file()
+        
+        version_string = self.get_version_string(version_data)
+        # Remove 'v' prefix for setuptools
+        simple_version = version_string.lstrip('v')
+        
+        # Write to VERSION file in simple format for setuptools
+        with open(self.version_file, 'w') as f:
+            f.write(simple_version)
     
     def get_version_string(self, version_data: Optional[Dict[str, str]] = None) -> str:
         """Generate semantic version string from version data."""
@@ -170,24 +261,18 @@ class VersionManager:
     def write_simple_version(self) -> None:
         """Write a simple version string for setuptools compatibility."""
         version_data = self.read_version_file()
-        version_string = self.get_version_string(version_data)
-        # Remove 'v' prefix for setuptools
-        simple_version = version_string.lstrip('v')
-        
-        # Write to VERSION file in simple format for setuptools
-        with open(self.version_file, 'w') as f:
-            f.write(simple_version)
+        self.write_simple_version_file(version_data)
 
 
 def main():
-    parser = argparse.ArgumentParser(description='Manage project version')
+    parser = argparse.ArgumentParser(description='Manage project version using dual-file system (VERSION.meta + VERSION)')
     parser.add_argument('--get', action='store_true', help='Get current version string')
     parser.add_argument('--increment', choices=['major', 'minor', 'patch', 'dev', 'build'], 
-                       help='Increment version component')
+                       help='Increment version component (updates both VERSION.meta and VERSION)')
     parser.add_argument('--update-for-branch', metavar='BRANCH', 
-                       help='Update version for specific branch')
+                       help='Update version for specific branch (updates both files)')
     parser.add_argument('--simple', action='store_true', 
-                       help='Write simple version format for setuptools')
+                       help='Write simple version format to VERSION file (from VERSION.meta)')
     parser.add_argument('--branch', help='Override current branch detection')
     
     args = parser.parse_args()
