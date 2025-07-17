@@ -29,12 +29,12 @@ def get_all_tags() -> List[Tuple[str, str]]:
         return []
 
 def is_build_tag(tag: str) -> bool:
-    """Check if tag is a build tag (contains .b followed by number)."""
-    return bool(re.search(r'\\.b\\d+$', tag))
+    """Check if tag is a build tag (contains +build followed by number)."""
+    return bool(re.search(r'\+build\d+$', tag))
 
 def is_dev_tag(tag: str) -> bool:
-    """Check if tag is a dev tag (contains -dev)."""
-    return '-dev' in tag
+    """Check if tag is a dev tag (contains .dev)."""
+    return bool(re.search(r'\.dev\d+', tag))
 
 def is_old_tag(date_str: str, days: int = 30) -> bool:
     """Check if tag is older than specified days."""

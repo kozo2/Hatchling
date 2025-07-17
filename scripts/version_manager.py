@@ -32,7 +32,7 @@ class VersionManager:
     def write_version_file(self, version_data: Dict[str, str]) -> None:
         """Write version data back to the VERSION file."""
         with open(self.version_file, 'w') as f:
-            for key in ['MAJOR', 'MINOR', 'PATCH', 'PRERELEASE', 'BUILD', 'BRANCH']:
+            for key in ['MAJOR', 'MINOR', 'PATCH', 'DEV_NUMBER', 'BUILD_NUMBER', 'BRANCH']:
                 value = version_data.get(key, '')
                 f.write(f"{key}={value}\n")
     
@@ -44,16 +44,16 @@ class VersionManager:
         major = version_data.get('MAJOR', '1')
         minor = version_data.get('MINOR', '0')
         patch = version_data.get('PATCH', '0')
-        prerelease = version_data.get('PRERELEASE', '')
-        build = version_data.get('BUILD', '')
+        dev_number = version_data.get('DEV_NUMBER', '')
+        build_number = version_data.get('BUILD_NUMBER', '')
         
         version = f"v{major}.{minor}.{patch}"
         
-        if prerelease:
-            version += f"-{prerelease}"
+        if dev_number:
+            version += f".dev{dev_number}"
         
-        if build:
-            version += f".{build}"
+        if build_number:
+            version += f"+build{build_number}"
         
         return version
     
@@ -80,11 +80,8 @@ class VersionManager:
         major = int(version_data.get('MAJOR', '1'))
         minor = int(version_data.get('MINOR', '0'))
         patch = int(version_data.get('PATCH', '0'))
-        build_str = version_data.get('BUILD', '')
-        if build_str.startswith('b'):
-            build_num = int(build_str[1:]) if build_str[1:] else 0
-        else:
-            build_num = int(build_str) if build_str else 0
+        dev_number = int(version_data.get('DEV_NUMBER', '0')) if version_data.get('DEV_NUMBER', '') else 0
+        build_number = int(version_data.get('BUILD_NUMBER', '0')) if version_data.get('BUILD_NUMBER', '') else 0
         
         # Handle different increment types
         if increment_type == 'major':
@@ -96,46 +93,38 @@ class VersionManager:
             patch = 0
         elif increment_type == 'patch':
             patch += 1
+        elif increment_type == 'dev':
+            dev_number += 1
         elif increment_type == 'build':
-            build_num += 1
+            build_number += 1
         
-        # Set prerelease based on branch
-        prerelease = ""
-        build = ""
+        # Set dev_number and build_number based on branch
+        dev_num_str = ""
+        build_num_str = ""
         
         if branch == 'main':
             # Main branch gets clean releases
-            prerelease = ""
-            build = ""
+            dev_num_str = ""
+            build_num_str = ""
         elif branch == 'dev':
             # Dev branch gets dev prerelease
-            prerelease = "dev"
-            build = ""
-        elif branch.startswith('feat/'):
-            # Feature branches get dev prerelease with build number
-            prerelease = "dev"
-            if increment_type == 'build':
-                build = f"b{build_num}"
-            else:
-                build = f"b{build_num}"
-        elif branch.startswith('fix/'):
-            # Fix branches get dev prerelease with build number
-            prerelease = "dev"
-            if increment_type == 'build':
-                build = f"b{build_num}"
-            else:
-                build = f"b{build_num}"
+            dev_num_str = str(dev_number) if dev_number > 0 else ""
+            build_num_str = ""
+        elif branch.startswith('feat/') or branch.startswith('fix/'):
+            # Feature/fix branches get dev prerelease with build number
+            dev_num_str = str(dev_number)  # Always include dev number for feat/fix branches
+            build_num_str = str(build_number) if build_number > 0 else ""
         else:
             # Other branches get dev prerelease
-            prerelease = "dev"
-            build = ""
+            dev_num_str = str(dev_number) if dev_number > 0 else ""
+            build_num_str = ""
         
         return {
             'MAJOR': str(major),
             'MINOR': str(minor),
             'PATCH': str(patch),
-            'PRERELEASE': prerelease,
-            'BUILD': build,
+            'DEV_NUMBER': dev_num_str,
+            'BUILD_NUMBER': build_num_str,
             'BRANCH': branch
         }
     
@@ -147,27 +136,33 @@ class VersionManager:
         current_data = self.read_version_file()
         
         if branch.startswith('feat/'):
-            # Feature branch: increment minor version
+            # Feature branch: increment minor version, set dev number
             new_data = self.increment_version('minor', branch)
+            new_data['DEV_NUMBER'] = '0'  # Start with dev0
+            new_data['BUILD_NUMBER'] = '0'  # Start with build0
         elif branch.startswith('fix/'):
-            # Fix branch: increment patch version
+            # Fix branch: increment patch version, set dev number
             new_data = self.increment_version('patch', branch)
+            new_data['DEV_NUMBER'] = '0'  # Start with dev0
+            new_data['BUILD_NUMBER'] = '0'  # Start with build0
         elif branch in ['main', 'dev']:
-            # Main or dev branch: keep current version, update prerelease
+            # Main or dev branch: keep current version, update dev/build numbers
             new_data = current_data.copy()
             new_data['BRANCH'] = branch
             if branch == 'main':
-                new_data['PRERELEASE'] = ''
-                new_data['BUILD'] = ''
+                new_data['DEV_NUMBER'] = ''
+                new_data['BUILD_NUMBER'] = ''
             elif branch == 'dev':
-                new_data['PRERELEASE'] = 'dev'
-                new_data['BUILD'] = ''
+                # Keep existing dev number or set to 0 if empty
+                if not new_data.get('DEV_NUMBER'):
+                    new_data['DEV_NUMBER'] = '0'
+                new_data['BUILD_NUMBER'] = ''
         else:
             # Other branches: treat as dev
             new_data = current_data.copy()
             new_data['BRANCH'] = branch
-            new_data['PRERELEASE'] = 'dev'
-            new_data['BUILD'] = ''
+            new_data['DEV_NUMBER'] = '0'
+            new_data['BUILD_NUMBER'] = ''
         
         self.write_version_file(new_data)
         return self.get_version_string(new_data)
@@ -187,7 +182,7 @@ class VersionManager:
 def main():
     parser = argparse.ArgumentParser(description='Manage project version')
     parser.add_argument('--get', action='store_true', help='Get current version string')
-    parser.add_argument('--increment', choices=['major', 'minor', 'patch', 'build'], 
+    parser.add_argument('--increment', choices=['major', 'minor', 'patch', 'dev', 'build'], 
                        help='Increment version component')
     parser.add_argument('--update-for-branch', metavar='BRANCH', 
                        help='Update version for specific branch')
