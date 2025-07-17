@@ -1,14 +1,17 @@
 name: Feature/Fix Branch
 
 on:
-  push:
-    branches:
-      - 'feat/**'
-      - 'fix/**'
-  pull_request:
-    branches:
-      - 'feat/**'
-      - 'fix/**'
+  workflow_dispatch:
+  # This workflow became useless after the introduction of the `commit_version_tag.yml` workflow.
+  # Keeping for now until new version has been tested.
+  # push:
+  #   branches:
+  #     - 'feat/**'
+  #     - 'fix/**'
+  # pull_request:
+  #   branches:
+  #     - 'feat/**'
+  #     - 'fix/**'
 
 env:
   PYTHON_VERSION: '3.12'
