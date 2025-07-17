@@ -225,35 +225,58 @@ class VersionManager:
             branch = self.get_current_branch()
         
         current_data = self.read_version_file()
-        
+        new_data = current_data.copy()
+
         if branch.startswith('feat/'):
-            # Feature branch: increment minor version, set dev number
-            new_data = self.increment_version('minor', branch)
-            new_data['DEV_NUMBER'] = '0'  # Start with dev0
-            new_data['BUILD_NUMBER'] = '0'  # Start with build0
+
+            if current_data.get('BRANCH') == 'main': #it means we are creating a new feature branch
+                #increment minor version
+                new_data = self.increment_version('minor', branch) #takes care of incrementing and updating the branch field
+                new_data['DEV_NUMBER'] = '0'  # Reset dev number for new feature branch
+                new_data['BUILD_NUMBER'] = '0'  # Start with build0
+
+            else: #it means we are updating an existing feature branch, whether from dev or `feat/`
+                # Increment build number for the same feature branch
+                new_data = self.increment_version('build', branch) 
+
         elif branch.startswith('fix/'):
-            # Fix branch: increment patch version, set dev number
-            new_data = self.increment_version('patch', branch)
-            new_data['DEV_NUMBER'] = '0'  # Start with dev0
-            new_data['BUILD_NUMBER'] = '0'  # Start with build0
-        elif branch in ['main', 'dev']:
-            # Main or dev branch: keep current version, update dev/build numbers
+            # If current branch is the same as the one in VERSION.meta,
+            # increment the build number
+            if current_data.get('BRANCH') == branch:
+                # Increment build number for the same fix branch
+                new_data = self.increment_version('build', branch)
+            
+            # If the current branch is a fix branch but not the same as the one in VERSION.meta,
+            # increment the patch version, but don't change the build number
+            elif current_data.get('BRANCH').startswith('fix/'):
+                new_data = self.increment_version('patch', branch)
+            
+            else: #it means we are creating a new fix branch
+                new_data = self.increment_version('patch', branch) #takes care of incrementing and updating the branch field
+                new_data['BUILD_NUMBER'] = '0'  # Start with build0
+        
+        elif branch == 'main':
+            # Main branch gets clean releases
             new_data = current_data.copy()
-            new_data['BRANCH'] = branch
-            if branch == 'main':
-                new_data['DEV_NUMBER'] = ''
-                new_data['BUILD_NUMBER'] = ''
-            elif branch == 'dev':
-                # Keep existing dev number or set to 0 if empty
-                if not new_data.get('DEV_NUMBER'):
-                    new_data['DEV_NUMBER'] = '0'
-                new_data['BUILD_NUMBER'] = ''
-        else:
-            # Other branches: treat as dev
-            new_data = current_data.copy()
-            new_data['BRANCH'] = branch
-            new_data['DEV_NUMBER'] = '0'
+            new_data['DEV_NUMBER'] = ''
             new_data['BUILD_NUMBER'] = ''
+
+        else: # Dev and other branches
+            # If starting from main (there was a rebased dev on a clean
+            # release), reset dev and build numbers
+            if current_data.get('BRANCH') == 'main':
+                new_data = self.increment_version('minor', branch)
+                new_data['DEV_NUMBER'] = '0'
+            
+            # If updating from another branch (fix, feat, dev itself, or docs, etc.),
+            # increment dev number and reset build number
+            else:
+                new_data = self.increment_version('dev', branch)
+            
+            new_data['BUILD_NUMBER'] = ''
+
+        # Update branch field
+        new_data['BRANCH'] = branch
         
         self.write_version_file(new_data)
         return self.get_version_string(new_data)

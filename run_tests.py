@@ -84,9 +84,14 @@ def run_regression_tests():
     """Run regression tests to ensure existing functionality isn't broken."""
     logger.info("Running regression tests...")
     try:
-        from tests.regression_test_persistent_settings import run_regression_tests
-        if not run_regression_tests():
+        from tests.regression_test_persistent_settings import run_regression_tests as run_persistent_settings_regression_tests
+        if not run_persistent_settings_regression_tests():
             return False
+        
+        from tests.test_versioning import run_regression_tests as run_versioning_regression_tests
+        if not run_versioning_regression_tests():
+            return False
+    
     except ImportError as e:
         logger.error(f"Could not import regression tests: {e}")
         return False

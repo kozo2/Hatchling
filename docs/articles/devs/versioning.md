@@ -38,68 +38,51 @@ Hatchling uses a dual-file versioning system to maintain both human-readable ver
 - Format: Standard semantic version string
 - Example: `0.5.0.dev0+build1`
 
-## Usage
-
-### For Development
-
-- Read version information from `VERSION.meta` for detailed component access
-- Use `scripts/version_manager.py` to update versions while preserving both formats
-
-### For Building/Packaging
-
-- Run `scripts/prepare_version.py` before building to ensure `VERSION` file is in correct format
-- The build process reads from the simple `VERSION` file
-- `VERSION.meta` is preserved unchanged
-
-### In CI/CD Workflows
-
-- Both files are committed to maintain version history
-- Workflows download and commit both files as artifacts
-- Version increments update both files automatically
-
-## Commands
-
-```bash
-# Get current version
-python scripts/version_manager.py --get
-
-# Increment version components
-python scripts/version_manager.py --increment [major|minor|patch|dev|build]
-
-# Update version for specific branch
-python scripts/version_manager.py --update-for-branch BRANCH_NAME
-
-# Prepare for build (ensures VERSION file is in simple format)
-python scripts/prepare_version.py
-```
-
-## Benefits
+### Benefits
 
 1. **Human Readability**: `VERSION.meta` provides clear, structured version information
 2. **Tool Compatibility**: `VERSION` maintains standard format for setuptools and other tools
 3. **Build Metadata**: Preserves branch, build number, and dev version information
 4. **CI/CD Integration**: Both files are automatically maintained by version management workflows
 
-## Workflow Examples
+## Usage
 
-### Example 1: Feature Development
+### Branch-based Versioning Logic
 
-1. **Starting State**: `dev` branch at `v1.2.0-dev`
+- **Feature branches (`feat/`)**:
+  - If created from `main`, minor version is incremented, and both `DEV_NUMBER` and `BUILD_NUMBER` are reset to 0.
+  - If updating an existing feature branch, only the `BUILD_NUMBER` is incremented.
+- **Fix branches (`fix/`)**:
+  - If created from any branch, patch version is incremented and `BUILD_NUMBER` is reset to 0.
+  - If updating the same fix branch, only the `BUILD_NUMBER` is incremented.
+  - If switching between fix branches, patch version is incremented.
+- **Main branch (`main`)**:
+  - `DEV_NUMBER` and `BUILD_NUMBER` are cleared for clean releases.
+- **Dev/other branches**:
+  - If coming from `main`, the minor version is incremented and `DEV_NUMBER` is reset to 0.
+  - Otherwise, `DEV_NUMBER` is incremented and `BUILD_NUMBER` is reset.
+
+### Workflow Examples
+
+#### Example 1: Feature Development
+
+1. **Starting State**: `main` branch at `v1.2.0`
 2. **Create Feature Branch**: `git checkout -b feat/new-feature`
-3. **Initial Version**: Automatically becomes `v1.3.0-dev.b1`
-4. **First Push**: Increments to `v1.3.0-dev.b2`
-5. **Second Push**: Increments to `v1.3.0-dev.b3`
-6. **Merge to Dev**: `dev` branch becomes `v1.3.0-dev`
-7. **Merge to Main**: `main` branch becomes `v1.3.0`
+   - Minor version is incremented: `v1.3.0.dev0+build0`
+3. **First Push**: Increments to `v1.3.0.dev0+build1`
+4. **Second Push**: Increments to `v1.3.0.dev0+build2`
+5. **Merge to Dev**: `dev` branch becomes `v1.3.0.devN`
+6. **Merge to Main**: `main` branch becomes `v1.3.0`
 
-### Example 2: Bug Fix
+#### Example 2: Bug Fix
 
-1. **Starting State**: `dev` branch at `v1.2.0-dev`
+1. **Starting State**: `main` branch at `v1.2.0`
 2. **Create Fix Branch**: `git checkout -b fix/critical-bug`
-3. **Initial Version**: Automatically becomes `v1.2.1-dev.b1`
-4. **Push Changes**: Increments to `v1.2.1-dev.b2`
-5. **Merge to Dev**: `dev` branch becomes `v1.2.1-dev`
-6. **Hotfix to Main**: Can merge directly, `main` becomes `v1.2.1`
+   - Patch version is incremented: `v1.2.1.dev0+build0`
+3. **First Push**: Increments to `v1.2.1.dev0+build1`
+4. **Switch to another fix branch**: Patch version is incremented for the new branch.
+5. **Merge to Dev**: `dev` branch becomes `v1.2.1.devN`
+6. **Hotfix to Main**: `main` branch becomes `v1.2.1`
 
 ## GitHub Actions Workflows
 
@@ -221,7 +204,6 @@ This validates:
 6. **Monitor tag cleanup** to avoid repository bloat
 
 ## Troubleshooting
-
 
 ### VERSION File Format Issues
 
