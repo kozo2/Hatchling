@@ -20,15 +20,15 @@ jobs:
             echo "---"
             echo "✅ Branch $BRANCH_NAME is allowed for PR to main (fix branch)."
             echo "branch_valid=fix" >> $GITHUB_OUTPUT
-          fi
-          if [[ "$BRANCH_NAME" == "dev" ]]; then
+          elif [[ "$BRANCH_NAME" == "dev" ]]; then
             echo "---"
             echo "🔍 Branch $BRANCH_NAME is a dev branch."
             echo "branch_valid=dev" >> $GITHUB_OUTPUT
+          else
+            echo "---"
+            echo "❌ Error: Only 'fix/' or 'dev' branches can open PRs to 'main'."
+            echo "branch_valid=invalid" >> $GITHUB_OUTPUT
           fi
-          echo "---"
-          echo "❌ Error: Only 'fix/' or 'dev' branches can open PRs to 'main'."
-          echo "branch_valid=invalid" >> $GITHUB_OUTPUT
 
       - name: Comment and fail if branch invalid
         if: ${{ steps.check-branch.outputs.branch_valid == 'invalid' }}

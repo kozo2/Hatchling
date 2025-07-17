@@ -18,10 +18,11 @@ jobs:
             echo "---"
             echo "✅ Branch $BRANCH_NAME is allowed for PR to dev."
             echo "branch_valid=true" >> $GITHUB_OUTPUT
+          else
+            echo "---"
+            echo "❌ Error: Only 'feat/' and 'fix/' branches can open PRs to 'dev'."
+            echo "branch_valid=false" >> $GITHUB_OUTPUT
           fi
-          echo "---"
-          echo "❌ Error: Only 'feat/' and 'fix/' branches can open PRs to 'dev'."
-          echo "branch_valid=false" >> $GITHUB_OUTPUT
 
       - name: Comment on PR if branch invalid
         if: ${{ steps.check-branch.outputs.branch_valid == 'false' }}
@@ -37,3 +38,4 @@ jobs:
               repo: context.repo.repo,
               body: message
             });
+            core.setFailed('Invalid branch for PR to dev.');
