@@ -1,6 +1,1 @@
-MAJOR=0
-MINOR=3
-PATCH=0
-DEV_NUMBER=0
-BUILD_NUMBER=1
-BRANCH=feat/automated-versioning
+0.4.0.dev0+build0
