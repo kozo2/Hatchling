@@ -10,6 +10,7 @@ from hatch import HatchEnvironmentManager
 from hatchling.mcp_utils.client import MCPClient
 from hatchling.mcp_utils.ollama_adapter import OllamaMCPAdapter
 from hatchling.core.logging.logging_manager import logging_manager
+from hatchling.config.settings_registry import SettingsRegistry
 
 
 class MCPManager:
@@ -42,6 +43,9 @@ class MCPManager:
         self._connection_lock = asyncio.Lock()
         self.connected = False
         
+        # Hatchling settings registry
+        self._settings_registry: Optional[SettingsRegistry] = None
+
         # Tool tracking
         self._tool_client_map = {}  # Map of tool names to clients that provide them
 
@@ -57,7 +61,7 @@ class MCPManager:
         # Get a debug log session
         self.logger = logging_manager.get_session(self.__class__.__name__,
                                   formatter=logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s'))
-    
+
     def validate_server_paths(self, server_paths: List[str]) -> List[str]:
         """Validate server paths and return the list of valid absolute paths.
         
@@ -122,7 +126,7 @@ class MCPManager:
             # Connect to each valid server path
             for path in valid_paths:
                 # Create client with environment resolver
-                client = MCPClient(python_executable_resolver=self._get_python_executable)
+                client = MCPClient(settings=self._settings_registry.settings, python_executable_resolver=self._get_python_executable)
                 is_connected = await client.connect(path)
                 if is_connected:
                     self.mcp_clients[path] = client
@@ -346,6 +350,15 @@ class MCPManager:
         """
         self._hatch_env_manager = env_manager
         self.logger.debug("Set Hatch environment manager for Python executable resolution")
+
+    def set_settings_registry(self, settings_registry: SettingsRegistry) -> None:
+        """Set the Hatchling settings registry for configuration access.
+        
+        Args:
+            settings_registry (SettingsRegistry): The settings registry instance.
+        """
+        self._settings_registry = settings_registry
+        self.logger.debug("Set Hatchling settings registry for configuration access")
     
     def _get_python_executable(self) -> str:
         """Get the appropriate Python executable for the current environment.

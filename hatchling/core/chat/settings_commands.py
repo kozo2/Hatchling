@@ -557,6 +557,8 @@ class SettingsCommands(AbstractCommands):
     
     def _convert_value(self, value: str, current_value: Any) -> Any:
         """Convert string value to appropriate type based on current value.
+        However, if the value is "None" (as a string), it will return None
+        (not a string).
         
         Args:
             value (str): String value to convert.
@@ -565,6 +567,9 @@ class SettingsCommands(AbstractCommands):
         Returns:
             Any: Converted value.
         """
+        if value == "None":
+            return None
+
         if isinstance(current_value, bool):
             return value.lower() in ("true", "1", "yes", "on", "enabled")
         elif isinstance(current_value, int):

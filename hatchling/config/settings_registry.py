@@ -204,7 +204,9 @@ class SettingsRegistry:
         Returns:
             Any: A serializable version of the object.
         """
-        if isinstance(obj, dict):
+        if obj is None:
+            return "None"
+        elif isinstance(obj, dict):
             return {k: self.make_serializable(v) for k, v in obj.items()}
         elif isinstance(obj, list):
             return [self.make_serializable(i) for i in obj]
@@ -398,6 +400,10 @@ class SettingsRegistry:
         
         # Use Pydantic's validation by creating a new instance
         category_dict = category_model.model_dump()
+
+        # if value is "None" (as a string), convert it to None
+        if isinstance(value, str) and value.lower() == "none":
+            value = None
         category_dict[name] = value
         
         # This will raise ValidationError if the value is invalid

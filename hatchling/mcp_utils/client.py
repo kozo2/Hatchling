@@ -8,15 +8,16 @@ from contextlib import AsyncExitStack
 from mcp import ClientSession, StdioServerParameters
 from mcp.client.stdio import stdio_client
 from hatchling.core.logging.logging_manager import logging_manager
-
+from hatchling.config.settings import AppSettings
 
 class MCPClient:
     """Client for MCP servers that manages connections and tool execution."""
-    def __init__(self, python_executable_resolver: Optional[Callable[[], str]] = None):
+    def __init__(self, settings: AppSettings, python_executable_resolver: Optional[Callable[[], str]] = None):
         """Initialize the MCP client.
         
         Args:
-            python_executable_resolver (Callable[[], str], optional): Function to resolve the Python executable 
+            settings (AppSettings): The application settings instance.
+            python_executable_resolver (Callable[[], str], optional): Function to resolve the Python executable
                 for the current environment. If None, defaults to "python".
         """
         self.client_id = str(uuid.uuid4())
@@ -27,6 +28,9 @@ class MCPClient:
         self.server_path = None
         self.read = None
         self.write = None
+
+        # Store settings
+        self.settings = settings
         
         # Python executable resolution
         self._python_executable_resolver = python_executable_resolver
@@ -391,7 +395,7 @@ class MCPClient:
             # Execute the tool with timeout
             result = await asyncio.wait_for(
                 self.session.call_tool(name=tool_name, arguments=arguments),
-                timeout=30  # 30 second timeout
+                timeout=self.settings.tool_calling.max_tool_working_time
             )
             
             # Extract the result value from the response object if needed
@@ -402,7 +406,7 @@ class MCPClient:
                 
         except asyncio.TimeoutError:
             self.logger.error(f"Tool execution timed out: {tool_name}")
-            raise TimeoutError(f"Execution of tool {tool_name} timed out after 30 seconds")
+            raise TimeoutError(f"Execution of tool {tool_name} timed out after {self.settings.tool_calling.max_tool_working_time} seconds")
             
         except Exception as e:
             self.logger.error(f"Error executing tool {tool_name}: {str(e)}")

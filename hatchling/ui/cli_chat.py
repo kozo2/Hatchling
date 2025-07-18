@@ -30,6 +30,7 @@ class CLIChat:
         """
         # Store settings first
         self.settings_registry = settings_registry
+        mcp_manager.set_settings_registry(settings_registry)
         
         # Get a logger - styling is already configured at the application level
         self.logger = logging_manager.get_session("CLIChat")

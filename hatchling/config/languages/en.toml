@@ -88,7 +88,12 @@ hint = "Integer value"
 
 [settings.tool_calling.max_working_time]
 name = "Max Working Time"
-description = "Maximum working time for tool calls"
+description = "Maximum working time for tool calls. If None, no limit is enforced. This is checked upon tool call, not during the tool call. Hence if a single tool call takes longer than this, it will not be interrupted."
+hint = "Time in seconds"
+
+[settings.tool_calling.max_tool_working_time]
+name = "Max Tool Working Time"
+description = "Maximum working time for a single tool call. If None, no limit is enforced."
 hint = "Time in seconds"
 
 # UI Settings

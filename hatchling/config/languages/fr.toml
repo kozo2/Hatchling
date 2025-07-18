@@ -88,7 +88,12 @@ hint = "Nombre entier"
 
 [settings.tool_calling.max_working_time]
 name = "Max Temps de Travail"
-description = "Temps de travail maximum pour les appels d'outils"
+description = "Temps de travail maximum pour les appels d'outils. Si None, aucune limite n'est appliquée. Ceci est vérifié lors de l'appel d'outils, pas pendant l'appel d'outils. Par conséquent, si un seul appel d'outil prend plus de temps que cela, il ne sera pas interrompu."
+hint = "Temps en secondes"
+
+[settings.tool_calling.max_tool_working_time]
+name = "Max Temps de Travail d'Outil"
+description = "Temps de travail maximum pour un seul appel d'outil. Si None, aucune limite n'est appliquée."
 hint = "Temps en secondes"
 
 # UI Settings
