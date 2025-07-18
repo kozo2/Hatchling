@@ -10,6 +10,7 @@ from typing import Tuple
 from prompt_toolkit import print_formatted_text
 from prompt_toolkit.formatted_text import FormattedText
 
+from hatchling import __version__
 from hatchling.core.logging.session_debug_log import SessionDebugLog
 from hatchling.core.logging.logging_manager import logging_manager
 from hatchling.mcp_utils.manager import mcp_manager
@@ -112,6 +113,12 @@ class BaseChatCommands(AbstractCommands):
                 'handler': self._cmd_disable_tools,
                 'description': translate("commands.base.disable_tools_description"),
                 'is_async': True,
+                'args': {}
+            },
+            'version': {
+                'handler': self._cmd_version,
+                'description': translate("commands.base.version_description"),
+                'is_async': False,
                 'args': {}
             }
         }
@@ -307,4 +314,16 @@ class BaseChatCommands(AbstractCommands):
                 self.logger.error("Maximum working time must be greater than 0")
         except ValueError:
             self.logger.error("Invalid value for maximum working time. Usage: set_max_working_time <positive number>")
+        return True
+    
+    def _cmd_version(self, _: str) -> bool:
+        """Display the current version of Hatchling.
+        
+        Args:
+            _ (str): Unused arguments.
+            
+        Returns:
+            bool: True to continue the chat session.
+        """
+        self.logger.info(f"Hatchling version: {__version__}")
         return True

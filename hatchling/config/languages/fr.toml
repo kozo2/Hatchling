@@ -129,6 +129,8 @@ enable_tools_name = "activer_outils"
 enable_tools_description = "Activer les outils MCP"
 disable_tools_name = "desactiver_outils"
 disable_tools_description = "Désactiver les outils MCP"
+version_name = "version"
+version_description = "Afficher la version actuelle de Hatchling"
 
 # Hatch commands
 [commands.hatch]

@@ -1,0 +1,10 @@
+# Structured version file for human readability and CI/CD
+# This file maintains detailed version component information
+# The companion VERSION file contains the simple format for setuptools
+
+MAJOR=0
+MINOR=4
+PATCH=0
+DEV_NUMBER=0
+BUILD_NUMBER=2
+BRANCH=feat/automated-versioning
