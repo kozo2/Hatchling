@@ -46,16 +46,21 @@ class APIManager:
         if not tools:
             return payload
         if self.settings.llm.get_active_provider() == "openai":
-            # Convert Ollama tool format to OpenAI function format if needed
-            openai_functions = []
+            # Use the new OpenAI tools format (not the deprecated functions format)
+            openai_tools = []
             for tool in tools:
-                if tool.get("type") == "function" and "function" in tool:
-                    openai_functions.append(tool["function"])
+                if tool.get("type") == "function":
+                    # Tool is already in the correct format
+                    openai_tools.append(tool)
                 else:
-                    openai_functions.append(tool)
-            payload["functions"] = openai_functions
-            payload["function_call"] = "auto"
-            self.logger.debug(f"Added {len(openai_functions)} functions to OpenAI payload: {openai_functions}")
+                    # Convert to new tools format
+                    openai_tools.append({
+                        "type": "function",
+                        "function": tool
+                    })
+            payload["tools"] = openai_tools
+            payload["tool_choice"] = "auto"
+            self.logger.debug(f"Added {len(openai_tools)} tools to OpenAI payload: {openai_tools}")
         else:
             payload["tools"] = tools
             payload["tool_choice"] = "auto"
@@ -254,16 +259,20 @@ class APIManager:
                         continue
                     delta = choices[0].get("delta", {})
 
-                    # Handle function call (tool call)
-                    if "function_call" in delta:
-                        fc = delta["function_call"]
-                        if function_call_accumulator is None:
-                            function_call_accumulator = ""
-                            function_call_name = fc.get("name")
-                            function_call_id = choices[0].get("id") or "function_call"
-                        if "arguments" in fc:
-                            function_call_accumulator += fc["arguments"]
-                        continue
+                    # Handle tool calls (new format)
+                    if "tool_calls" in delta:
+                        tool_calls = delta["tool_calls"]
+                        if tool_calls and len(tool_calls) > 0:
+                            tool_call = tool_calls[0]  # Take the first tool call
+                            if "function" in tool_call:
+                                fc = tool_call["function"]
+                                if function_call_accumulator is None:
+                                    function_call_accumulator = ""
+                                    function_call_name = fc.get("name")
+                                    function_call_id = tool_call.get("id") or "tool_call"
+                                if "arguments" in fc:
+                                    function_call_accumulator += fc["arguments"]
+                                continue
 
                     # Handle normal content
                     content_piece = delta.get("content")
@@ -281,18 +290,21 @@ class APIManager:
                 # Execute the tool
                 tool_result = await tool_executor.execute_tool(function_call_id, function_call_name, args)
                 if tool_result:
-                    tool_results.append(tool_result)
+                    # Add tool result in the format expected by update_message_history
+                    tool_results.append({
+                        "tool_call_id": function_call_id,
+                        "name": function_call_name,
+                        "content": tool_result["content"]
+                    })
                     message_tool_calls.append({
                         "id": function_call_id,
                         "type": "function",  # Required by OpenAI
                         "function": {"name": function_call_name, "arguments": function_call_accumulator}
                     })
-                    # Add the tool result as a function message to the history
-                    if history:
-                        history.add_tool_result(function_call_id, function_call_name, tool_result["content"], provider="openai")
+                    # Note: Tool result will be added to history by update_message_history
 
         if update_history and history:
-            history.update_message_history(full_response, message_tool_calls, tool_results, provider="openai")
+            history.update_message_history(full_response, message_tool_calls, tool_results)
 
         return full_response, message_tool_calls, tool_results
 
