@@ -23,10 +23,33 @@ from hatchling.core.llm.providers.subscription import (
     MCPToolInfo
 )
 from hatchling.core.llm.tool_management.adapters import (
+    BaseMCPToolAdapter,
     OpenAIMCPToolAdapter,
     OllamaMCPToolAdapter,
     MCPToolAdapterRegistry
 )
+
+@MCPToolAdapterRegistry.register("test_provider")
+class TestProviderAdapter(BaseMCPToolAdapter):
+    """Test adapter for a mock provider."""
+    
+    def __init__(self, provider_name: str):
+        super().__init__(provider_name)
+    
+    def convert_tool(self, tool: MCPToolInfo) -> Dict[str, Any]:
+        """Convert tool to provider-specific format."""
+        return {
+            "type": "function",
+            "function": {
+                "name": tool.name,
+                "description": tool.description,
+                "parameters": tool.schema
+            }
+        }
+    
+    def convert_tools(self, tools: Dict[str, MCPToolInfo]) -> List[Dict[str, Any]]:
+        """Convert multiple tools to provider-specific format."""
+        return [self.convert_tool(tool) for tool in tools.values()]
 
 
 class TestToolLifecycleManagement(unittest.TestCase):
@@ -34,7 +57,9 @@ class TestToolLifecycleManagement(unittest.TestCase):
     
     def setUp(self):
         """Set up test fixtures before each test method."""
-        self.publisher = StreamPublisher("test_mcp_manager")
+        MCPToolAdapterRegistry.register("test_provider")
+        MCPToolAdapterRegistry.create_adapter("test_provider")
+        self.publisher = StreamPublisher("test_provider")
         self.lifecycle_subscriber = ToolLifecycleSubscriber("test_provider")
         self.publisher.subscribe(self.lifecycle_subscriber)
         
@@ -64,16 +89,24 @@ class TestToolLifecycleManagement(unittest.TestCase):
     
     def test_tool_enabled_event_handling(self):
         """Test handling of tool enabled events."""
-        # Publish a tool enabled event
-        self.publisher.publish(StreamEventType.MCP_TOOL_ENABLED, {
+
+        event_data = {
             "tool_name": "test_tool",
-            "tool_description": "A test tool",
-            "tool_schema": {"type": "function", "parameters": {"type": "object"}},
-            "server_path": "/path/to/server.py",
-            "status": "enabled",
-            "reason": "FROM_SERVER_UP"
-        })
-        
+            "mcp_tool_info": MCPToolInfo(
+                name="test_tool",
+                description="A test tool",
+                schema={"type": "function"},
+                server_path="/path/to/server.py",
+                status=MCPToolStatus.ENABLED,
+                reason=MCPToolStatusReason.FROM_SERVER_UP
+            )
+        }
+
+        print(f"INFO - Available tool converters: {MCPToolAdapterRegistry.list_adapters()}")
+
+        # Publish a tool enabled event
+        self.publisher.publish(StreamEventType.MCP_TOOL_ENABLED, event_data)
+
         # Check that tool was added to cache
         enabled_tools = self.lifecycle_subscriber.get_enabled_tools()
         self.assertEqual(len(enabled_tools), 1)
@@ -307,27 +340,30 @@ class TestToolAdapters(unittest.TestCase):
         self.assertIsNotNone(self.sample_tool.provider_format)
         self.assertEqual(self.sample_tool.provider_format, converted)
     
-    def test_adapter_factory(self):
-        """Test tool adapter factory."""
-        # Test creating supported adapters
-        openai_adapter = MCPToolAdapterFactory.create_adapter("openai")
-        self.assertIsInstance(openai_adapter, OpenAIMCPToolAdapter)
-        
-        ollama_adapter = MCPToolAdapterFactory.create_adapter("ollama")
-        self.assertIsInstance(ollama_adapter, OllamaMCPToolAdapter)
-        
-        # Test case insensitivity
-        openai_adapter2 = MCPToolAdapterFactory.create_adapter("OPENAI")
-        self.assertIsInstance(openai_adapter2, OpenAIMCPToolAdapter)
-        
-        # Test unsupported provider
-        unknown_adapter = MCPToolAdapterFactory.create_adapter("unknown")
-        self.assertIsNone(unknown_adapter)
-        
-        # Test supported providers list
-        providers = MCPToolAdapterFactory.get_supported_providers()
-        self.assertIn("openai", providers)
-        self.assertIn("ollama", providers)
+    def test_adapter_registry(self):
+        """Test tool adapter registry functionality."""
+
+        providers = [
+            "openai",
+            "ollama"
+        ]
+
+        for provider in providers:
+            # Check that both adapters are registered
+            self.assertIn(provider, MCPToolAdapterRegistry.list_adapters())
+            
+            # Create adapters using the registry
+            adapter = MCPToolAdapterRegistry.create_adapter(provider)
+            self.assertIsInstance(adapter, BaseMCPToolAdapter)
+
+            # Check that getting the same adapter returns the same instance
+            same_adapter = MCPToolAdapterRegistry.get_adapter_instance(provider)
+            self.assertEqual(adapter, same_adapter)
+            
+            # Test converting a tool with both adapters
+            converted_tool = adapter.convert_tool(self.sample_tool)
+            
+            self.assertEqual(converted_tool["function"]["name"], "example_function")
     
     def test_convert_multiple_tools(self):
         """Test converting multiple tools."""

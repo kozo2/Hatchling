@@ -5,11 +5,11 @@ Tests skip gracefully if Ollama is not available or configured.
 """
 
 import sys
-import os
 import unittest
 import logging
 import asyncio
 from pathlib import Path
+import time
 
 # Add the parent directory to the path for imports
 sys.path.insert(0, str(Path(__file__).parent.parent))
@@ -18,13 +18,38 @@ from hatchling.core.llm.providers.registry import ProviderRegistry
 from hatchling.core.llm.providers.ollama_provider import OllamaProvider
 from hatchling.mcp_utils.mcp_tool_data import MCPToolInfo, MCPToolStatus, MCPToolStatusReason
 from hatchling.core.llm.providers.subscription import (
+    StreamSubscriber,
     ContentPrinterSubscriber,
     UsageStatsSubscriber,
-    ErrorHandlerSubscriber
+    ErrorHandlerSubscriber,
+    ToolLifecycleSubscriber,
+    StreamPublisher,
+    StreamEventType,
+    StreamEvent
 )
 
 logger = logging.getLogger("integration_test_ollama")
 
+class TestStreamToolCallSubscriber(StreamSubscriber):
+    """Test subscriber for streaming tool calls."""
+
+    def on_event(self, event: StreamEvent) -> None:
+        """Handle incoming stream events."""
+        if event.type == StreamEventType.TOOL_CALL:
+            tool_calls = event.data.get("tool_calls", [])
+            print(f"Received tool calls: {tool_calls}")
+        elif event.type == StreamEventType.CONTENT:
+            content = event.data.get("content", "")
+            role = event.data.get("role", "assistant")
+            print(f"Content from {role}: {content}")
+        elif event.type == StreamEventType.USAGE:
+            usage = event.data.get("usage", {})
+            print(f"Usage stats: {usage}")
+        else:
+            logger.warning(f"Unexpected event type: {event.type}")
+    
+    def get_subscribed_events(self):
+        return [StreamEventType.TOOL_CALL, StreamEventType.CONTENT, StreamEventType.USAGE]
 
 class TestOllamaProviderIntegration(unittest.TestCase):
     """Integration tests for OllamaProvider with real Ollama instance."""
@@ -38,6 +63,7 @@ class TestOllamaProviderIntegration(unittest.TestCase):
                 "model": "llama3.2",  # Default model for testing
                 "timeout": 30.0
             }
+            MCPToolAdapterRegistry.create_adapter("ollama")
             self.provider = ProviderRegistry.create_provider("ollama", config)
             self.loop = asyncio.new_event_loop()
             asyncio.set_event_loop(self.loop)
@@ -126,41 +152,103 @@ class TestOllamaProviderIntegration(unittest.TestCase):
         self.assertTrue(payload.get("stream", False))  # Should default to streaming
         self.assertEqual(payload["options"]["temperature"], 0.7)
 
-    def test_tools_payload_integration(self):
-        """Test adding tools to payload."""
+    async def async_test_tools_payload_integration(self):
+        """Test adding tools to payload and round-trip with ToolLifecycleSubscriber."""
         base_payload = {
             "model": "llama3.2",
             "messages": [{"role": "user", "content": "Test"}]
         }
-        
-        tools = [
-            {
-                "type": "function",
-                "function": {
-                    "name": "get_weather",
-                    "description": "Get current weather for a location",
-                    "parameters": {
-                        "type": "object",
-                        "properties": {
-                            "location": {"type": "string", "description": "City name"}
-                        },
-                        "required": ["location"]
-                    }
-                }
-            }
-        ]
-        
-        payload_with_tools = self.provider.add_tools_to_payload(base_payload, tools)
-        
+
+        # Simulate a tool enabled event
+        tool_name = "addition"
+        tool_info = MCPToolInfo(
+            name=tool_name,
+            description="A tool that adds two numbers",
+            schema={"type": "object", "properties": {
+                "a": {"type": "int", "description": "First number"},
+                "b": {"type": "int", "description": "Second number"}
+            }, "required": ["a", "b"]},
+            server_path="/fake/server/path",
+            status=MCPToolStatus.ENABLED,
+            reason=MCPToolStatusReason.FROM_SERVER_UP
+        )
+        event_data = {
+            "tool_name": tool_info.name,
+            "mcp_tool_info": tool_info
+        }
+        event = StreamEvent(
+            type=StreamEventType.MCP_TOOL_ENABLED,
+            data=event_data,
+            provider="ollama",
+            request_id=None,
+            timestamp=time.time()
+        )
+
+        # Create and subscribe ToolLifecycleSubscriber
+        tls = ToolLifecycleSubscriber("ollama")
+        self.provider._toolLifecycle_subscriber = tls
+        tool_call_subscriber = TestStreamToolCallSubscriber()
+        self.provider.publisher.subscribe(tool_call_subscriber)
+        mcp_activity_mock_publisher = StreamPublisher("ollama")
+        mcp_activity_mock_publisher.subscribe(tls)
+        mcp_activity_mock_publisher.publish(StreamEventType.MCP_TOOL_ENABLED, event.data)
+
+        enabled_tools = tls.get_enabled_tools()
+        self.assertIn(tool_name, enabled_tools)
+        self.assertEqual(enabled_tools[tool_name].description, tool_info.description)
+        self.assertEqual(enabled_tools[tool_name].schema, tool_info.schema)
+        self.assertEqual(enabled_tools[tool_name].status, MCPToolStatus.ENABLED)
+
+        # Now test add_tools_to_payload using enabled tools from ToolLifecycleSubscriber
+        messages = [
+                    {"role": "user", "content": "Compute 789+654."}
+                ]
+        payload = self.provider.prepare_chat_payload(messages, temperature=0.1, num_predict=100)
+        payload_with_tools = self.provider.add_tools_to_payload(payload.copy(), [tool_name])
+
+        self.assertIn("model", payload)
+        self.assertIn("messages", payload)
+        self.assertIn("tools", payload_with_tools)
+        self.assertEqual(tool_name, payload_with_tools["tools"][0]["function"]["name"])
+        self.assertTrue(payload.get("stream", False))
+
+        print("=== Starting chat response stream ===")
+        print()
+        try:
+            await self.provider.stream_chat_response(payload_with_tools)
+        except Exception as e:
+            self.fail(f"Streaming failed: {e}")
+        finally:
+            print("=== Chat response stream completed ===")
         self.assertIn("tools", payload_with_tools)
         self.assertEqual(len(payload_with_tools["tools"]), 1)
-        self.assertEqual(payload_with_tools["tools"][0]["function"]["name"], "get_weather")
+        self.assertEqual(payload_with_tools["tools"][0]["function"]["name"], tool_name)
+
+        # Simulate disabling the tool
+        disable_event = StreamEvent(
+            type=StreamEventType.MCP_TOOL_DISABLED,
+            data={
+                "tool_name": tool_name,
+                "reason": "FROM_USER_DISABLED"
+            },
+            provider="ollama",
+            request_id=None,
+            timestamp=time.time()
+        )
+        mcp_activity_mock_publisher.publish(StreamEventType.MCP_TOOL_DISABLED, disable_event.data)
+        enabled_tools_after = tls.get_enabled_tools()
+        self.assertNotIn(tool_name, enabled_tools_after)
+    
+    def test_tools_payload_integration_sync(self):
+        """Synchronous wrapper for tools payload integration test."""
+        try:
+            self.loop.run_until_complete(self.async_test_tools_payload_integration())
+        finally:
+            pass
+
 
     async def async_test_simple_chat_integration(self):
-        """Test a simple chat interaction with Ollama.
-
-        Sends a prompt to Ollama and streams the response, asserting that a response is received.
-        """
+        """Test a simple chat interaction with Ollama and ToolLifecycleSubscriber integration."""
 
         # Create test subscribers
         content_printer = ContentPrinterSubscriber(include_role=True)
@@ -189,6 +277,61 @@ class TestOllamaProviderIntegration(unittest.TestCase):
             self.fail(f"Streaming failed: {e}")
         finally:
             print("=== Chat response stream completed ===")
+
+    def test_tool_lifecycle_subscriber_cache(self):
+        """Test ToolLifecycleSubscriber cache and event handling in isolation."""
+        tls = ToolLifecycleSubscriber("ollama")
+        publisher = StreamPublisher("ollama")
+        publisher.subscribe(tls)
+
+        # Enable two tools
+        for i in range(2):
+            tool_name = f"tool_{i}"
+            tool_info = MCPToolInfo(
+                name=tool_name,
+                description=f"desc_{i}",
+                schema={"type": "object"},
+                server_path=f"/server/{i}",
+                status=MCPToolStatus.ENABLED,
+                reason=MCPToolStatusReason.FROM_SERVER_UP
+            )
+            event_data = {
+                "tool_name": tool_name,
+                "mcp_tool_info": tool_info
+            }
+            event = StreamEvent(
+                type=StreamEventType.MCP_TOOL_ENABLED,
+                data=event_data,
+                provider="ollama",
+                request_id=None,
+                timestamp=time.time()
+            )
+            publisher.publish(StreamEventType.MCP_TOOL_ENABLED, event.data)
+
+        enabled = tls.get_enabled_tools()
+        self.assertEqual(len(enabled), 2)
+        self.assertIn("tool_0", enabled)
+        self.assertIn("tool_1", enabled)
+
+        # Disable one tool
+        disable_event = StreamEvent(
+            type=StreamEventType.MCP_TOOL_DISABLED,
+            data={
+                "tool_name": "tool_0",
+                "reason": "FROM_USER_DISABLED"
+            },
+            provider="ollama",
+            request_id=None,
+            timestamp=time.time()
+        )
+        publisher.publish(StreamEventType.MCP_TOOL_DISABLED, disable_event.data)
+        enabled = tls.get_enabled_tools()
+        self.assertNotIn("tool_0", enabled)
+        self.assertIn("tool_1", enabled)
+
+        # Clear cache
+        tls.clear_cache()
+        self.assertEqual(len(tls.get_all_tools()), 0)
 
     def test_simple_chat_integration_sync(self):
         """Synchronous wrapper for simple chat integration test."""
