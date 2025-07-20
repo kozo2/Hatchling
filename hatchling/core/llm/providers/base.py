@@ -93,13 +93,13 @@ class LLMProvider(ABC):
     def add_tools_to_payload(
         self,
         payload: Dict[str, Any],
-        tools: List[Dict[str, Any]]
+        tools: List[str]
     ) -> Dict[str, Any]:
         """Add tools to the payload in provider-specific format.
 
         Args:
             payload (Dict[str, Any]): The base payload to modify.
-            tools (List[Dict[str, Any]]): List of tools in MCP format.
+            tools (List[str]): List of tool names to add to the payload.
 
         Returns:
             Dict[str, Any]: Modified payload with tools added in provider format.

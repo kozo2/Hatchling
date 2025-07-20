@@ -12,10 +12,10 @@ from ollama import AsyncClient
 
 from .base import LLMProvider
 from .registry import ProviderRegistry
-from .subscription import StreamPublisher, StreamEventType
+from .subscription import StreamPublisher, StreamEventType, ToolLifecycleSubscriber
+from hatchling.mcp_utils.manager import mcp_manager
 
 logger = logging.getLogger(__name__)
-
 
 @ProviderRegistry.register("ollama")
 class OllamaProvider(LLMProvider):
@@ -43,6 +43,8 @@ class OllamaProvider(LLMProvider):
         self._timeout = config.get("timeout", 30.0)
         self._default_model = config.get("model", "llama3.2")
         self._stream_enabled = config.get("stream", True)
+
+        self._toolLifecycle_subscriber = ToolLifecycleSubscriber("ollama")
         
         # Store additional client options
         self._client_options = {
@@ -70,6 +72,7 @@ class OllamaProvider(LLMProvider):
         """
         try:
             self._stream_publisher = StreamPublisher("ollama")
+            mcp_manager.publisher.subscribe(self._toolLifecycle_subscriber)
 
             self._client = AsyncClient(
                 host=self._host,
@@ -86,6 +89,14 @@ class OllamaProvider(LLMProvider):
             error_msg = f"Failed to initialize Ollama client: {str(e)}"
             logger.error(error_msg)
             raise ConnectionError(error_msg) from e
+        
+    def close(self) -> None:
+        """Close the Ollama client connection and clean up resources.
+        
+        This method should be called when the provider is no longer needed.
+        It will close the AsyncClient connection gracefully.
+        """
+        mcp_manager.publisher.unsubscribe(self._toolLifecycle_subscriber)
     
     def prepare_chat_payload(
         self,
@@ -148,13 +159,13 @@ class OllamaProvider(LLMProvider):
     def add_tools_to_payload(
         self, 
         payload: Dict[str, Any], 
-        tools: List[Dict[str, Any]]
+        tools: List[str]
     ) -> Dict[str, Any]:
         """Add tool definitions to the Ollama chat payload.
         
         Args:
             payload (Dict[str, Any]): Base chat payload.
-            tools (List[Dict[str, Any]]): List of tool definitions.
+            tools (List[str]): List of tool names.
         
         Returns:
             Dict[str, Any]: Updated payload with tools.
@@ -164,29 +175,25 @@ class OllamaProvider(LLMProvider):
         
         # Convert tools to Ollama format
         ollama_tools = []
-        
-        for tool in tools:
-            if tool.get("type") == "function":
-                function_def = tool.get("function", {})
-                
-                # Ollama tool format
-                ollama_tool = {
-                    "type": "function",
-                    "function": {
-                        "name": function_def.get("name", ""),
-                        "description": function_def.get("description", ""),
-                        "parameters": function_def.get("parameters", {})
-                    }
-                }
-                ollama_tools.append(ollama_tool)
-            else:
-                # Pass through other tool types as-is
-                ollama_tools.append(tool)
-        
+        all_tools = self._toolLifecycle_subscriber.get_all_tools()
+        enabled_tools = self._toolLifecycle_subscriber.get_enabled_tools()
+        for tool_name in tools:
+            # Ensure the function definition exists in the tool cache
+            if not tool_name in all_tools:
+                error_msg = f"Function definition for {tool_name} not found in tool cache"
+                logger.error(error_msg)
+                raise ValueError(error_msg)
+            
+            if not tool_name in enabled_tools:
+                warning_msg = f"Function {tool_name} is disabled with reason: {self._toolLifecycle_subscriber.prettied_reason(all_tools[tool_name].reason)}" 
+                logger.warning(warning_msg)
+                continue #skipping disabled tools
+            
+            ollama_tools.append(enabled_tools[tool_name].provider_format)
+            
         # Add tools to payload
         payload["tools"] = ollama_tools
-        
-        logger.debug(f"Added {len(ollama_tools)} tools to Ollama payload")
+
         return payload
     
     async def stream_chat_response(
@@ -244,14 +251,11 @@ class OllamaProvider(LLMProvider):
             Any: Standardized chunk format.
         """
         try:
-            # Parse the chunk based on Ollama's response format
-            parsed_chunk = {}
             
             # Handle content (message delta)
             if "message" in chunk:
                 message = chunk["message"]
                 if "role" in message:
-                    parsed_chunk["role"] = message["role"]
                     # Publish role event
                     self._stream_publisher.publish(
                         StreamEventType.ROLE,
@@ -260,7 +264,6 @@ class OllamaProvider(LLMProvider):
                 
                 if "content" in message and message["content"]:
                     content = message["content"]
-                    parsed_chunk["content"] = content
                     # Publish content event
                     self._stream_publisher.publish(
                         StreamEventType.CONTENT,
@@ -269,7 +272,6 @@ class OllamaProvider(LLMProvider):
             
             # Handle completion state
             if chunk.get("done", False):
-                parsed_chunk["finish_reason"] = "stop"
                 # Publish finish event
                 self._stream_publisher.publish(
                     StreamEventType.FINISH,
@@ -283,7 +285,6 @@ class OllamaProvider(LLMProvider):
                         "completion_tokens": chunk.get("eval_count", 0),
                         "total_tokens": chunk.get("prompt_eval_count", 0) + chunk.get("eval_count", 0)
                     }
-                    parsed_chunk["usage"] = usage
                     # Publish usage event
                     self._stream_publisher.publish(
                         StreamEventType.USAGE,
@@ -293,8 +294,11 @@ class OllamaProvider(LLMProvider):
             # Handle tool calls (if supported in future Ollama versions)
             if "message" in chunk and "tool_calls" in chunk["message"]:
                 tool_calls = chunk["message"]["tool_calls"]
-                parsed_chunk["tool_calls"] = tool_calls
-                # Could add tool call event type in future
+                # Publish tool calls
+                self._stream_publisher.publish(
+                    StreamEventType.TOOL_CALL,
+                    {"tool_calls": tool_calls}
+                )
             
         except Exception as e:
             error_msg = f"Error parsing Ollama chunk: {str(e)}"
