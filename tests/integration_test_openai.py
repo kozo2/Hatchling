@@ -1,3 +1,4 @@
+import time
 """Integration tests for OpenAIProvider - Phase 3.
 
 These tests validate the OpenAIProvider against the real OpenAI API.
@@ -6,6 +7,7 @@ Tests skip gracefully if API key is not available or configured.
 
 import sys
 import os
+import json
 import unittest
 import logging
 import asyncio
@@ -15,14 +17,80 @@ from dotenv import load_dotenv
 # Add the parent directory to the path for imports
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
+
+from hatchling.core.llm.tool_management.adapters import MCPToolAdapterRegistry
 from hatchling.core.llm.providers.registry import ProviderRegistry
+from hatchling.core.llm.providers.ollama_provider import OllamaProvider
+from hatchling.mcp_utils.mcp_tool_data import MCPToolInfo, MCPToolStatus, MCPToolStatusReason
 from hatchling.core.llm.providers.subscription import (
-            ContentPrinterSubscriber, 
-            UsageStatsSubscriber, 
-            ErrorHandlerSubscriber
-        )
+    StreamSubscriber,
+    ContentPrinterSubscriber,
+    UsageStatsSubscriber,
+    ErrorHandlerSubscriber,
+    ToolLifecycleSubscriber,
+    StreamPublisher,
+    StreamEventType,
+    StreamEvent
+)
+from hatchling.core.llm.providers.openai_provider import OpenAIProvider
 
 logger = logging.getLogger("integration_test_openai")
+
+class TestStreamToolCallSubscriber(StreamSubscriber):
+    """Test subscriber for streaming tool calls."""
+    def __init__(self):
+        """Initialize the subscriber."""
+        super().__init__()
+        self._tool_call_buffers = {}
+
+    def on_event(self, event: StreamEvent) -> None:
+        """Handle incoming stream events, reconstructing OpenAI-style tool call arguments if fragmented."""
+
+        if event.type == StreamEventType.TOOL_CALL:
+            print(f"RAW: {event.data}")
+            tool_call = event.data
+            # OpenAI-style: first chunk has 'type' == 'function', then subsequent have type None and 'arguments' fragments
+            if tool_call.get('type') == 'function':
+                # Start of a new tool call
+                call_id = tool_call.get('id')
+                index = tool_call.get('index')
+                self._tool_call_buffers[index] = {
+                    'id': call_id,
+                    'name': tool_call["function"]["name"],
+                    'args_fragments': []
+                }
+                print(f"Received tool calls: {tool_call}")
+            else:
+                # Fragmented argument chunk
+                index = tool_call.get('index')
+                self._tool_call_buffers[index]['args_fragments'] += [tool_call["function"]['arguments']]
+                print(f"Received tool calls: {tool_call}")
+        elif event.type == StreamEventType.CONTENT:
+            content = event.data.get("content", "")
+            role = event.data.get("role", "assistant")
+            print(f"Content from {role}: {content}")
+        elif event.type == StreamEventType.USAGE:
+            usage = event.data.get("usage", {})
+            print(f"Usage stats: {usage}")
+        elif event.type == StreamEventType.FINISH:
+            # Check if we have any buffered tool calls to process
+            for k, v in self._tool_call_buffers.items():
+                if v['args_fragments']:
+                    # Try to reconstruct the arguments
+                    joined = ''.join(v['args_fragments'])
+                    try:
+                        parsed = json.loads(joined)
+                        v["args"] = parsed
+                        print(f"Reconstructed tool call arguments for {k}: {parsed}")
+                        print(f"Full tool call: {json.dumps(v, indent=2)}")
+                    except json.JSONDecodeError:
+                        logger.error(f"Failed to decode JSON for tool call {k}: {joined}")
+            print("Stream finished.")
+        else:
+            logger.warning(f"Unexpected event type: {event.type}")
+    
+    def get_subscribed_events(self):
+        return [StreamEventType.TOOL_CALL, StreamEventType.CONTENT, StreamEventType.USAGE, StreamEventType.FINISH]
 
 
 class TestOpenAIProviderIntegration(unittest.TestCase):
@@ -35,7 +103,7 @@ class TestOpenAIProviderIntegration(unittest.TestCase):
         cls.provider = None
         
         # Check if OpenAI API key is available
-        if load_dotenv("./tests/.env"):  # Load environment variables from .env file
+        if load_dotenv(".env"):  # Load environment variables from .env file
             logger.info("Loaded environment variables from .env file")
         else:
             logger.warning("No .env file found, using system environment variables")
@@ -53,6 +121,7 @@ class TestOpenAIProviderIntegration(unittest.TestCase):
                 "model": "gpt-4.1-nano",  # Use cheaper model for testing
                 "timeout": 30.0
             }
+            MCPToolAdapterRegistry.create_adapter("openai")
             self.provider = ProviderRegistry.create_provider("openai", config)
             self.loop = asyncio.new_event_loop()
             asyncio.set_event_loop(self.loop)
@@ -91,113 +160,170 @@ class TestOpenAIProviderIntegration(unittest.TestCase):
         self.loop.run_until_complete(self.provider.close())
         self.loop.close()
 
-    # def test_provider_registration(self):
-    #     """Test that OpenAIProvider is properly registered."""
-    #     self.assertIn("openai", ProviderRegistry.list_providers())
-    #     provider_class = ProviderRegistry.get_provider_class("openai")
-    #     self.assertEqual(provider_class, OpenAIProvider)
+    def test_provider_registration(self):
+        """Test that OpenAIProvider is properly registered."""
+        self.assertIn("openai", ProviderRegistry.list_providers())
+        provider_class = ProviderRegistry.get_provider_class("openai")
+        self.assertEqual(provider_class, OpenAIProvider)
 
-    # async def async_test_provider_initialization(self):
-    #     """Test provider initialization with real API connection."""
-    #     api_key = os.environ.get('OPENAI_API_KEY')
-    #     config = {
-    #         "api_key": api_key,
-    #         "model": "gpt-4.1-nano",  # Use cheaper model for testing
-    #         "timeout": 30.0
-    #     }
+    async def async_test_provider_initialization(self):
+        """Test provider initialization with real API connection."""
+        api_key = os.environ.get('OPENAI_API_KEY')
+        config = {
+            "api_key": api_key,
+            "model": "gpt-4.1-nano",  # Use cheaper model for testing
+            "timeout": 30.0
+        }
         
-    #     provider = ProviderRegistry.create_provider("openai", config)
-    #     self.assertIsInstance(provider, OpenAIProvider)
+        provider = ProviderRegistry.create_provider("openai", config)
+        self.assertIsInstance(provider, OpenAIProvider)
         
-    #     # Test initialization
-    #     await provider.initialize()
-    #     self.assertIsNotNone(provider._client)
+        # Test initialization
+        await provider.initialize()
+        self.assertIsNotNone(provider._client)
 
-    # def test_provider_initialization_sync(self):
-    #     """Synchronous wrapper for async initialization test."""
-    #     try:
-    #         self.loop.run_until_complete(self.async_test_provider_initialization())
-    #     finally:
-    #         pass  # Do not close the loop here; it is closed in tearDown
+    def test_provider_initialization_sync(self):
+        """Synchronous wrapper for async initialization test."""
+        try:
+            self.loop.run_until_complete(self.async_test_provider_initialization())
+        finally:
+            pass  # Do not close the loop here; it is closed in tearDown
 
-    # async def async_test_health_check(self):
-    #     """Test health check against real OpenAI API."""
-    #     health = await self.provider.check_health()
+    async def async_test_health_check(self):
+        """Test health check against real OpenAI API."""
+        health = await self.provider.check_health()
         
-    #     self.assertIsInstance(health, dict)
-    #     self.assertIn("available", health)
-    #     self.assertIn("message", health)
-    #     self.assertTrue(health["available"])
+        self.assertIsInstance(health, dict)
+        self.assertIn("available", health)
+        self.assertIn("message", health)
+        self.assertTrue(health["available"])
         
-    #     # Should include models list if healthy
-    #     if "models" in health:
-    #         self.assertIsInstance(health["models"], list)
-    #         self.assertGreater(len(health["models"]), 0)
-    #         logger.info(f"Available models count: {len(health['models'])}")
+        # Should include models list if healthy
+        if "models" in health:
+            self.assertIsInstance(health["models"], list)
+            self.assertGreater(len(health["models"]), 0)
+            logger.info(f"Available models count: {len(health['models'])}")
             
-    #         # Should include common models
-    #         model_names = health["models"]
-    #         self.assertTrue(any("gpt" in model for model in model_names))
+            # Should include common models
+            model_names = health["models"]
+            self.assertTrue(any("gpt" in model for model in model_names))
 
-    # def test_health_check_sync(self):
-    #     """Synchronous wrapper for async health check test."""
-    #     try:
-    #         self.loop.run_until_complete(self.async_test_health_check())
-    #     finally:
-    #         pass  # Do not close the loop here; it is closed in tearDown
+    def test_health_check_sync(self):
+        """Synchronous wrapper for async health check test."""
+        try:
+            self.loop.run_until_complete(self.async_test_health_check())
+        finally:
+            pass  # Do not close the loop here; it is closed in tearDown
 
-    # def test_payload_preparation(self):
-    #     """Test chat payload preparation."""
-    #     messages = [
-    #         {"role": "user", "content": "Hello, how are you?"}
-    #     ]
+    def test_payload_preparation(self):
+        """Test chat payload preparation."""
+        messages = [
+            {"role": "user", "content": "Hello, how are you?"}
+        ]
         
-    #     payload = self.provider.prepare_chat_payload(
-    #         messages, 
-    #         temperature=0.7, 
-    #         max_tokens=100
-    #     )
+        payload = self.provider.prepare_chat_payload(
+            messages, 
+            temperature=0.7, 
+            max_tokens=100
+        )
         
-    #     self.assertIsInstance(payload, dict)
-    #     self.assertIn("model", payload)
-    #     self.assertIn("messages", payload)
-    #     self.assertEqual(payload["messages"], messages)
-    #     self.assertTrue(payload.get("stream", False))  # Should default to streaming
-    #     self.assertEqual(payload["temperature"], 0.7)
-    #     self.assertEqual(payload["max_tokens"], 100)
-    #     self.assertIn("stream_options", payload)
+        self.assertIsInstance(payload, dict)
+        self.assertIn("model", payload)
+        self.assertIn("messages", payload)
+        self.assertEqual(payload["messages"], messages)
+        self.assertTrue(payload.get("stream", False))  # Should default to streaming
+        self.assertEqual(payload["temperature"], 0.7)
+        self.assertEqual(payload["max_tokens"], 100)
+        self.assertIn("stream_options", payload)
 
-    # def test_tools_payload_integration(self):
-    #     """Test adding tools to payload."""
-    #     base_payload = {
-    #         "model": "gpt-4.1-nano",  # Use cheaper model for testing
-    #         "messages": [{"role": "user", "content": "Test"}]
-    #     }
-        
-    #     tools = [
-    #         {
-    #             "type": "function",
-    #             "function": {
-    #                 "name": "get_weather",
-    #                 "description": "Get current weather for a location",
-    #                 "parameters": {
-    #                     "type": "object",
-    #                     "properties": {
-    #                         "location": {"type": "string", "description": "City name"}
-    #                     },
-    #                     "required": ["location"]
-    #                 }
-    #             }
-    #         }
-    #     ]
-        
-    #     payload_with_tools = self.provider.add_tools_to_payload(base_payload, tools)
-        
-    #     self.assertIn("tools", payload_with_tools)
-    #     self.assertEqual(len(payload_with_tools["tools"]), 1)
-    #     self.assertEqual(payload_with_tools["tools"][0]["type"], "function")
-    #     self.assertEqual(payload_with_tools["tools"][0]["function"]["name"], "get_weather")
-    #     self.assertEqual(payload_with_tools["tool_choice"], "auto")
+    async def async_test_tools_payload_integration(self):
+        """Test adding tools to payload."""
+        # Simulate a tool enabled event
+        tool_name = "addition"
+        tool_info = MCPToolInfo(
+            name=tool_name,
+            description="A tool that adds two numbers",
+            schema={"type": "object", "properties": {
+                "a": {"type": "number", "description": "First number"},
+                "b": {"type": "number", "description": "Second number"}
+            }, "required": ["a", "b"]},
+            server_path="/fake/server/path",
+            status=MCPToolStatus.ENABLED,
+            reason=MCPToolStatusReason.FROM_SERVER_UP
+        )
+        event_data = {
+            "tool_name": tool_info.name,
+            "mcp_tool_info": tool_info
+        }
+        event = StreamEvent(
+            type=StreamEventType.MCP_TOOL_ENABLED,
+            data=event_data,
+            provider="openai",
+            request_id=None,
+            timestamp=time.time()
+        )
+
+        # Create and subscribe ToolLifecycleSubscriber
+        tls = ToolLifecycleSubscriber("openai")
+        self.provider._toolLifecycle_subscriber = tls
+        tool_call_subscriber = TestStreamToolCallSubscriber()
+        self.provider.publisher.subscribe(tool_call_subscriber)
+        mcp_activity_mock_publisher = StreamPublisher("openai")
+        mcp_activity_mock_publisher.subscribe(tls)
+        mcp_activity_mock_publisher.publish(StreamEventType.MCP_TOOL_ENABLED, event.data)
+
+        enabled_tools = tls.get_enabled_tools()
+        self.assertIn(tool_name, enabled_tools)
+        self.assertEqual(enabled_tools[tool_name].description, tool_info.description)
+        self.assertEqual(enabled_tools[tool_name].schema, tool_info.schema)
+        self.assertEqual(enabled_tools[tool_name].status, MCPToolStatus.ENABLED)
+
+        # Now test add_tools_to_payload using enabled tools from ToolLifecycleSubscriber
+        messages = [
+                    {"role": "user", "content": "Compute 789+654."}
+                ]
+        payload = self.provider.prepare_chat_payload(messages, temperature=0.1, max_tokens=50)
+        payload_with_tools = self.provider.add_tools_to_payload(payload.copy(), [tool_name])
+
+        self.assertIn("model", payload)
+        self.assertIn("messages", payload)
+        self.assertIn("tools", payload_with_tools)
+        self.assertEqual(tool_name, payload_with_tools["tools"][0]["function"]["name"])
+        self.assertTrue(payload.get("stream", False))
+
+        print("=== Starting chat response stream ===")
+        print()
+        try:
+            await self.provider.stream_chat_response(payload_with_tools)
+        except Exception as e:
+            self.fail(f"Streaming failed: {e}")
+        finally:
+            print("=== Chat response stream completed ===")
+        self.assertIn("tools", payload_with_tools)
+        self.assertEqual(len(payload_with_tools["tools"]), 1)
+        self.assertEqual(payload_with_tools["tools"][0]["function"]["name"], tool_name)
+
+        # Simulate disabling the tool
+        disable_event = StreamEvent(
+            type=StreamEventType.MCP_TOOL_DISABLED,
+            data={
+                "tool_name": tool_name,
+                "reason": "FROM_USER_DISABLED"
+            },
+            provider="openai",
+            request_id=None,
+            timestamp=time.time()
+        )
+        mcp_activity_mock_publisher.publish(StreamEventType.MCP_TOOL_DISABLED, disable_event.data)
+        enabled_tools_after = tls.get_enabled_tools()
+        self.assertNotIn(tool_name, enabled_tools_after)
+
+    def test_tools_payload_integration_sync(self):
+        """Synchronous wrapper for tools payload integration test."""
+        try:
+            self.loop.run_until_complete(self.async_test_tools_payload_integration())
+        finally:
+            pass
 
     async def async_test_simple_chat_integration(self):
         """Test a simple chat interaction with OpenAI using publish-subscribe pattern."""
@@ -248,34 +374,38 @@ class TestOpenAIProviderIntegration(unittest.TestCase):
         finally:
             pass # Do not close the loop here; it is closed in tearDown
 
-    # def test_supported_features(self):
-    #     """Test that provider reports supported features correctly."""
-    #     features = self.provider.get_supported_features()
-        
-    #     self.assertIsInstance(features, dict)
-        
-    #     # OpenAI should support these features
-    #     expected_features = {
-    #         "streaming": True,
-    #         "tools": True,
-    #         "multimodal": True,
-    #         "embeddings": True,
-    #         "fine_tuning": True,
-    #         "structured_outputs": True,
-    #         "reasoning": True
-    #     }
-        
-    #     for feature, expected_value in expected_features.items():
-    #         self.assertIn(feature, features)
-    #         self.assertEqual(features[feature], expected_value)
 
-    # def test_api_key_validation(self):
-    #     """Test that provider validates API key requirement."""
-    #     with self.assertRaises(ValueError) as context:
-    #         OpenAIProvider({"model": "gpt-4.1-nano",  # Use cheaper model for testing"
-    #                         })  # Missing API key
-        
-    #     self.assertIn("API key is required", str(context.exception))
+    def test_supported_features(self):
+        """Test that provider reports supported features correctly.
+
+        Ensures that the OpenAIProvider advertises the correct set of supported features.
+        """
+        features = self.provider.get_supported_features()
+        self.assertIsInstance(features, dict)
+
+        # OpenAI should support these features
+        expected_features = {
+            "streaming": True,
+            "tools": True,
+            "multimodal": True,
+            "embeddings": True,
+            "fine_tuning": True,
+            "structured_outputs": True,
+            "reasoning": True
+        }
+
+        for feature, expected_value in expected_features.items():
+            self.assertIn(feature, features)
+            self.assertEqual(features[feature], expected_value)
+
+    def test_api_key_validation(self):
+        """Test that provider validates API key requirement.
+
+        Ensures that initializing OpenAIProvider without an API key raises a ValueError.
+        """
+        with self.assertRaises(ValueError) as context:
+            OpenAIProvider({"model": "gpt-4.1-nano"})  # Missing API key
+        self.assertIn("API key is required", str(context.exception))
 
 
 def run_openai_integration_tests():
