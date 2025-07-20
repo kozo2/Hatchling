@@ -36,19 +36,33 @@ def run_development_tests(phase=None):
     Args:
         phase (int, optional): Specific phase to test. If None, runs all phases.
     """
+    logger.info("Running development tests...")
+    
     success = True
     
+    # Phase 1: Core Abstraction and Registry
     if phase is None or phase == 1:
         logger.info("Running Phase 1 development tests...")
+        logger.info("Running Phase 1 tests: Core Abstraction and Registry")
         try:
             from tests.dev_test_phase1_settings import run_phase1_tests
             if not run_phase1_tests():
+            from tests.dev_test_llmprovider_base import run_llm_provider_base_tests
+            from tests.dev_test_provider_registry import run_provider_registry_tests
+            
+            if not run_llm_provider_base_tests():
                 success = False
+                
+            if not run_provider_registry_tests():
+                success = False
+                
         except ImportError as e:
             logger.error(f"Could not import Phase 1 tests: {e}")
+            logger.error(f"Could not import Phase 1 development tests: {e}")
             success = False
         except Exception as e:
             logger.error(f"Phase 1 tests failed: {e}")
+            logger.error(f"Phase 1 development tests failed: {e}")
             success = False
     
     if phase is None or phase == 2:
