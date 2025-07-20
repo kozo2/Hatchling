@@ -154,19 +154,14 @@ class TestOllamaProviderIntegration(unittest.TestCase):
 
     async def async_test_tools_payload_integration(self):
         """Test adding tools to payload and round-trip with ToolLifecycleSubscriber."""
-        base_payload = {
-            "model": "llama3.2",
-            "messages": [{"role": "user", "content": "Test"}]
-        }
-
         # Simulate a tool enabled event
         tool_name = "addition"
         tool_info = MCPToolInfo(
             name=tool_name,
             description="A tool that adds two numbers",
             schema={"type": "object", "properties": {
-                "a": {"type": "int", "description": "First number"},
-                "b": {"type": "int", "description": "Second number"}
+                "a": {"type": "number", "description": "First number"},
+                "b": {"type": "number", "description": "Second number"}
             }, "required": ["a", "b"]},
             server_path="/fake/server/path",
             status=MCPToolStatus.ENABLED,
@@ -245,7 +240,6 @@ class TestOllamaProviderIntegration(unittest.TestCase):
             self.loop.run_until_complete(self.async_test_tools_payload_integration())
         finally:
             pass
-
 
     async def async_test_simple_chat_integration(self):
         """Test a simple chat interaction with Ollama and ToolLifecycleSubscriber integration."""
