@@ -16,6 +16,7 @@ sys.path.insert(0, str(Path(__file__).parent.parent))
 from hatchling.core.llm.tool_management.adapters import MCPToolAdapterRegistry
 from hatchling.core.llm.providers.registry import ProviderRegistry
 from hatchling.core.llm.providers.ollama_provider import OllamaProvider
+from hatchling.mcp_utils.mcp_tool_data import MCPToolInfo, MCPToolStatus, MCPToolStatusReason
 from hatchling.core.llm.providers.subscription import (
     ContentPrinterSubscriber,
     UsageStatsSubscriber,

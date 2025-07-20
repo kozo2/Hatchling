@@ -8,7 +8,7 @@ import logging
 from typing import Dict, Any, List, Optional
 from abc import ABC, abstractmethod
 
-from hatchling.core.llm.providers.subscription import MCPToolInfo
+from hatchling.mcp_utils.mcp_tool_data import MCPToolInfo
 
 logger = logging.getLogger(__name__)
 
