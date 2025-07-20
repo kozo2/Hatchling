@@ -311,11 +311,11 @@ class ErrorHandlerSubscriber(StreamSubscriber):
         """
         return [StreamEventType.ERROR, StreamEventType.REFUSAL]
 
-
 # MCP Tool Lifecycle Management Subscribers
 
 class ToolLifecycleSubscriber(StreamSubscriber):
-    """Subscriber that manages MCP tool lifecycle and maintains tool cache.
+    """Subscriber that manages MCP tool lifecycle and maintains tool cache
+    in the format required by the LLM provider.
     
     This subscriber listens for MCP server and tool lifecycle events and maintains
     a cache of all discovered tools with their current status. It provides methods
@@ -330,6 +330,7 @@ class ToolLifecycleSubscriber(StreamSubscriber):
         """
         self.provider_name = provider_name
         self._tool_cache: Dict[str, MCPToolInfo] = {}
+        self._mcp_tool_adapter = MCPToolAdapterRegistry.get_adapter_instance(provider_name)
         self.logger = logging.getLogger(f"{self.__class__.__name__}[{provider_name}]")
     
     def on_event(self, event: StreamEvent) -> None:
@@ -428,15 +429,19 @@ class ToolLifecycleSubscriber(StreamSubscriber):
         tool_name = event.data.get("tool_name", "")
         
         # Create or update tool info from event data
-        if tool_name and "tool_description" in event.data:
-            tool_info = MCPToolInfo(
-                name=tool_name,
-                description=event.data.get("tool_description", ""),
-                schema=event.data.get("tool_schema", {}),
-                server_path=event.data.get("server_path", ""),
-                status=MCPToolStatus.ENABLED,
-                reason=MCPToolStatusReason[event.data.get("reason", "FROM_SERVER_UP").upper()]
-            )
+        if tool_name not in self._tool_cache:
+            tool_info = event.data.get("mcp_tool_info", {})
+
+            if not tool_info:
+                self.logger.error(f"'Tool enabled event' missing 'mcp_tool_info' for tool '{tool_name}'")
+                return
+            
+            # Convert tool to provider-specific format
+            # Tool info is an in/out parameter in convert_tool
+            # Hence, the provider_format field will be set
+            # to the converted tool format
+            self._mcp_tool_adapter.convert_tool(tool_info)
+
             self._tool_cache[tool_name] = tool_info
             self.logger.debug(f"Tool enabled: {tool_name}")
     
