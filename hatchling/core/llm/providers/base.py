@@ -7,7 +7,8 @@ Ensures consistent interaction and feature discovery across different LLM servic
 
 from abc import ABC, abstractmethod
 from typing import Dict, List, Any, Optional
-from hatchling.core.llm.providers.subscription import StreamPublisher
+
+from hatchling.core.llm.providers.subscription import StreamPublisher, ToolLifecycleSubscriber
 
 
 class LLMProvider(ABC):
@@ -25,6 +26,7 @@ class LLMProvider(ABC):
         """
         self.config = config
         self._stream_publisher : Optional[StreamPublisher] = None
+        self._toolLifecycle_subscriber: Optional[ToolLifecycleSubscriber] = None
 
     @property
     @abstractmethod
@@ -43,8 +45,7 @@ class LLMProvider(ABC):
         Returns:
             StreamPublisher: The publisher for streaming events.
         """
-        return self._stream_publisher
-    
+        return self._stream_publisher    
 
     @abstractmethod
     async def initialize(self) -> None:
@@ -55,6 +56,15 @@ class LLMProvider(ABC):
 
         Raises:
             Exception: If initialization fails or configuration is invalid.
+        """
+        pass
+
+    @abstractmethod
+    async def close(self) -> None:
+        """Close the provider connection and clean up resources.
+
+        This method should be called when the provider is no longer needed.
+        It should release any resources and close connections gracefully.
         """
         pass
     

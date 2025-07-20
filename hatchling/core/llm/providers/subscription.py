@@ -11,6 +11,8 @@ from dataclasses import dataclass
 from enum import Enum
 
 from hatchling.mcp_utils.mcp_tool_data import MCPToolInfo, MCPToolStatus, MCPToolStatusReason
+from hatchling.core.llm.tool_management import MCPToolAdapterRegistry
+
 logger = logging.getLogger(__name__)
 
 
@@ -496,3 +498,29 @@ class ToolLifecycleSubscriber(StreamSubscriber):
         """Clear the tool cache."""
         self._tool_cache.clear()
         self.logger.debug("Tool cache cleared")
+
+    def prettied_reason(self, reason: MCPToolStatusReason) -> str:
+        """Get a prettified string representation of the tool status reason.
+        
+        Args:
+            reason (MCPToolStatusReason): The reason to prettify.
+        
+        Returns:
+            str: Prettified reason string.
+        """
+        if reason == MCPToolStatusReason.FROM_SERVER_UP:
+            return "Enabled at server startup"
+        elif reason == MCPToolStatusReason.FROM_USER_ENABLED:
+            return "Enabled by user (while server is up and reachable)"
+        elif reason == MCPToolStatusReason.FROM_SERVER_REACHABLE:
+            return "Server is reachable again after being down or unreachable"
+        elif reason == MCPToolStatusReason.FROM_SERVER_DOWN:
+            return "Server is down"
+        elif reason == MCPToolStatusReason.FROM_SERVER_UNREACHABLE:
+            return "Server is unreachable"
+        elif reason == MCPToolStatusReason.FROM_USER_DISABLED:
+            return "Tool disabled by user"
+        elif reason == MCPToolStatusReason.FROM_SYSTEM_ERROR:
+            return "System error occurred"
+        else:
+            return str(reason.value)
