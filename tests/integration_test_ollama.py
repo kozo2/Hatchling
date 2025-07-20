@@ -13,7 +13,7 @@ from pathlib import Path
 
 # Add the parent directory to the path for imports
 sys.path.insert(0, str(Path(__file__).parent.parent))
-
+from hatchling.core.llm.tool_management.adapters import MCPToolAdapterRegistry
 from hatchling.core.llm.providers.registry import ProviderRegistry
 from hatchling.core.llm.providers.ollama_provider import OllamaProvider
 from hatchling.core.llm.providers.subscription import (

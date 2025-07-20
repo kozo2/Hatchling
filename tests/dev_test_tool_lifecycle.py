@@ -25,7 +25,7 @@ from hatchling.core.llm.providers.subscription import (
 from hatchling.core.llm.tool_management.adapters import (
     OpenAIMCPToolAdapter,
     OllamaMCPToolAdapter,
-    MCPToolAdapterFactory
+    MCPToolAdapterRegistry
 )
 
 

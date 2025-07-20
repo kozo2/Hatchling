@@ -4,12 +4,12 @@ from .adapters import (
     BaseMCPToolAdapter,
     OpenAIMCPToolAdapter, 
     OllamaMCPToolAdapter,
-    MCPToolAdapterFactory
+    MCPToolAdapterRegistry
 )
 
 __all__ = [
     'BaseMCPToolAdapter',
     'OpenAIMCPToolAdapter',
     'OllamaMCPToolAdapter', 
-    'MCPToolAdapterFactory'
+    'MCPToolAdapterRegistry'
 ]

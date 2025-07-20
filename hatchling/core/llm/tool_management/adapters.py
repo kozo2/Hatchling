@@ -28,6 +28,10 @@ class BaseMCPToolAdapter(ABC):
     @abstractmethod
     def convert_tool(self, tool_info: MCPToolInfo) -> Dict[str, Any]:
         """Convert an MCP tool to provider-specific format.
+
+        `tool_info` is expected to be an in/out parameter 
+        whose provider_format field will be set to the converted
+        tool format.
         
         Args:
             tool_info (MCPToolInfo): MCP tool information to convert.
@@ -58,7 +62,135 @@ class BaseMCPToolAdapter(ABC):
         
         return converted_tools
 
+class MCPToolAdapterRegistry:
+    """Registry class for managing tool adapters for different providers."""
+    
+    _adapters: Dict[str, type] = {}
+    _instances: Dict[str, BaseMCPToolAdapter] = {}
+    
+    @classmethod
+    def register(cls, adapter_name: str):
+        """Decorator to register a tool adapter class.
+        
+        Args:
+            adapter_name (str): The name to register the adapter under.
+            
+        Returns:
+            Callable: Decorator function that registers the adapter class.
+        """
+        def decorator(adapter_class: type):
+            if not issubclass(adapter_class, BaseMCPToolAdapter):
+                raise ValueError(f"Adapter class {adapter_class.__name__} must inherit from BaseMCPToolAdapter")
+            
+            cls._adapters[adapter_name] = adapter_class
+            logger.debug(f"Registered tool adapter '{adapter_name}' -> {adapter_class.__name__}")
+            return adapter_class
+        return decorator
+    
+    @classmethod
+    def create_adapter(cls, name: str) -> Optional[BaseMCPToolAdapter]:
+        """Create an adapter instance for a specific provider.
+        
+        Args:
+            name (str): The name of the provider to create an adapter for.
+            
+        Returns:
+            Optional[BaseMCPToolAdapter]: An instance of the requested adapter, or None if not found.
+        """
+        if name not in cls._adapters:
+            available = list(cls._adapters.keys())
+            raise ValueError(f"Unknown adapter: '{name}'. Available adapters: {available}")
+        
+        # Create a new instance each time for now
+        instance = cls._adapters[name](name)
+        cls._instances[name] = instance
+        return instance
+    
+    @classmethod
+    def get_adapter_instance(cls, name: str) -> Optional[BaseMCPToolAdapter]:
+        """Get an existing adapter instance by name.
+        
+        Args:
+            name (str): The name of the provider to get the adapter for.
+            
+        Returns:
+            Optional[BaseMCPToolAdapter]: The adapter instance, or None if not found.
+        """
+        return cls._instances.get(name)
 
+    @classmethod
+    def list_adapters(cls) -> List[str]:
+        """List all registered adapter names.
+        
+        Returns:
+            List[str]: List of registered adapter names.
+        """
+        return list(cls._adapters.keys())
+
+    @classmethod
+    def is_registered(cls, name: str) -> bool:
+        """Check if an adapter is registered.
+        
+        Args:
+            name (str): The adapter name to check.
+            
+        Returns:
+            bool: True if the adapter is registered, False otherwise.
+        """
+        return name in cls._adapters
+
+    @classmethod
+    def clear_registry(cls) -> None:
+        """Clear all registered adapters.
+        
+        This method is primarily useful for testing purposes.
+        """
+        cls._adapters.clear()
+        cls._instances.clear()
+        logger.debug("Cleared adapter registry")
+
+@MCPToolAdapterRegistry.register("ollama")
+class OllamaMCPToolAdapter(BaseMCPToolAdapter):
+    """Adapter for converting MCP tools to Ollama function format."""
+    
+    def convert_tool(self, tool_info: MCPToolInfo) -> Dict[str, Any]:
+        """Convert an MCP tool to Ollama function format.
+
+        `tool_info` is an in/out parameter whose provider_format
+        field will be set to the converted tool format.
+        
+        Args:
+            tool_info (MCPToolInfo): MCP tool information to convert.
+            
+        Returns:
+            Dict[str, Any]: Tool in Ollama function format.
+        """
+        try:
+            # Ollama uses a similar format to OpenAI but with some differences
+            ollama_tool = {
+                "type": "function",
+                "function": {
+                    "name": tool_info.name,
+                    "description": tool_info.description,
+                    "parameters": tool_info.schema.get("parameters", {
+                        "type": "object",
+                        "properties": {},
+                        "required": []
+                    })
+                }
+            }
+            
+            # Cache the converted format in the tool info
+            tool_info.provider_format = ollama_tool
+            
+            self.logger.debug(f"Converted tool {tool_info.name} to Ollama format")
+            return ollama_tool
+            
+        except Exception as e:
+            self.logger.error(f"Failed to convert tool {tool_info.name} to Ollama format: {e}")
+            return {}
+
+@MCPToolAdapterRegistry.register("openai")
 class OpenAIMCPToolAdapter(BaseMCPToolAdapter):
     """Adapter for converting MCP tools to OpenAI function format."""
     
@@ -94,87 +226,3 @@ class OpenAIMCPToolAdapter(BaseMCPToolAdapter):
         except Exception as e:
             self.logger.error(f"Failed to convert tool {tool_info.name} to OpenAI format: {e}")
             return {}
-
-
-class OllamaMCPToolAdapter(BaseMCPToolAdapter):
-    """Adapter for converting MCP tools to Ollama function format."""
-    
-    def convert_tool(self, tool_info: MCPToolInfo) -> Dict[str, Any]:
-        """Convert an MCP tool to Ollama function format.
-        
-        Args:
-            tool_info (MCPToolInfo): MCP tool information to convert.
-            
-        Returns:
-            Dict[str, Any]: Tool in Ollama function format.
-        """
-        try:
-            # Ollama uses a similar format to OpenAI but with some differences
-            ollama_tool = {
-                "type": "function",
-                "function": {
-                    "name": tool_info.name,
-                    "description": tool_info.description,
-                    "parameters": tool_info.schema.get("parameters", {
-                        "type": "object",
-                        "properties": {},
-                        "required": []
-                    })
-                }
-            }
-            
-            # Cache the converted format in the tool info
-            tool_info.provider_format = ollama_tool
-            
-            self.logger.debug(f"Converted tool {tool_info.name} to Ollama format")
-            return ollama_tool
-            
-        except Exception as e:
-            self.logger.error(f"Failed to convert tool {tool_info.name} to Ollama format: {e}")
-            return {}
-
-
-class MCPToolAdapterFactory:
-    """Factory class for creating tool adapters for different providers."""
-    
-    _adapters: Dict[str, type] = {
-        "openai": OpenAIMCPToolAdapter,
-        "ollama": OllamaMCPToolAdapter
-    }
-    
-    @classmethod
-    def create_adapter(cls, provider_name: str) -> Optional[BaseMCPToolAdapter]:
-        """Create a tool adapter for the specified provider.
-        
-        Args:
-            provider_name (str): Name of the LLM provider.
-            
-        Returns:
-            Optional[BaseMCPToolAdapter]: Tool adapter instance or None if not supported.
-        """
-        adapter_class = cls._adapters.get(provider_name.lower())
-        if adapter_class:
-            return adapter_class(provider_name)
-        else:
-            logger.warning(f"No tool adapter available for provider: {provider_name}")
-            return None
-    
-    @classmethod
-    def register_adapter(cls, provider_name: str, adapter_class: type) -> None:
-        """Register a new tool adapter for a provider.
-        
-        Args:
-            provider_name (str): Name of the LLM provider.
-            adapter_class (type): Tool adapter class to register.
-        """
-        cls._adapters[provider_name.lower()] = adapter_class
-        logger.info(f"Registered tool adapter for provider: {provider_name}")
-    
-    @classmethod
-    def get_supported_providers(cls) -> List[str]:
-        """Get list of supported provider names.
-        
-        Returns:
-            List[str]: List of supported provider names.
-        """
-        return list(cls._adapters.keys())
