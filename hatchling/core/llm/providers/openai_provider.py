@@ -11,11 +11,11 @@ from typing import Dict, Any, List, Optional, AsyncIterator, Union
 from httpx import AsyncClient
 
 from openai import AsyncOpenAI
-from openai.types.chat import ChatCompletionChunk
 
 from .base import LLMProvider
 from .registry import ProviderRegistry
-from .subscription import StreamPublisher, StreamEventType
+from .subscription import StreamPublisher, StreamEventType, ToolLifecycleSubscriber
+from hatchling.mcp_utils.manager import mcp_manager
 
 logger = logging.getLogger(__name__)
 
@@ -53,6 +53,8 @@ class OpenAIProvider(LLMProvider):
         self._max_retries = config.get("max_retries", 2)
         self._default_model = config.get("model", "gpt-4-1-nano")
         self._stream_enabled = config.get("stream", True)
+
+        self._toolLifecycle_subscriber = ToolLifecycleSubscriber("ollama")
         
         if not self._api_key:
             raise ValueError("OpenAI API key is required")
@@ -77,6 +79,7 @@ class OpenAIProvider(LLMProvider):
         """
         try:
             self._stream_publisher = StreamPublisher("openai")
+            mcp_manager.publisher.subscribe(self._toolLifecycle_subscriber)
 
             # Initialize OpenAI async client
             client_kwargs = {
@@ -111,6 +114,7 @@ class OpenAIProvider(LLMProvider):
         
         This method should be called to clean up resources when done.
         """
+        mcp_manager.publisher.unsubscribe(self._toolLifecycle_subscriber)
         if self._http_client:
             await self._http_client.aclose()
             self._http_client = None
@@ -162,45 +166,42 @@ class OpenAIProvider(LLMProvider):
         return payload
     
     def add_tools_to_payload(
-        self, 
-        payload: Dict[str, Any], 
-        tools: List[Dict[str, Any]]
+        self,
+        payload: Dict[str, Any],
+        tools: List[str]
     ) -> Dict[str, Any]:
-        """Add tool definitions to the OpenAI chat payload.
+        """Add tool definitions to the OpenAI chat payload using the tool lifecycle subscriber.
         
         Args:
             payload (Dict[str, Any]): Base chat payload.
-            tools (List[Dict[str, Any]]): List of tool definitions.
+            tools (List[str]): List of tool names.
         
         Returns:
             Dict[str, Any]: Updated payload with tools.
         """
         if not tools:
             return payload
-        
-        # Convert tools to OpenAI format (should already be compatible)
+
         openai_tools = []
-        
-        for tool in tools:
-            if tool.get("type") == "function":
-                # OpenAI function tool format
-                openai_tool = {
-                    "type": "function",
-                    "function": tool.get("function", {})
-                }
-                openai_tools.append(openai_tool)
-            else:
-                # Pass through other tool types
-                openai_tools.append(tool)
-        
-        # Add tools to payload
-        payload["tools"] = openai_tools
-        
-        # Set default tool choice if not specified
-        if "tool_choice" not in payload:
-            payload["tool_choice"] = "auto"
-        
-        logger.debug(f"Added {len(openai_tools)} tools to OpenAI payload")
+        all_tools = self._toolLifecycle_subscriber.get_all_tools()
+        enabled_tools = self._toolLifecycle_subscriber.get_enabled_tools()
+        for tool_name in tools:
+            if tool_name not in all_tools:
+                error_msg = f"Function definition for {tool_name} not found in tool cache"
+                logger.error(error_msg)
+                raise ValueError(error_msg)
+            if tool_name not in enabled_tools:
+                warning_msg = f"Function {tool_name} is disabled with reason: {self._toolLifecycle_subscriber.prettied_reason(all_tools[tool_name].reason)}"
+                logger.warning(warning_msg)
+                continue  # skip disabled tools
+            # OpenAI expects the provider_format to be compatible
+            openai_tools.append(enabled_tools[tool_name].provider_format)
+
+        if openai_tools:
+            payload["tools"] = openai_tools
+            if "tool_choice" not in payload:
+                payload["tool_choice"] = "auto"
+            logger.debug(f"Added {len(openai_tools)} tools to OpenAI payload")
         return payload
     
     async def stream_chat_response(

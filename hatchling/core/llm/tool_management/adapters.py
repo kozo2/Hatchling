@@ -205,11 +205,7 @@ class OpenAIMCPToolAdapter(BaseMCPToolAdapter):
                 "function": {
                     "name": tool_info.name,
                     "description": tool_info.description,
-                    "parameters": tool_info.schema.get("parameters", {
-                        "type": "object",
-                        "properties": {},
-                        "required": []
-                    })
+                    "parameters": tool_info.schema
                 }
             }
             
