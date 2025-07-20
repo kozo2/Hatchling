@@ -88,6 +88,22 @@ def run_development_tests(phase=None):
             logger.error(f"Phase 3 development tests failed: {e}")
             success = False
     
+    # Phase 4 tests
+    if phase is None or phase == 4:
+        logger.info("Running Phase 4 development tests...")
+        
+        try:
+            from tests.dev_test_enhanced_tool_execution import run_enhanced_tool_execution_tests
+            if not run_enhanced_tool_execution_tests():
+                logger.error("Phase 4 enhanced tool execution tests failed")
+                success = False
+        except ImportError as e:
+            logger.error(f"Could not import Phase 4 development tests: {e}")
+            success = False
+        except Exception as e:
+            logger.error(f"Phase 4 development tests failed: {e}")
+            success = False
+    
     return success
 
 
@@ -134,6 +150,20 @@ def run_regression_tests():
         success = False
     except Exception as e:
         logger.error(f"MCP Tool Management regression tests failed: {e}")
+        success = False
+    
+    # Enhanced Tool Execution regression tests - Phase 4
+    logger.info("Running Enhanced Tool Execution Phase 4 regression tests...")
+    try:
+        from tests.regression_test_enhanced_tool_execution import run_tool_execution_regression_tests
+        if not run_tool_execution_regression_tests():
+            logger.error("Enhanced Tool Execution regression tests failed")
+            success = False
+    except ImportError as e:
+        logger.error(f"Could not import Enhanced Tool Execution regression tests: {e}")
+        success = False
+    except Exception as e:
+        logger.error(f"Enhanced Tool Execution regression tests failed: {e}")
         success = False
     
     # Test persistent settings (commented out as these may not exist yet)
