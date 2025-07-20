@@ -10,6 +10,13 @@ from hatch import HatchEnvironmentManager
 from hatchling.mcp_utils.client import MCPClient
 from hatchling.mcp_utils.ollama_adapter import OllamaMCPAdapter
 from hatchling.core.logging.logging_manager import logging_manager
+from hatchling.core.llm.providers.subscription import (
+    StreamPublisher, 
+    StreamEventType,
+    MCPToolInfo,
+    MCPToolStatus,
+    MCPToolStatusReason
+)
 from hatchling.config.settings_registry import SettingsRegistry
 
 
@@ -58,9 +65,65 @@ class MCPManager:
         # Environment context for Python executable
         self._hatch_env_manager = None
         
+        # Event publishing capabilities
+        self._stream_publisher = StreamPublisher("mcp_manager")
+        
+        # Tool management for lifecycle events
+        self._managed_tools: Dict[str, MCPToolInfo] = {}  # Tool name -> MCPToolInfo
+        
         # Get a debug log session
         self.logger = logging_manager.get_session(self.__class__.__name__,
                                   formatter=logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s'))
+
+    @property
+    def publisher(self) -> StreamPublisher:
+        """Access to the StreamPublisher for MCP lifecycle events.
+        
+        Returns:
+            StreamPublisher: The publisher for MCP-related events.
+        """
+        return self._stream_publisher
+    
+    def _publish_server_event(self, event_type: StreamEventType, server_path: str, **additional_data) -> None:
+        """Publish a server lifecycle event.
+        
+        Args:
+            event_type (StreamEventType): Type of server event to publish.
+            server_path (str): Path to the server that triggered the event.
+            **additional_data: Additional data to include in the event.
+        """
+        event_data = {
+            "server_path": server_path,
+            **additional_data
+        }
+        self._stream_publisher.publish(event_type, event_data)
+        self.logger.debug(f"Published {event_type.value} event for server: {server_path}")
+    
+    def _publish_tool_event(self, event_type: StreamEventType, tool_name: str, 
+                           tool_info: Optional[MCPToolInfo] = None, **additional_data) -> None:
+        """Publish a tool lifecycle event.
+        
+        Args:
+            event_type (StreamEventType): Type of tool event to publish.
+            tool_name (str): Name of the tool that triggered the event.
+            tool_info (Optional[MCPToolInfo]): Tool information if available.
+            **additional_data: Additional data to include in the event.
+        """
+        event_data = {
+            "tool_name": tool_name,
+            **additional_data
+        }
+        
+        if tool_info:
+            event_data.update({
+                "tool_description": tool_info.description,
+                "server_path": tool_info.server_path,
+                "status": tool_info.status.value,
+                "reason": tool_info.reason.value
+            })
+        
+        self._stream_publisher.publish(event_type, event_data)
+        self.logger.debug(f"Published {event_type.value} event for tool: {tool_name}")
 
     def validate_server_paths(self, server_paths: List[str]) -> List[str]:
         """Validate server paths and return the list of valid absolute paths.
@@ -131,9 +194,31 @@ class MCPManager:
                 if is_connected:
                     self.mcp_clients[path] = client
                     
-                    # Cache tool mappings
-                    for tool_name in client.tools:
+                    # Publish server up event
+                    self._publish_server_event(StreamEventType.MCP_SERVER_UP, path, 
+                                             tool_count=len(client.tools))
+                    
+                    # Cache tool mappings and create MCPToolInfo for each tool
+                    for tool_name, tool_obj in client.tools.items():
                         self._tool_client_map[tool_name] = client
+                        
+                        # Create MCPToolInfo for lifecycle management
+                        tool_info = MCPToolInfo(
+                            name=tool_name,
+                            description=getattr(tool_obj, 'description', f'Tool: {tool_name}'),
+                            schema=getattr(tool_obj, 'inputSchema', {}),
+                            server_path=path,
+                            status=MCPToolStatus.ENABLED,
+                            reason=MCPToolStatusReason.FROM_SERVER_UP
+                        )
+                        self._managed_tools[tool_name] = tool_info
+                        
+                        # Publish tool enabled event
+                        self._publish_tool_event(StreamEventType.MCP_TOOL_ENABLED, tool_name, tool_info)
+                else:
+                    # Publish server unreachable event
+                    self._publish_server_event(StreamEventType.MCP_SERVER_UNREACHABLE, path,
+                                             error="Failed to connect")
             
             # Update connection status
             self.connected = len(self.mcp_clients) > 0
@@ -166,6 +251,15 @@ class MCPManager:
             # First try the graceful disconnect approach
             for path, client in list(self.mcp_clients.items()):
                 try:
+                    # Disable all tools from this server before disconnecting
+                    for tool_name, tool_info in self._managed_tools.items():
+                        if tool_info.server_path == path and tool_info.status == MCPToolStatus.ENABLED:
+                            tool_info.status = MCPToolStatus.DISABLED
+                            tool_info.reason = MCPToolStatusReason.FROM_SERVER_DOWN
+                            
+                            # Publish tool disabled event
+                            self._publish_tool_event(StreamEventType.MCP_TOOL_DISABLED, tool_name, tool_info)
+                    
                     # Log task context for debugging
                     if hasattr(client, '_connection_task_id') and client._connection_task_id:
                         self.logger.debug(f"Client for {path} was created in task: {client._connection_task_id}")
@@ -174,12 +268,20 @@ class MCPManager:
                     disconnect_task = asyncio.create_task(client.disconnect())
                     try:
                         await asyncio.wait_for(disconnect_task, timeout=10)
+                        # Publish server down event on successful disconnect
+                        self._publish_server_event(StreamEventType.MCP_SERVER_DOWN, path)
                     except asyncio.TimeoutError:
                         self.logger.warning(f"Disconnect timeout for {path}")
                         disconnection_errors = True
+                        # Publish server unreachable event
+                        self._publish_server_event(StreamEventType.MCP_SERVER_UNREACHABLE, path,
+                                                 error="Disconnect timeout")
                     except Exception as e:
                         self.logger.error(f"Error during graceful disconnect for {path}: {e}")
                         disconnection_errors = True
+                        # Publish server unreachable event
+                        self._publish_server_event(StreamEventType.MCP_SERVER_UNREACHABLE, path,
+                                                 error=str(e))
                 except Exception as e:
                     self.logger.error(f"Error setting up disconnect for {path}: {e}")
                     disconnection_errors = True
@@ -192,6 +294,9 @@ class MCPManager:
             # Clear all client tracking regardless of disconnection success
             self.mcp_clients = {}
             self._tool_client_map = {}
+            
+            # Clear managed tools
+            self._managed_tools = {}
             
             self.connected = False
             self.logger.info("Disconnected from all MCP servers")
@@ -239,6 +344,107 @@ class MCPManager:
             tools.update(client.tools)
         return tools
     
+    def get_enabled_tools(self) -> Dict[str, MCPToolInfo]:
+        """Get all enabled tools with their information.
+        
+        Returns:
+            Dict[str, MCPToolInfo]: Dictionary mapping tool names to enabled MCPToolInfo objects.
+        """
+        return {
+            name: info for name, info in self._managed_tools.items()
+            if info.status == MCPToolStatus.ENABLED
+        }
+    
+    def get_all_managed_tools(self) -> Dict[str, MCPToolInfo]:
+        """Get all managed tools (both enabled and disabled).
+        
+        Returns:
+            Dict[str, MCPToolInfo]: Dictionary mapping tool names to all MCPToolInfo objects.
+        """
+        return self._managed_tools.copy()
+    
+    def enable_tool(self, tool_name: str) -> bool:
+        """Enable a specific tool if it exists and is disabled.
+        
+        Args:
+            tool_name (str): Name of the tool to enable.
+            
+        Returns:
+            bool: True if the tool was enabled, False if it was already enabled or doesn't exist.
+        """
+        if tool_name not in self._managed_tools:
+            self.logger.warning(f"Tool '{tool_name}' not found in managed tools")
+            return False
+            
+        tool_info = self._managed_tools[tool_name]
+        
+        if tool_info.status == MCPToolStatus.ENABLED:
+            self.logger.debug(f"Tool '{tool_name}' is already enabled")
+            return False
+            
+        # Check if the server is still available
+        if tool_info.server_path not in self.mcp_clients:
+            self.logger.warning(f"Cannot enable tool '{tool_name}' - server is not connected")
+            return False
+            
+        # Enable the tool
+        tool_info.status = MCPToolStatus.ENABLED
+        tool_info.reason = MCPToolStatusReason.FROM_USER_ENABLED
+        
+        # Update timestamp
+        import time
+        tool_info.last_updated = time.time()
+        
+        # Publish event
+        self._publish_tool_event(StreamEventType.MCP_TOOL_ENABLED, tool_name, tool_info)
+        
+        self.logger.info(f"Enabled tool: {tool_name}")
+        return True
+    
+    def disable_tool(self, tool_name: str) -> bool:
+        """Disable a specific tool if it exists and is enabled.
+        
+        Args:
+            tool_name (str): Name of the tool to disable.
+            
+        Returns:
+            bool: True if the tool was disabled, False if it was already disabled or doesn't exist.
+        """
+        if tool_name not in self._managed_tools:
+            self.logger.warning(f"Tool '{tool_name}' not found in managed tools")
+            return False
+            
+        tool_info = self._managed_tools[tool_name]
+        
+        if tool_info.status == MCPToolStatus.DISABLED:
+            self.logger.debug(f"Tool '{tool_name}' is already disabled")
+            return False
+            
+        # Disable the tool
+        tool_info.status = MCPToolStatus.DISABLED
+        tool_info.reason = MCPToolStatusReason.FROM_USER_DISABLED
+        
+        # Update timestamp
+        import time
+        tool_info.last_updated = time.time()
+        
+        # Publish event
+        self._publish_tool_event(StreamEventType.MCP_TOOL_DISABLED, tool_name, tool_info)
+        
+        self.logger.info(f"Disabled tool: {tool_name}")
+        return True
+    
+    def get_tool_status(self, tool_name: str) -> Optional[MCPToolInfo]:
+        """Get the current status and information for a tool.
+        
+        Args:
+            tool_name (str): Name of the tool to get status for.
+            
+        Returns:
+            Optional[MCPToolInfo]: Tool information if found, None otherwise.
+        """
+        return self._managed_tools.get(tool_name)
+
     def get_ollama_tools(self) -> List[Dict[str, Any]]:
         """Get all available tools in Ollama format.
         
