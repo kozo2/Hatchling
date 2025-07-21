@@ -8,7 +8,8 @@ Ensures consistent interaction and feature discovery across different LLM servic
 from abc import ABC, abstractmethod
 from typing import Dict, List, Any, Optional
 
-from hatchling.core.llm.providers.subscription import StreamPublisher, ToolLifecycleSubscriber
+from hatchling.core.llm.streaming_management import StreamPublisher
+from hatchling.core.llm.streaming_management.tool_lifecycle_subscriber import ToolLifecycleSubscriber
 
 
 class LLMProvider(ABC):

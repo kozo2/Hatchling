@@ -14,7 +14,7 @@ from typing import Dict, Any
 # Add the parent directory to the path for imports
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
-from hatchling.core.llm.providers.subscription import (
+from hatchling.core.llm.streaming_management import (
     StreamEventType,
     StreamEvent,
     StreamPublisher,

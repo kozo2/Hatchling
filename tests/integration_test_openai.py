@@ -19,12 +19,12 @@ sys.path.insert(0, str(Path(__file__).parent.parent))
 
 
 from hatchling.config.openai_settings import OpenAISettings
+from hatchling.config.llm_settings import ELLMProvider
 from hatchling.core.llm.tool_management.adapters import MCPToolAdapterRegistry
 from hatchling.core.llm.providers.registry import ProviderRegistry
 from hatchling.mcp_utils.mcp_tool_data import MCPToolInfo, MCPToolStatus, MCPToolStatusReason
-from hatchling.core.llm.providers.subscription import (
+from hatchling.core.llm.streaming_management import (
     StreamSubscriber,
-    ToolLifecycleSubscriber,
     ContentPrinterSubscriber,
     UsageStatsSubscriber,
     ErrorHandlerSubscriber,
@@ -32,6 +32,7 @@ from hatchling.core.llm.providers.subscription import (
     StreamEventType,
     StreamEvent
 )
+from hatchling.core.llm.streaming_management.tool_lifecycle_subscriber import ToolLifecycleSubscriber
 from hatchling.core.llm.providers.openai_provider import OpenAIProvider
 
 logger = logging.getLogger("integration_test_openai")
@@ -237,7 +238,7 @@ class TestOpenAIProviderIntegration(unittest.TestCase):
         event = StreamEvent(
             type=StreamEventType.MCP_TOOL_ENABLED,
             data=event_data,
-            provider="openai",
+            provider=ELLMProvider.OPENAI,
             request_id=None,
             timestamp=time.time()
         )
@@ -289,7 +290,7 @@ class TestOpenAIProviderIntegration(unittest.TestCase):
                 "tool_name": tool_name,
                 "reason": "FROM_USER_DISABLED"
             },
-            provider="openai",
+            provider=ELLMProvider.OPENAI,
             request_id=None,
             timestamp=time.time()
         )

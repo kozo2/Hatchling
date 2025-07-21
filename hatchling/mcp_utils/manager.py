@@ -7,15 +7,12 @@ from typing import Dict, List, Any, Optional
 
 from hatch import HatchEnvironmentManager
 
-from hatchling.mcp_utils.client import MCPClient
-from hatchling.mcp_utils.ollama_adapter import OllamaMCPAdapter
+from .client import MCPClient
+from .mcp_tool_data import MCPToolInfo, MCPToolStatus, MCPToolStatusReason
 from hatchling.core.logging.logging_manager import logging_manager
-from hatchling.core.llm.providers.subscription import (
+from hatchling.core.llm.streaming_management import (
     StreamPublisher, 
     StreamEventType,
-    MCPToolInfo,
-    MCPToolStatus,
-    MCPToolStatusReason
 )
 from hatchling.config.settings_registry import SettingsRegistry
 

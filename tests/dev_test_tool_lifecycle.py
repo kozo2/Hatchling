@@ -13,21 +13,15 @@ from typing import Dict, Any, List
 # Add the parent directory to the path for imports
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
-from hatchling.core.llm.providers.subscription import (
-    StreamEventType,
-    StreamEvent,
-    StreamPublisher,
-    ToolLifecycleSubscriber,
-    MCPToolStatus,
-    MCPToolStatusReason,
-    MCPToolInfo
-)
+from hatchling.core.llm.streaming_management import StreamEventType, StreamPublisher
+from hatchling.core.llm.streaming_management.tool_lifecycle_subscriber import ToolLifecycleSubscriber
 from hatchling.core.llm.tool_management.adapters import (
     BaseMCPToolAdapter,
     OpenAIMCPToolAdapter,
     OllamaMCPToolAdapter,
     MCPToolAdapterRegistry
 )
+from hatchling.mcp_utils.mcp_tool_data import MCPToolInfo, MCPToolStatus, MCPToolStatusReason
 
 @MCPToolAdapterRegistry.register("test_provider")
 class TestProviderAdapter(BaseMCPToolAdapter):

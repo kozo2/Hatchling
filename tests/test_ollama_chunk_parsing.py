@@ -6,13 +6,10 @@ and publish events to subscribers using the publish-subscribe pattern.
 import sys
 import logging
 import unittest
-import time
-from typing import Dict, Any, List
-from unittest.mock import AsyncMock, MagicMock, patch
 
 from hatchling.core.llm.providers.registry import ProviderRegistry
-from hatchling.core.llm.providers.subscription import StreamPublisher
-from hatchling.core.llm.providers.subscription import (
+from hatchling.core.llm.streaming_management import (
+    StreamPublisher,
     ContentPrinterSubscriber,
     UsageStatsSubscriber,
     ErrorHandlerSubscriber

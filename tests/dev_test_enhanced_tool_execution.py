@@ -15,11 +15,12 @@ from unittest.mock import MagicMock, AsyncMock, patch
 # Add the parent directory to the path for imports
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
-from hatchling.core.llm.providers.subscription import (
+from hatchling.config.llm_settings import ELLMProvider
+from hatchling.core.llm.streaming_management import (
     StreamEventType,
     StreamEvent,
-    StreamPublisher,
-    StreamSubscriber
+    StreamSubscriber,
+    StreamPublisher
 )
 from hatchling.mcp_utils.mcp_tool_execution import MCPToolExecution
 from hatchling.mcp_utils.mcp_tool_call_subscriber import MCPToolCallSubscriber

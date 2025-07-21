@@ -4,21 +4,20 @@ This script demonstrates how the enhanced publish-subscribe chunk parsing works 
 real ChatCompletionChunk data.
 """
 
+import sys
+import os
 import unittest
 import logging
-from typing import Dict, Any
+
 from openai.types.chat import ChatCompletionChunk
 from openai.types.chat.chat_completion_chunk import Choice, ChoiceDelta
 from openai.types import CompletionUsage
 from openai.types.completion_usage import CompletionTokensDetails, PromptTokensDetails
 
-# Import our provider and subscription system
-import sys
-import os
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..'))
 
 from hatchling.core.llm.providers.openai_provider import OpenAIProvider
-from hatchling.core.llm.providers.subscription import (
+from hatchling.core.llm.streaming_management import (
     StreamPublisher,
     ContentPrinterSubscriber, 
     UsageStatsSubscriber, 

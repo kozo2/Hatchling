@@ -16,13 +16,8 @@ from unittest.mock import AsyncMock, MagicMock, patch
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
 from hatchling.mcp_utils.manager import MCPManager
-from hatchling.core.llm.providers.subscription import (
-    StreamEventType,
-    StreamSubscriber,
-    MCPToolStatus,
-    MCPToolStatusReason
-)
-
+from hatchling.core.llm.streaming_management.stream_subscribers import StreamEventType, StreamSubscriber
+from hatchling.mcp_utils.mcp_tool_data import MCPToolInfo, MCPToolStatus, MCPToolStatusReason
 
 class TestEventSubscriber(StreamSubscriber):
     """Test subscriber to capture published events."""
@@ -118,7 +113,6 @@ class TestEnhancedMCPManagerEventPublishing(unittest.TestCase):
     def test_tool_event_publishing_methods(self):
         """Test tool event publishing helper methods."""
         # Create a mock MCPToolInfo
-        from hatchling.core.llm.providers.subscription import MCPToolInfo
         
         tool_info = MCPToolInfo(
             name="test_tool",
@@ -150,7 +144,6 @@ class TestEnhancedMCPManagerEventPublishing(unittest.TestCase):
     def test_tool_enable_disable_functionality(self):
         """Test tool enable/disable functionality with events."""
         # First, manually add a tool to managed tools
-        from hatchling.core.llm.providers.subscription import MCPToolInfo
         
         tool_info = MCPToolInfo(
             name="test_tool",
@@ -199,7 +192,6 @@ class TestEnhancedMCPManagerEventPublishing(unittest.TestCase):
     
     def test_tool_management_queries(self):
         """Test tool status query methods."""
-        from hatchling.core.llm.providers.subscription import MCPToolInfo
         
         # Add test tools
         enabled_tool = MCPToolInfo(
@@ -254,7 +246,6 @@ class TestEnhancedMCPManagerEventPublishing(unittest.TestCase):
         self.assertFalse(result)
         
         # Add a tool but no server
-        from hatchling.core.llm.providers.subscription import MCPToolInfo
         
         tool_info = MCPToolInfo(
             name="orphaned_tool",

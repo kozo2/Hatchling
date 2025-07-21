@@ -13,8 +13,9 @@ from openai import AsyncOpenAI
 
 from .base import LLMProvider
 from .registry import ProviderRegistry
-from .subscription import StreamPublisher, StreamEventType, ToolLifecycleSubscriber
-from hatchling.mcp_utils.manager import mcp_manager
+from hatchling.mcp_utils import mcp_manager
+from hatchling.core.llm.streaming_management import StreamPublisher, StreamEventType
+from hatchling.core.llm.streaming_management.tool_lifecycle_subscriber import ToolLifecycleSubscriber
 from hatchling.config.openai_settings import OpenAISettings
 
 logger = logging.getLogger(__name__)

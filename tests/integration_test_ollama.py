@@ -14,19 +14,20 @@ import time
 # Add the parent directory to the path for imports
 sys.path.insert(0, str(Path(__file__).parent.parent))
 from hatchling.config.settings import OllamaSettings
+from hatchling.config.llm_settings import ELLMProvider
 from hatchling.core.llm.tool_management.adapters import MCPToolAdapterRegistry
 from hatchling.core.llm.providers.registry import ProviderRegistry
 from hatchling.core.llm.providers.ollama_provider import OllamaProvider
-from hatchling.core.llm.providers.subscription import (
+from hatchling.core.llm.streaming_management import (
     StreamSubscriber,
     ContentPrinterSubscriber,
     UsageStatsSubscriber,
     ErrorHandlerSubscriber,
-    ToolLifecycleSubscriber,
     StreamPublisher,
     StreamEventType,
     StreamEvent
 )
+from hatchling.core.llm.streaming_management.tool_lifecycle_subscriber import ToolLifecycleSubscriber
 from hatchling.mcp_utils.mcp_tool_data import MCPToolInfo, MCPToolStatus, MCPToolStatusReason
 
 logger = logging.getLogger("integration_test_ollama")
@@ -166,7 +167,7 @@ class TestOllamaProviderIntegration(unittest.TestCase):
         event = StreamEvent(
             type=StreamEventType.MCP_TOOL_ENABLED,
             data=event_data,
-            provider="ollama",
+            provider=ELLMProvider.OLLAMA,
             request_id=None,
             timestamp=time.time()
         )
@@ -218,7 +219,7 @@ class TestOllamaProviderIntegration(unittest.TestCase):
                 "tool_name": tool_name,
                 "reason": "FROM_USER_DISABLED"
             },
-            provider="ollama",
+            provider=ELLMProvider.OLLAMA,
             request_id=None,
             timestamp=time.time()
         )
@@ -288,7 +289,7 @@ class TestOllamaProviderIntegration(unittest.TestCase):
             event = StreamEvent(
                 type=StreamEventType.MCP_TOOL_ENABLED,
                 data=event_data,
-                provider="ollama",
+                provider=ELLMProvider.OLLAMA,
                 request_id=None,
                 timestamp=time.time()
             )
@@ -306,7 +307,7 @@ class TestOllamaProviderIntegration(unittest.TestCase):
                 "tool_name": "tool_0",
                 "reason": "FROM_USER_DISABLED"
             },
-            provider="ollama",
+            provider=ELLMProvider.OLLAMA,
             request_id=None,
             timestamp=time.time()
         )

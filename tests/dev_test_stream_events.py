@@ -8,18 +8,12 @@ import sys
 import unittest
 import logging
 from pathlib import Path
-from enum import Enum
-from typing import Dict, Any
 
 # Add the parent directory to the path for imports
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
-from hatchling.core.llm.providers.subscription import (
-    StreamEventType,
-    MCPToolStatus,
-    MCPToolStatusReason,
-    MCPToolInfo
-)
+from hatchling.core.llm.streaming_management.stream_subscribers import StreamEventType
+from hatchling.mcp_utils.mcp_tool_data import MCPToolInfo, MCPToolStatus, MCPToolStatusReason
 
 
 class TestStreamEventsFoundation(unittest.TestCase):

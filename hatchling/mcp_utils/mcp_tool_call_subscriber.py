@@ -7,12 +7,9 @@ and dispatches them to MCPToolExecution for processing.
 import logging
 from typing import Dict, Any
 
-from hatchling.core.llm.providers.subscription import (
-    StreamSubscriber,
-    StreamEvent,
-    StreamEventType
-)
-from hatchling.mcp_utils.mcp_tool_execution import MCPToolExecution
+from hatchling.core.llm.streaming_management import StreamSubscriber, StreamEvent, StreamEventType
+from hatchling.core.llm.tool_management import ToolCallParseRegistry
+from .mcp_tool_execution import MCPToolExecution
 
 
 class MCPToolCallSubscriber(StreamSubscriber):

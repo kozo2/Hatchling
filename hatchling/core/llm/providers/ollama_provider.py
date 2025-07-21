@@ -12,7 +12,9 @@ from ollama import AsyncClient
 
 from .base import LLMProvider
 from .registry import ProviderRegistry
-from .subscription import StreamPublisher, StreamEventType, ToolLifecycleSubscriber
+from hatchling.core.llm.streaming_management.stream_publisher import StreamPublisher
+from hatchling.core.llm.streaming_management.stream_data import StreamEventType
+from hatchling.core.llm.streaming_management.tool_lifecycle_subscriber import ToolLifecycleSubscriber
 from hatchling.mcp_utils.manager import mcp_manager
 from hatchling.config.ollama_settings import OllamaSettings
 

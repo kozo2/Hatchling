@@ -8,13 +8,13 @@ import sys
 import unittest
 import logging
 from pathlib import Path
-from typing import Dict, Any
 from unittest.mock import MagicMock
 
 # Add the parent directory to the path for imports
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
 from hatchling.mcp_utils.manager import MCPManager
+from hatchling.core.llm.streaming_management.stream_subscribers import StreamEventType
 
 
 class TestToolManagementRegression(unittest.TestCase):
@@ -172,8 +172,6 @@ class TestToolManagementRegression(unittest.TestCase):
         
         # These should be callable but not break anything
         try:
-            # Test calling event publishing (should not raise exceptions)
-            from hatchling.core.llm.providers.subscription import StreamEventType
             self.manager._publish_server_event(StreamEventType.MCP_SERVER_UP, "/test/path")
             self.manager._publish_tool_event(StreamEventType.MCP_TOOL_ENABLED, "test_tool")
         except Exception as e:

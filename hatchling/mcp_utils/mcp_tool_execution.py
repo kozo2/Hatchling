@@ -12,10 +12,7 @@ from typing import List, Dict, Tuple, Any, Optional
 from hatchling.mcp_utils.manager import mcp_manager
 from hatchling.core.logging.logging_manager import logging_manager
 from hatchling.config.settings import AppSettings
-from hatchling.core.llm.providers.subscription import (
-    StreamPublisher, 
-    StreamEventType
-)
+from hatchling.core.llm.streaming_management import StreamPublisher, StreamEventType
 
 
 class MCPToolExecution:

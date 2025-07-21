@@ -10,7 +10,6 @@ from .stream_subscribers import (
     UsageStatsSubscriber,
     ErrorHandlerSubscriber
 )
-#from .tool_lifecycle_subscriber import ToolLifecycleSubscriber
 
 __all__ = [
     "StreamEventType",
