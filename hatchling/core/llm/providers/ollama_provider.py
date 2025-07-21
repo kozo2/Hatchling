@@ -83,6 +83,7 @@ class OllamaProvider(LLMProvider):
         It will close the AsyncClient connection gracefully.
         """
         mcp_manager.publisher.unsubscribe(self._toolLifecycle_subscriber)
+        self._stream_publisher.clear_subscribers()
     
     def prepare_chat_payload(
         self,

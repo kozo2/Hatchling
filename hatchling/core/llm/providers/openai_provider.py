@@ -4,9 +4,7 @@ This module provides the OpenAIProvider class that implements the LLMProvider in
 for OpenAI's API using the official openai Python client.
 """
 
-import json
 import logging
-from tkinter.filedialog import Open
 import uuid
 from typing import Dict, Any, List, Optional, AsyncIterator, Union
 from httpx import AsyncClient
@@ -95,6 +93,7 @@ class OpenAIProvider(LLMProvider):
         This method should be called to clean up resources when done.
         """
         mcp_manager.publisher.unsubscribe(self._toolLifecycle_subscriber)
+        self._stream_publisher.clear_subscribers()
         if self._http_client:
             await self._http_client.aclose()
             self._http_client = None
