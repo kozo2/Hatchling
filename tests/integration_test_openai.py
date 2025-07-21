@@ -24,9 +24,6 @@ from hatchling.core.llm.providers.ollama_provider import OllamaProvider
 from hatchling.mcp_utils.mcp_tool_data import MCPToolInfo, MCPToolStatus, MCPToolStatusReason
 from hatchling.core.llm.providers.subscription import (
     StreamSubscriber,
-    ContentPrinterSubscriber,
-    UsageStatsSubscriber,
-    ErrorHandlerSubscriber,
     ToolLifecycleSubscriber,
     StreamPublisher,
     StreamEventType,
@@ -47,24 +44,19 @@ class TestStreamToolCallSubscriber(StreamSubscriber):
         """Handle incoming stream events, reconstructing OpenAI-style tool call arguments if fragmented."""
 
         if event.type == StreamEventType.TOOL_CALL:
-            print(f"RAW: {event.data}")
-            tool_call = event.data
             # OpenAI-style: first chunk has 'type' == 'function', then subsequent have type None and 'arguments' fragments
-            if tool_call.get('type') == 'function':
-                # Start of a new tool call
-                call_id = tool_call.get('id')
-                index = tool_call.get('index')
+            index = event.data["index"]
+            if index not in self._tool_call_buffers:
                 self._tool_call_buffers[index] = {
-                    'id': call_id,
-                    'name': tool_call["function"]["name"],
-                    'args_fragments': []
+                    "id": event.data["id"],
+                    "function": {
+                        "name": event.data["function"]["name"],
+                        "arguments": ""
+                    }
                 }
-                print(f"Received tool calls: {tool_call}")
             else:
-                # Fragmented argument chunk
-                index = tool_call.get('index')
-                self._tool_call_buffers[index]['args_fragments'] += [tool_call["function"]['arguments']]
-                print(f"Received tool calls: {tool_call}")
+                # Collect fragments
+                self._tool_call_buffers[index]["function"]["arguments"] += event.data["function"]["arguments"]
         elif event.type == StreamEventType.CONTENT:
             content = event.data.get("content", "")
             role = event.data.get("role", "assistant")
@@ -73,19 +65,11 @@ class TestStreamToolCallSubscriber(StreamSubscriber):
             usage = event.data.get("usage", {})
             print(f"Usage stats: {usage}")
         elif event.type == StreamEventType.FINISH:
-            # Check if we have any buffered tool calls to process
-            for k, v in self._tool_call_buffers.items():
-                if v['args_fragments']:
-                    # Try to reconstruct the arguments
-                    joined = ''.join(v['args_fragments'])
-                    try:
-                        parsed = json.loads(joined)
-                        v["args"] = parsed
-                        print(f"Reconstructed tool call arguments for {k}: {parsed}")
-                        print(f"Full tool call: {json.dumps(v, indent=2)}")
-                    except json.JSONDecodeError:
-                        logger.error(f"Failed to decode JSON for tool call {k}: {joined}")
-            print("Stream finished.")
+            # Convert the reconstructed arguments to a JSON dictionary
+            for index, tool_call in self._tool_call_buffers.items():
+                tool_call["function"]["arguments"] = json.loads(tool_call["function"]["arguments"])
+            # Print the final tool call buffers
+            print(f"Stream finished:{json.dumps(self._tool_call_buffers, indent=2)}")
         else:
             logger.warning(f"Unexpected event type: {event.type}")
     
