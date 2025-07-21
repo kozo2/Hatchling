@@ -3,13 +3,12 @@
 Imports and combines all modular settings classes.
 """
 
-import os
 from enum import Enum
-from pathlib import Path
-from typing import Optional, Union
 
 from pydantic import BaseModel, Field
 from .llm_settings import LLMSettings
+from .openai_settings import OpenAISettings
+from .ollama_settings import OllamaSettings
 from .path_settings import PathSettings
 from .tool_calling_settings import ToolCallingSettings
 from .ui_settings import UISettings
@@ -25,6 +24,8 @@ class AppSettings(BaseModel):
     """Root settings model that aggregates all setting categories."""
     
     llm: LLMSettings = Field(default_factory=LLMSettings)
+    openai: OpenAISettings = Field(default_factory=OpenAISettings)
+    ollama: OllamaSettings = Field(default_factory=OllamaSettings)
     paths: PathSettings = Field(default_factory=PathSettings)
     tool_calling: ToolCallingSettings = Field(default_factory=ToolCallingSettings)
     ui: UISettings = Field(default_factory=UISettings)
