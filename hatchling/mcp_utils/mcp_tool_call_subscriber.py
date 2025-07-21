@@ -39,57 +39,41 @@ class MCPToolCallSubscriber(StreamSubscriber):
             event (StreamEvent): The event to handle.
         """
         if event.type == StreamEventType.TOOL_CALL:
-            self._handle_tool_call_event(event)
+            try:
+                parsed_tool_call = ToolCallParseRegistry.get_strategy(event.provider).parse_tool_call(event)
+            except Exception as e:
+                self.logger.error(f"Error parsing tool call event: {e}")
+                return
+
+            self._handle_tool_call_event(parsed_tool_call)
         else:
             self.logger.warning(f"Received unexpected event type: {event.type}")
-    
-    def _handle_tool_call_event(self, event: StreamEvent) -> None:
+
+    def _handle_tool_call_event(self, parsed_tool_call: Dict[str, Any]) -> None:
         """Handle TOOL_CALL events by dispatching to tool execution.
         
         Args:
             event (StreamEvent): The TOOL_CALL event to handle.
         """
         try:
-            # Extract tool call data from event
-            tool_id = event.data.get("tool_id", "unknown")
-            function_name = event.data.get("function_name", "")
-            arguments = event.data.get("arguments", {})
-            
-            self.logger.info(f"Handling tool call: {function_name} (ID: {tool_id})")
-            
-            # Optionally publish TOOL_CALL_DISPATCHED event immediately
-            if hasattr(self.tool_execution, 'stream_publisher'):
-                try:
-                    self.tool_execution.stream_publisher.publish(
-                        StreamEventType.TOOL_CALL_DISPATCHED,
-                        {
-                            "tool_id": tool_id,
-                            "function_name": function_name,
-                            "arguments": arguments,
-                            "dispatched_by": "MCPToolCallSubscriber"
-                        }
-                    )
-                except Exception as e:
-                    self.logger.warning(f"Failed to publish TOOL_CALL_DISPATCHED event: {e}")
-            
-            # Note: In a real implementation, this would be an async call
-            # For now, we log that the call would be dispatched
-            self.logger.debug(f"Would dispatch tool call {function_name} to MCPToolExecution")
-            
+            self.tool_execution.stream_publisher.publish(
+                StreamEventType.TOOL_CALL_DISPATCHED,
+                parsed_tool_call
+            )
+
+            # Dispatch the tool call for execution
+            self.tool_execution.execute_tool_sync(**parsed_tool_call)
+
         except Exception as e:
             self.logger.error(f"Error handling tool call event: {e}")
-            
-            # Publish error event if possible
-            if hasattr(self.tool_execution, 'stream_publisher'):
-                try:
-                    self.tool_execution.stream_publisher.publish(
-                        StreamEventType.TOOL_CALL_ERROR,
-                        {
-                            "tool_id": event.data.get("tool_id", "unknown"),
-                            "function_name": event.data.get("function_name", ""),
-                            "error": str(e),
-                            "status": "dispatch_error"
-                        }
-                    )
-                except Exception as pub_error:
-                    self.logger.error(f"Failed to publish tool call error: {pub_error}")
+
+            try:
+                self.tool_execution.stream_publisher.publish(
+                    StreamEventType.TOOL_CALL_ERROR,
+                    {
+                        "parsed_tool_call": parsed_tool_call,
+                        "error": str(e)
+                    }
+                )
+            except Exception as pub_error:
+                self.logger.error(f"Failed to publish tool call error: {pub_error}")

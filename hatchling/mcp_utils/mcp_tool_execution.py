@@ -7,6 +7,7 @@ managing tool calling chains, and processing tool results with event-driven arch
 import json
 import logging
 import time
+import asyncio
 from typing import List, Dict, Tuple, Any, Optional
 
 from hatchling.mcp_utils.manager import mcp_manager
@@ -69,21 +70,6 @@ class MCPToolExecution:
             self.logger.warning("Failed to connect to any MCP server")
             
         return self.tools_enabled
-    
-    def get_tools_for_payload(self) -> List[Dict[str, Any]]:
-        """Get the list of tools/functions for the LLM API payload, in the correct format for the provider."""
-        if self.settings.llm.get_active_provider() == "openai":
-            # Return OpenAI function format (list of function schemas)
-            tools = mcp_manager.get_ollama_tools()
-            openai_functions = []
-            for tool in tools:
-                if tool.get("type") == "function" and "function" in tool:
-                    openai_functions.append(tool["function"])
-                else:
-                    openai_functions.append(tool)
-            return openai_functions
-        else:
-            return mcp_manager.get_ollama_tools()
 
     def reset_for_new_query(self, query: str) -> None:
         """Reset tool execution state for a new user query.
@@ -205,8 +191,34 @@ class MCPToolExecution:
         
         return None
     
+    def execute_tool_sync(self, tool_id: str, function_name: str, arguments: Dict[str, Any]) -> None:
+        """Synchronous wrapper for execute_tool that handles async execution internally.
+        
+        This method creates a task to execute the tool asynchronously without blocking
+        the caller. It's designed for use in synchronous contexts where you want to
+        dispatch tool execution but don't need to wait for the result.
+        
+        Args:
+            tool_id (str): The ID of the tool.
+            function_name (str): The name of the function to execute.
+            arguments (Dict[str, Any]): The arguments to pass to the function.
+        """
+        try:
+            # Try to create a task in the current event loop
+            asyncio.create_task(self.execute_tool(tool_id, function_name, arguments))
+        except RuntimeError:
+            # No event loop running, create one for this execution
+            try:
+                asyncio.run(self.execute_tool(tool_id, function_name, arguments))
+            except Exception as e:
+                self.logger.warning(f"Failed to execute tool synchronously: {e}")
+    
     async def process_tool_call(self, tool_call: Dict[str, Any], tool_id: str) -> Optional[Dict[str, Any]]:
-        """Process a single tool call and return the result.
+        """
+        .. deprecated:: 2025.07.21
+            This method is deprecated and will be removed in a future release.
+
+        Process a single tool call and return the result.
         
         Args:
             tool_call (Dict[str, Any]): The tool call to process.
@@ -235,7 +247,11 @@ class MCPToolExecution:
         return None
 
     async def handle_streaming_tool_calls(self, data: Dict[str, Any], message_tool_calls: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
-        """Process tool calls from streaming response data.
+        """
+        .. deprecated:: 2025.07.21
+            This method is deprecated and will be removed in a future release.
+
+        Process tool calls from streaming response data.
         
         Args:
             data (Dict[str, Any]): The response data from the LLM.
