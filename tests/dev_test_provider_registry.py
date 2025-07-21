@@ -36,14 +36,16 @@ class TestProviderRegistry(unittest.TestCase):
         class TestProvider(LLMProvider):
             async def initialize(self) -> bool:
                 return True
-            def prepare_chat_payload(self, messages):
-                return {"model": "test", "messages": messages}
+            def prepare_chat_payload(self, messages, model):
+                return {"model": model, "messages": messages}
             def add_tools_to_payload(self, payload, tools):
                 return payload
             async def stream_chat_response(self, session, payload, history, tool_executor, **kwargs):
                 return "test response", [], []
             async def check_health(self):
-                return True, "OK"
+                return {"available": True, "message": "OK"}
+            def _parse_and_publish_chunk(self, chunk):
+                pass
 
         self.assertTrue(ProviderRegistry.is_registered("test_provider"))
         self.assertIn("test_provider", ProviderRegistry.list_providers())
@@ -60,14 +62,16 @@ class TestProviderRegistry(unittest.TestCase):
             class TestProvider(LLMProvider):
                 async def initialize(self) -> bool:
                     return True
-                def prepare_chat_payload(self, messages):
-                    return {"model": "test", "messages": messages}
+                def prepare_chat_payload(self, messages, model):
+                    return {"model": model, "messages": messages}
                 def add_tools_to_payload(self, payload, tools):
                     return payload
                 async def stream_chat_response(self, session, payload, history, tool_executor, **kwargs):
                     return "test response", [], []
                 async def check_health(self):
-                    return True, "OK"
+                    return {"available": True, "message": "OK"}
+                def _parse_and_publish_chunk(self, chunk):
+                    pass
 
         test_settings = {"api_url": "http://test.com"}
         provider = ProviderRegistry.create_provider("test_provider", test_settings)

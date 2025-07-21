@@ -12,7 +12,7 @@ from hatchling.core.llm.providers.subscription import (
     StreamEvent,
     StreamEventType
 )
-from hatchling.core.llm.mcp_tool_execution import MCPToolExecution
+from hatchling.mcp_utils.mcp_tool_execution import MCPToolExecution
 
 
 class MCPToolCallSubscriber(StreamSubscriber):

@@ -21,9 +21,8 @@ from hatchling.core.llm.providers.subscription import (
     StreamPublisher,
     StreamSubscriber
 )
-from hatchling.core.llm.mcp_tool_execution import MCPToolExecution
-from hatchling.core.llm.tool_management.mcp_tool_call_subscriber import MCPToolCallSubscriber
-from hatchling.config.settings import AppSettings
+from hatchling.mcp_utils.mcp_tool_execution import MCPToolExecution
+from hatchling.mcp_utils.mcp_tool_call_subscriber import MCPToolCallSubscriber
 
 
 class MockAppSettings:

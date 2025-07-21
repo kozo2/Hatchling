@@ -15,7 +15,7 @@ from unittest.mock import MagicMock, patch
 # Add the parent directory to the path for imports
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
-from hatchling.core.llm.mcp_tool_execution import MCPToolExecution
+from hatchling.mcp_utils.mcp_tool_execution import MCPToolExecution
 
 
 class MockAppSettings:
@@ -216,7 +216,7 @@ class TestToolExecutionRegression(unittest.TestCase):
         provider = self.tool_execution.settings.llm.get_active_provider()
         self.assertEqual(provider, "openai")  # From our mock
         
-        model = self.tool_execution.settings.llm.get_active_model()
+        model = self.tool_execution.settings.llm.model
         self.assertEqual(model, "gpt-4")  # From our mock
     
     def test_new_stream_publisher_doesnt_break_existing_functionality(self):

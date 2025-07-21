@@ -49,14 +49,16 @@ class TestLLMProviderBase(unittest.TestCase):
         class TestProvider(LLMProvider):
             async def initialize(self) -> bool:
                 return True
-            def prepare_chat_payload(self, messages):
-                return {}
+            def prepare_chat_payload(self, messages, model):
+                return {"model": model}
             def add_tools_to_payload(self, payload, tools):
                 return payload
             async def stream_chat_response(self, session, payload, history, tool_executor, **kwargs):
                 return "", [], []
+            def _parse_and_publish_chunk(self, chunk):
+                pass
             async def check_health(self):
-                return True, "OK"
+                return {"available": True, "message": "OK"}
 
         provider = TestProvider({"test": "settings"})
         self.assertEqual(provider.settings, {"test": "settings"})

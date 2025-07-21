@@ -64,7 +64,6 @@ class TestEnhancedMCPManagerEventPublishing(unittest.TestCase):
         self.manager.publisher.subscribe(self.test_subscriber)
         
         # Mock settings registry
-        from hatchling.config.settings_registry import SettingsRegistry
         self.manager._settings_registry = MagicMock()
         self.manager._settings_registry.settings = MagicMock()
         
