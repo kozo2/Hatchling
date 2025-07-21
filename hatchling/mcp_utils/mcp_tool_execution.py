@@ -29,7 +29,7 @@ class MCPToolExecution:
         """
         self.settings = settings
         provider = settings.llm.get_active_provider()
-        model = settings.llm.get_active_model()
+        model = settings.llm.model
         self.logger = logging_manager.get_session(
             f"MCPToolExecution-{provider}-{model}",
             formatter=logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
