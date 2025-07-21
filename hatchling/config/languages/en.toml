@@ -30,98 +30,103 @@ category_display_name = "LLM Configuration"
 category_description = "Settings for Large Language Model configuration"
 
 # Ollama settings (new/expanded)
-[settings.llm.ollama_ip]
+[settings.ollama.ip]
 name = "Ollama IP Address"
 description = "IP address for the Ollama API endpoint."
 hint = "Example: localhost"
 
-[settings.llm.ollama_port]
+[settings.ollama.port]
 name = "Ollama Port"
 description = "Port for the Ollama API endpoint."
 hint = "Example: 11434"
 
-[settings.llm.ollama_num_ctx]
+[settings.ollama.num_ctx]
 name = "Ollama Context Window Size"
 description = "Sets the size of the context window used to generate the next token. (Default: 4096)"
 hint = "Integer value"
 
-[settings.llm.ollama_repeat_last_n]
+[settings.ollama.repeat_last_n]
 name = "Ollama Repeat Last N"
 description = "Sets how far back for the model to look back to prevent repetition. (Default: 64, 0 = disabled, -1 = num_ctx)"
 hint = "Integer value"
 
-[settings.llm.ollama_repeat_penalty]
+[settings.ollama.repeat_penalty]
 name = "Ollama Repeat Penalty"
 description = "Sets how strongly to penalize repetitions. Higher values penalize more strongly. (Default: 1.1)"
 hint = "Float value"
 
-[settings.llm.ollama_temperature]
+[settings.ollama.temperature]
 name = "Ollama Temperature"
 description = "The temperature of the model. Higher values make answers more creative. (Default: 0.8)"
 hint = "Float value"
 
-[settings.llm.ollama_seed]
+[settings.ollama.timeout]
+name = "Ollama Timeout"
+description = "Timeout in seconds for Ollama API requests. (Default: 30.0)"
+hint = "Float value"
+
+[settings.ollama.seed]
 name = "Ollama Seed"
 description = "Sets the random number seed to use for generation. (Default: 0)"
 hint = "Integer value"
 
-[settings.llm.ollama_stop]
+[settings.ollama.stop]
 name = "Ollama Stop Sequences"
 description = "Sets the stop sequences to use. When encountered, generation stops. Multiple patterns allowed."
 hint = "Comma-separated list of strings"
 
-[settings.llm.ollama_num_predict]
+[settings.ollama.num_predict]
 name = "Ollama Max Tokens to Predict"
 description = "Maximum number of tokens to predict when generating text. (Default: -1, infinite generation)"
 hint = "Integer value"
 
-[settings.llm.ollama_top_k]
+[settings.ollama.top_k]
 name = "Ollama Top-K"
 description = "Reduces the probability of generating nonsense. Higher values give more diverse answers. (Default: 40)"
 hint = "Integer value"
 
-[settings.llm.ollama_top_p]
+[settings.ollama.top_p]
 name = "Ollama Top-P"
 description = "Works with top-k. Higher values lead to more diverse text. (Default: 0.9)"
 hint = "Float value"
 
-[settings.llm.ollama_min_p]
+[settings.ollama.min_p]
 name = "Ollama Min-P"
 description = "Alternative to top_p, ensures a balance of quality and variety. (Default: 0.0)"
 hint = "Float value"
 
 # OpenAI settings (expanded)
-[settings.llm.openai_api_base]
+[settings.openai.api_base]
 name = "OpenAI API Base URL"
 description = "The base URL for OpenAI API requests."
 hint = "Example: https://api.openai.com/v1"
 
-[settings.llm.openai_model]
+[settings.openai.model]
 name = "OpenAI Model"
 description = "The default OpenAI model to use."
 hint = "Example: gpt-4-1-nano"
 
-[settings.llm.openai_timeout]
+[settings.openai.timeout]
 name = "OpenAI Timeout"
 description = "Timeout in seconds for OpenAI API requests."
 hint = "Integer value (seconds)"
 
-[settings.llm.openai_max_completion_tokens]
+[settings.openai.max_completion_tokens]
 name = "OpenAI Max Completion Tokens"
 description = "The maximum number of tokens for OpenAI completions. This includes visible and reasoning tokens (when enabled). The higher the value, the more tokens can be generated, but it may increase costs."
 hint = "Integer value"
 
-[settings.llm.openai_temperature]
+[settings.openai.temperature]
 name = "OpenAI Temperature"
 description = "Sampling temperature for OpenAI completions."
 hint = "Float value"
 
-[settings.llm.openai_top_p]
+[settings.openai.top_p]
 name = "OpenAI Top-P"
 description = "Nucleus sampling parameter for OpenAI completions."
 hint = "Float value"
 
-[settings.llm.openai_tool_choice]
+[settings.openai.tool_choice]
 name = "OpenAI Tool Choice"
 description = "The tool choice for OpenAI API requests. (auto, none, required)"
 hint = "String: auto | none | required"
@@ -129,7 +134,7 @@ hint = "String: auto | none | required"
 # Provider setting
 [settings.llm.provider]
 name = "LLM Provider"
-description = "LLM provider to use ('ollama' or 'openai')"
+description = "LLM provider to use ('ollama', 'openai', etc...)"
 hint = "Choose between 'ollama' or 'openai'"
 
 [settings.llm.model]

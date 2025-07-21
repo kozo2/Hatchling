@@ -30,98 +30,103 @@ category_display_name = "Configuration LLM"
 category_description = "Paramètres pour la configuration du modèle de langage"
 
 # Paramètres Ollama (nouveaux/étendus)
-[settings.llm.ollama_ip]
+[settings.ollama.ip]
 name = "Adresse IP Ollama"
 description = "Adresse IP pour le point de terminaison de l'API Ollama."
 hint = "Exemple : localhost"
 
-[settings.llm.ollama_port]
+[settings.ollama.port]
 name = "Port Ollama"
 description = "Port pour le point de terminaison de l'API Ollama."
 hint = "Exemple : 11434"
 
-[settings.llm.ollama_num_ctx]
+[settings.ollama.num_ctx]
 name = "Taille de la fenêtre de contexte Ollama"
 description = "Définit la taille de la fenêtre de contexte utilisée pour générer le prochain jeton. (Par défaut : 4096)"
 hint = "Valeur entière"
 
-[settings.llm.ollama_repeat_last_n]
+[settings.ollama.repeat_last_n]
 name = "Ollama Répéter les N derniers"
 description = "Définit jusqu'où le modèle regarde en arrière pour éviter les répétitions. (Par défaut : 64, 0 = désactivé, -1 = num_ctx)"
 hint = "Valeur entière"
 
-[settings.llm.ollama_repeat_penalty]
+[settings.ollama.repeat_penalty]
 name = "Pénalité de répétition Ollama"
 description = "Définit la force de la pénalisation des répétitions. Plus la valeur est élevée, plus la pénalisation est forte. (Par défaut : 1.1)"
 hint = "Valeur décimale"
 
-[settings.llm.ollama_temperature]
+[settings.ollama.temperature]
 name = "Température Ollama"
 description = "La température du modèle. Des valeurs plus élevées rendent les réponses plus créatives. (Par défaut : 0.8)"
 hint = "Valeur décimale"
 
-[settings.llm.ollama_seed]
+[settings.ollama.timeout]
+name = "Timeout Ollama"
+description = "Délai d'attente en secondes pour les requêtes API Ollama. (Par défaut : 30.0)"
+hint = "Valeur décimale"
+
+[settings.ollama.seed]
 name = "Graine Ollama"
 description = "Définit la graine du générateur aléatoire pour la génération. (Par défaut : 0)"
 hint = "Valeur entière"
 
-[settings.llm.ollama_stop]
+[settings.ollama.stop]
 name = "Séquences d'arrêt Ollama"
 description = "Définit les séquences d'arrêt à utiliser. Lorsqu'elles sont rencontrées, la génération s'arrête. Plusieurs motifs autorisés."
 hint = "Liste de chaînes séparées par des virgules"
 
-[settings.llm.ollama_num_predict]
+[settings.ollama.num_predict]
 name = "Nombre max de jetons à prédire Ollama"
 description = "Nombre maximum de jetons à prédire lors de la génération de texte. (Par défaut : -1, génération infinie)"
 hint = "Valeur entière"
 
-[settings.llm.ollama_top_k]
+[settings.ollama.top_k]
 name = "Ollama Top-K"
 description = "Réduit la probabilité de générer des réponses incohérentes. Des valeurs plus élevées donnent des réponses plus diverses. (Par défaut : 40)"
 hint = "Valeur entière"
 
-[settings.llm.ollama_top_p]
+[settings.ollama.top_p]
 name = "Ollama Top-P"
 description = "Fonctionne avec top-k. Des valeurs plus élevées donnent des textes plus variés. (Par défaut : 0.9)"
 hint = "Valeur décimale"
 
-[settings.llm.ollama_min_p]
+[settings.ollama.min_p]
 name = "Ollama Min-P"
 description = "Alternative à top_p, assure un équilibre entre qualité et variété. (Par défaut : 0.0)"
 hint = "Valeur décimale"
 
 # Paramètres OpenAI (étendus)
-[settings.llm.openai_api_base]
+[settings.openai.api_base]
 name = "URL de base API OpenAI"
 description = "URL de base pour les requêtes API OpenAI."
 hint = "Exemple : https://api.openai.com/v1"
 
-[settings.llm.openai_model]
+[settings.openai.model]
 name = "Modèle OpenAI"
 description = "Modèle OpenAI par défaut à utiliser."
 hint = "Exemple : gpt-4-1-nano"
 
-[settings.llm.openai_timeout]
+[settings.openai.timeout]
 name = "Timeout OpenAI"
 description = "Délai d'attente en secondes pour les requêtes API OpenAI."
 hint = "Valeur entière (secondes)"
 
-[settings.llm.openai_max_completion_tokens]
+[settings.openai.max_completion_tokens]
 name = "Nombre max de jetons de complétion OpenAI"
 description = "Nombre maximum de jetons pour les complétions OpenAI. Cela inclut les jetons visibles et de raisonnement (si activé). Plus la valeur est élevée, plus de jetons peuvent être générés, mais cela peut augmenter les coûts."
 hint = "Valeur entière"
 
-[settings.llm.openai_temperature]
+[settings.openai.temperature]
 name = "Température OpenAI"
 description = "Température d'échantillonnage pour les complétions OpenAI."
 hint = "Valeur décimale"
 
-[settings.llm.openai_top_p]
+[settings.openai.top_p]
 name = "OpenAI Top-P"
 description = "Paramètre de nucleus sampling pour les complétions OpenAI."
 hint = "Valeur décimale"
 
-[settings.llm.openai_tool_choice]
+[settings.openai.tool_choice]
 name = "Choix d'outil OpenAI"
 description = "Le choix d'outil pour les requêtes API OpenAI. (auto, none, required)"
 hint = "Chaîne : auto | none | required"

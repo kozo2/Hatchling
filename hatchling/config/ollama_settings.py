@@ -50,6 +50,11 @@ class OllamaSettings(BaseModel):
         description="The temperature of the model. Higher values make answers more creative. (Default: 0.8)",
         json_schema_extra={"access_level": SettingAccessLevel.NORMAL},
     )
+    timeout: float = Field(
+        default_factory=lambda: float(os.environ.get("OLLAMA_TIMEOUT", 30.0)),
+        description="Timeout in seconds for Ollama API requests. (Default: 30.0)",
+        json_schema_extra={"access_level": SettingAccessLevel.NORMAL},
+    )
     seed: int = Field(
         default_factory=lambda: int(os.environ.get("OLLAMA_SEED", 0)),
         description="Sets the random number seed to use for generation. (Default: 0)",

@@ -16,7 +16,7 @@ class LLMSettings(BaseModel):
 
     # Provider selection
     provider: ELLMProvider = Field(
-        default_factory=lambda: os.environ.get("LLM_PROVIDER", ELLMProvider.OLLAMA.value),
+        default_factory=lambda: os.environ.get("LLM_PROVIDER", ELLMProvider.OLLAMA),
         description="LLM provider to use ('ollama' or 'openai').",
         json_schema_extra={"access_level": SettingAccessLevel.NORMAL},
     )
@@ -28,8 +28,8 @@ class LLMSettings(BaseModel):
     )
 
     @property
-    def provider(self) -> str:
-        """Return the currently active LLM provider."""
+    def get_provider(self) -> str:
+        """Return the current LLM provider."""
         return self.provider.value
 
     class Config:

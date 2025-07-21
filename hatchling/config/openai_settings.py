@@ -35,12 +35,6 @@ class OpenAISettings(BaseModel):
         json_schema_extra={"access_level": SettingAccessLevel.READ_ONLY},
     )
 
-    model: str = Field(
-        default_factory=lambda: os.environ.get("OPENAI_MODEL", "gpt-4-1-nano"),
-        description="The default OpenAI model to use.",
-        json_schema_extra={"access_level": SettingAccessLevel.NORMAL},
-    )
-
     timeout: int = Field(
         default_factory=lambda: int(os.environ.get("OPENAI_TIMEOUT", 60)),
         description="Timeout in seconds for OpenAI API requests.",
@@ -66,7 +60,7 @@ class OpenAISettings(BaseModel):
     )
 
     tool_choice: Optional[OpenAIToolChoice] = Field(
-        default_factory=lambda: os.environ.get("OPENAI_TOOL_CHOICE", OpenAIToolChoice.AUTO.value),
+        default_factory=lambda: os.environ.get("OPENAI_TOOL_CHOICE", OpenAIToolChoice.AUTO),
         description="The tool choice for OpenAI API requests.",
         json_schema_extra={"access_level": SettingAccessLevel.NORMAL},
     )
