@@ -80,6 +80,27 @@ class ProviderRegistry:
         return cls._providers.get(name)
     
     @classmethod
+    def get_provider(cls, name: str, settings) -> LLMProvider:
+        """Get the provider instance for a given name.
+        
+        Args:
+            name (str): The name of the provider to retrieve.
+            settings: Application settings to pass to the provider.
+            
+        Returns:
+            LLMProvider: An instance of the requested provider.
+            
+        Raises:
+            ValueError: If the provider is not registered.
+        """
+        if name not in cls._providers:
+            raise ValueError(f"Provider '{name}' is not registered. Available providers: {list(cls._providers.keys())}")
+
+        if name not in cls._instances:
+            cls._instances[name] = cls.create_provider(name, settings)
+        return cls._instances[name]
+    
+    @classmethod
     def list_providers(cls) -> List[str]:
         """List all registered provider names.
         
