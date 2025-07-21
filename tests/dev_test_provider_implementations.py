@@ -7,9 +7,9 @@ These tests use mocking to avoid requiring actual API connections during develop
 """
 
 import unittest
-from unittest.mock import AsyncMock, MagicMock, patch, Mock
 import sys
 import os
+from unittest.mock import AsyncMock, MagicMock, patch, Mock
 
 # Add the project root to the Python path
 project_root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(__file__))))
@@ -20,7 +20,7 @@ from hatchling.core.llm.providers import (
     LLMProvider, 
     ProviderRegistry
 )
-
+from hatchling.config.settings import OllamaSettings, OpenAISettings
 from hatchling.core.llm.providers.ollama_provider import OllamaProvider
 from hatchling.core.llm.providers.openai_provider import OpenAIProvider
 
@@ -54,106 +54,102 @@ class TestProviderImplementations(unittest.TestCase):
         """Test OllamaProvider initialization."""
         mock_client_instance = AsyncMock()
         mock_async_client.return_value = mock_client_instance
-        
-        config = {
-            "host": "http://localhost:11434",
-            "model": "llama2",
-            "timeout": 30.0
-        }
-        
-        provider = OllamaProvider(config)
+
+        settings = OllamaSettings(
+            ollama_ip="localhost",
+            ollama_port=11434,
+            model="llama3.2",
+            timeout=30.0,
+        )
+
+        provider = OllamaProvider(settings)
         
         # Test properties
         self.assertEqual(provider.provider_name, "ollama")
-        self.assertEqual(provider._host, "http://localhost:11434")
+        self.assertEqual(provider._host, f"http://{settings.ollama_ip}:{settings.ollama_port}")
         self.assertEqual(provider._default_model, "llama2")
         self.assertEqual(provider._timeout, 30.0)
     
     def test_openai_provider_initialization(self):
         """Test OpenAIProvider initialization."""
-        config = {
-            "api_key": "test-key",
-            "model": "gpt-4",
-            "timeout": 30.0
-        }
-        
-        provider = OpenAIProvider(config)
-        
+
+        settings = OpenAISettings(
+            api_key="test-key",
+            model="gpt-4",
+            timeout=30
+        )
+
+        provider = OpenAIProvider(settings)
+
         # Test properties
         self.assertEqual(provider.provider_name, "openai")
         self.assertEqual(provider._api_key, "test-key")
         self.assertEqual(provider._default_model, "gpt-4")
-        self.assertEqual(provider._timeout, 30.0)
+        self.assertEqual(provider._timeout, 30)
     
     def test_openai_provider_requires_api_key(self):
         """Test that OpenAIProvider requires API key."""
-        config = {"model": "gpt-4"}
-        
+        settings = OpenAISettings(model="gpt-4", api_key=None)
         with self.assertRaises(ValueError) as context:
-            OpenAIProvider(config)
-        
+            OpenAIProvider(settings)
         self.assertIn("API key is required", str(context.exception))
     
     @patch('hatchling.core.llm.providers.ollama_provider.AsyncClient')
     def test_ollama_prepare_chat_payload(self, mock_async_client):
         """Test OllamaProvider chat payload preparation."""
-        config = {"model": "llama2"}
-        provider = OllamaProvider(config)
-        
+        settings = OllamaSettings()
+        provider = OllamaProvider(settings)
+
         messages = [
             {"role": "user", "content": "Hello"}
         ]
-        
-        payload = provider.prepare_chat_payload(messages, temperature=0.7)
-        
-        expected_payload = {
-            "model": "llama2",
-            "messages": messages,
-            "stream": True,  # Default
-            "options": {
-                "temperature": 0.7
-            }
-        }
-        
-        self.assertEqual(payload, expected_payload)
+
+        payload = provider.prepare_chat_payload(messages, "llama2", temperature=0.7)
+
+        # Check that model is set from parameter, not config
+        self.assertEqual(payload["model"], "llama2")
+        self.assertEqual(payload["messages"], messages)
+        self.assertTrue(payload.get("stream", False))
+        self.assertIn("options", payload)
+        # Should have temperature from kwargs as well as settings defaults
+        self.assertEqual(payload["options"]["temperature"], 0.7)
     
     def test_openai_prepare_chat_payload(self):
         """Test OpenAIProvider chat payload preparation."""
-        config = {"api_key": "test-key", "model": "gpt-4"}
-        provider = OpenAIProvider(config)
-        
+        settings = OpenAISettings(api_key="test-key")
+        provider = OpenAIProvider(settings)
+
         messages = [
             {"role": "user", "content": "Hello"}
         ]
-        
+
         payload = provider.prepare_chat_payload(
             messages, 
+            "gpt-4",
             temperature=0.7, 
-            max_tokens=100
+            max_completion_tokens=100
         )
-        
-        expected_payload = {
-            "model": "gpt-4",
-            "messages": messages,
-            "stream": True,  # Default
-            "temperature": 0.7,
-            "max_tokens": 100,
-            "stream_options": {"include_usage": True}
-        }
-        
-        self.assertEqual(payload, expected_payload)
+
+        # Check key fields are present
+        self.assertEqual(payload["model"], "gpt-4")
+        self.assertEqual(payload["messages"], messages)
+        self.assertTrue(payload.get("stream", False))
+        self.assertEqual(payload["temperature"], 0.7)  # From kwargs
+        self.assertEqual(payload["max_completion_tokens"], 100)  # From kwargs
+        self.assertIn("stream_options", payload)
+        self.assertEqual(payload["stream_options"], {"include_usage": True})
     
     @patch('hatchling.core.llm.providers.ollama_provider.AsyncClient')
     def test_ollama_add_tools_to_payload(self, mock_async_client):
         """Test OllamaProvider tool addition."""
-        config = {"model": "llama2"}
-        provider = OllamaProvider(config)
-        
+        settings = OllamaSettings()
+        provider = OllamaProvider(settings)
+
         base_payload = {
             "model": "llama2",
             "messages": []
         }
-        
+
         tools = [
             {
                 "type": "function",
@@ -164,9 +160,9 @@ class TestProviderImplementations(unittest.TestCase):
                 }
             }
         ]
-        
+
         payload = provider.add_tools_to_payload(base_payload, tools)
-        
+
         self.assertIn("tools", payload)
         self.assertEqual(len(payload["tools"]), 1)
         self.assertEqual(payload["tools"][0]["type"], "function")
@@ -174,14 +170,14 @@ class TestProviderImplementations(unittest.TestCase):
     
     def test_openai_add_tools_to_payload(self):
         """Test OpenAIProvider tool addition."""
-        config = {"api_key": "test-key", "model": "gpt-4"}
-        provider = OpenAIProvider(config)
-        
+        settings = OpenAISettings(api_key="test-key", model="gpt-4")
+        provider = OpenAIProvider(settings)
+
         base_payload = {
             "model": "gpt-4",
             "messages": []
         }
-        
+
         tools = [
             {
                 "type": "function",
@@ -192,9 +188,9 @@ class TestProviderImplementations(unittest.TestCase):
                 }
             }
         ]
-        
+
         payload = provider.add_tools_to_payload(base_payload, tools)
-        
+
         self.assertIn("tools", payload)
         self.assertEqual(len(payload["tools"]), 1)
         self.assertEqual(payload["tools"][0]["type"], "function")
@@ -211,13 +207,13 @@ class TestProviderImplementations(unittest.TestCase):
             ]
         }
         mock_async_client.return_value = mock_client_instance
-        
-        config = {"model": "llama2"}
-        provider = OllamaProvider(config)
+
+        settings = OllamaSettings(model="llama2")
+        provider = OllamaProvider(settings)
         provider._client = mock_client_instance
-        
+
         health = await provider.check_health()
-        
+
         self.assertTrue(health["available"])
         self.assertIn("healthy", health["message"])
         self.assertEqual(len(health["models"]), 2)
@@ -234,13 +230,13 @@ class TestProviderImplementations(unittest.TestCase):
         ]
         mock_client_instance.models.list.return_value = mock_models_response
         mock_async_openai.return_value = mock_client_instance
-        
-        config = {"api_key": "test-key", "model": "gpt-4"}
-        provider = OpenAIProvider(config)
+
+        settings = OpenAISettings(api_key="test-key", model="gpt-4")
+        provider = OpenAIProvider(settings)
         provider._client = mock_client_instance
-        
+
         health = await provider.check_health()
-        
+
         self.assertTrue(health["available"])
         self.assertIn("healthy", health["message"])
         self.assertEqual(len(health["models"]), 2)
@@ -252,24 +248,24 @@ class TestProviderImplementations(unittest.TestCase):
         mock_client_instance = AsyncMock()
         mock_client_instance.list.side_effect = Exception("Connection refused")
         mock_async_client.return_value = mock_client_instance
-        
-        config = {"model": "llama2"}
-        provider = OllamaProvider(config)
+
+        settings = OllamaSettings(model="llama2")
+        provider = OllamaProvider(settings)
         provider._client = mock_client_instance
-        
+
         health = await provider.check_health()
-        
+
         self.assertFalse(health["available"])
         self.assertIn("unavailable", health["message"])
         self.assertIn("Connection refused", health["message"])
     
     def test_ollama_supported_features(self):
         """Test OllamaProvider supported features."""
-        config = {"model": "llama2"}
-        provider = OllamaProvider(config)
-        
+        settings = OllamaSettings(model="llama2")
+        provider = OllamaProvider(settings)
+
         features = provider.get_supported_features()
-        
+
         expected_features = {
             "streaming": True,
             "tools": True,
@@ -277,16 +273,16 @@ class TestProviderImplementations(unittest.TestCase):
             "embeddings": False,
             "fine_tuning": False
         }
-        
+
         self.assertEqual(features, expected_features)
     
     def test_openai_supported_features(self):
         """Test OpenAIProvider supported features."""
-        config = {"api_key": "test-key", "model": "gpt-4"}
-        provider = OpenAIProvider(config)
-        
+        settings = OpenAISettings(api_key="test-key", model="gpt-4")
+        provider = OpenAIProvider(settings)
+
         features = provider.get_supported_features()
-        
+
         expected_features = {
             "streaming": True,
             "tools": True,
@@ -296,7 +292,7 @@ class TestProviderImplementations(unittest.TestCase):
             "structured_outputs": True,
             "reasoning": True
         }
-        
+
         self.assertEqual(features, expected_features)
     
     def test_ProviderRegistry_can_create_providers(self):
@@ -304,17 +300,17 @@ class TestProviderImplementations(unittest.TestCase):
         # Register providers
         from hatchling.core.llm.providers.ollama_provider import OllamaProvider
         from hatchling.core.llm.providers.openai_provider import OpenAIProvider
-        
+
         # Test Ollama provider creation
         with patch('hatchling.core.llm.providers.ollama_provider.AsyncClient'):
-            ollama_config = {"model": "llama2"}
-            ollama_provider = ProviderRegistry.create_provider("ollama", ollama_config)
+            settings = OllamaSettings(model="llama2")
+            ollama_provider = ProviderRegistry.create_provider("ollama", settings)
             self.assertIsInstance(ollama_provider, OllamaProvider)
             self.assertEqual(ollama_provider.provider_name, "ollama")
-        
+
         # Test OpenAI provider creation
-        openai_config = {"api_key": "test-key", "model": "gpt-4"}
-        openai_provider = ProviderRegistry.create_provider("openai", openai_config)
+        settings = OpenAISettings(api_key="test-key", model="gpt-4")
+        openai_provider = ProviderRegistry.create_provider("openai", settings)
         self.assertIsInstance(openai_provider, OpenAIProvider)
         self.assertEqual(openai_provider.provider_name, "openai")
     
@@ -322,8 +318,8 @@ class TestProviderImplementations(unittest.TestCase):
         """Test that both providers implement all abstract methods."""
         # Check OllamaProvider
         with patch('hatchling.core.llm.providers.ollama_provider.AsyncClient'):
-            ollama_provider = OllamaProvider({"model": "llama2"})
-            
+            settings = OllamaSettings(model="llama2")
+            ollama_provider = OllamaProvider(settings)
             # All abstract methods should be implemented
             self.assertTrue(hasattr(ollama_provider, 'initialize'))
             self.assertTrue(hasattr(ollama_provider, 'prepare_chat_payload'))
@@ -331,10 +327,10 @@ class TestProviderImplementations(unittest.TestCase):
             self.assertTrue(hasattr(ollama_provider, 'stream_chat_response'))
             self.assertTrue(hasattr(ollama_provider, 'check_health'))
             self.assertTrue(hasattr(ollama_provider, 'provider_name'))
-        
+
         # Check OpenAIProvider
-        openai_provider = OpenAIProvider({"api_key": "test-key", "model": "gpt-4"})
-        
+        settings = OpenAISettings(api_key="test-key", model="gpt-4")
+        openai_provider = OpenAIProvider(settings)
         # All abstract methods should be implemented
         self.assertTrue(hasattr(openai_provider, 'initialize'))
         self.assertTrue(hasattr(openai_provider, 'prepare_chat_payload'))

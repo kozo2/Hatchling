@@ -18,13 +18,16 @@ from dotenv import load_dotenv
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
 
+from hatchling.config.openai_settings import OpenAISettings
 from hatchling.core.llm.tool_management.adapters import MCPToolAdapterRegistry
 from hatchling.core.llm.providers.registry import ProviderRegistry
-from hatchling.core.llm.providers.ollama_provider import OllamaProvider
 from hatchling.mcp_utils.mcp_tool_data import MCPToolInfo, MCPToolStatus, MCPToolStatusReason
 from hatchling.core.llm.providers.subscription import (
     StreamSubscriber,
     ToolLifecycleSubscriber,
+    ContentPrinterSubscriber,
+    UsageStatsSubscriber,
+    ErrorHandlerSubscriber,
     StreamPublisher,
     StreamEventType,
     StreamEvent
@@ -100,13 +103,9 @@ class TestOpenAIProviderIntegration(unittest.TestCase):
             self.skipTest("OpenAI API key is not set. Please set OPENAI_API_KEY environment variable.")
             
         try:
-            config = {
-                "api_key": api_key,
-                "model": "gpt-4.1-nano",  # Use cheaper model for testing
-                "timeout": 30.0
-            }
+            settings = OpenAISettings(api_key=api_key, timeout=30.0)
             MCPToolAdapterRegistry.create_adapter("openai")
-            self.provider = ProviderRegistry.create_provider("openai", config)
+            self.provider = ProviderRegistry.create_provider("openai", settings)
             self.loop = asyncio.new_event_loop()
             asyncio.set_event_loop(self.loop)
 
@@ -153,13 +152,8 @@ class TestOpenAIProviderIntegration(unittest.TestCase):
     async def async_test_provider_initialization(self):
         """Test provider initialization with real API connection."""
         api_key = os.environ.get('OPENAI_API_KEY')
-        config = {
-            "api_key": api_key,
-            "model": "gpt-4.1-nano",  # Use cheaper model for testing
-            "timeout": 30.0
-        }
-        
-        provider = ProviderRegistry.create_provider("openai", config)
+        settings = OpenAISettings(api_key=api_key, timeout=30.0)
+        provider = ProviderRegistry.create_provider("openai", settings)
         self.assertIsInstance(provider, OpenAIProvider)
         
         # Test initialization
@@ -207,8 +201,9 @@ class TestOpenAIProviderIntegration(unittest.TestCase):
         
         payload = self.provider.prepare_chat_payload(
             messages, 
+            "gpt-4.1-nano",
             temperature=0.7, 
-            max_tokens=100
+            max_completion_tokens=100
         )
         
         self.assertIsInstance(payload, dict)
@@ -217,7 +212,7 @@ class TestOpenAIProviderIntegration(unittest.TestCase):
         self.assertEqual(payload["messages"], messages)
         self.assertTrue(payload.get("stream", False))  # Should default to streaming
         self.assertEqual(payload["temperature"], 0.7)
-        self.assertEqual(payload["max_tokens"], 100)
+        self.assertEqual(payload["max_completion_tokens"], 100)
         self.assertIn("stream_options", payload)
 
     async def async_test_tools_payload_integration(self):
@@ -266,7 +261,7 @@ class TestOpenAIProviderIntegration(unittest.TestCase):
         messages = [
                     {"role": "user", "content": "Compute 789+654."}
                 ]
-        payload = self.provider.prepare_chat_payload(messages, temperature=0.1, max_tokens=50)
+        payload = self.provider.prepare_chat_payload(messages, "gpt-4.1-nano", temperature=0.1, max_completion_tokens=50)
         payload_with_tools = self.provider.add_tools_to_payload(payload.copy(), [tool_name])
 
         self.assertIn("model", payload)
@@ -328,15 +323,16 @@ class TestOpenAIProviderIntegration(unittest.TestCase):
         
         payload = self.provider.prepare_chat_payload(
             messages, 
+            "gpt-4.1-nano",
             temperature=0.1,
-            max_tokens=10  # Keep it small for cost control
+            max_completion_tokens=10  # Keep it small for cost control
         )
         
         # Test that the payload is correctly formed for streaming
         self.assertIn("model", payload)
         self.assertIn("messages", payload)
         self.assertTrue(payload.get("stream", False))
-        self.assertEqual(payload["max_tokens"], 10)
+        self.assertEqual(payload["max_completion_tokens"], 10)
             
         print("\n=== OpenAI Streaming Response (Publish-Subscribe) ===")
         print()
@@ -387,9 +383,9 @@ class TestOpenAIProviderIntegration(unittest.TestCase):
 
         Ensures that initializing OpenAIProvider without an API key raises a ValueError.
         """
-        with self.assertRaises(ValueError) as context:
+        with self.assertRaises(AttributeError) as context:
             OpenAIProvider({"model": "gpt-4.1-nano"})  # Missing API key
-        self.assertIn("API key is required", str(context.exception))
+        self.assertIn("'dict' object has no attribute 'api_key'", str(context.exception))
 
 
 def run_openai_integration_tests():

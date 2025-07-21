@@ -6,6 +6,7 @@ for OpenAI's API using the official openai Python client.
 
 import json
 import logging
+from tkinter.filedialog import Open
 import uuid
 from typing import Dict, Any, List, Optional, AsyncIterator, Union
 from httpx import AsyncClient
@@ -16,6 +17,7 @@ from .base import LLMProvider
 from .registry import ProviderRegistry
 from .subscription import StreamPublisher, StreamEventType, ToolLifecycleSubscriber
 from hatchling.mcp_utils.manager import mcp_manager
+from hatchling.config.openai_settings import OpenAISettings
 
 logger = logging.getLogger(__name__)
 
@@ -28,38 +30,21 @@ class OpenAIProvider(LLMProvider):
     It supports streaming responses, tool calling, and all OpenAI chat models.
     """
     
-    def __init__(self, config: Dict[str, Any]):
+    def __init__(self, settings: OpenAISettings):
         """Initialize the OpenAI provider.
         
         Args:
-            config (Dict[str, Any]): Configuration dictionary containing:
-                - api_key (str): OpenAI API key.
-                - base_url (str, optional): Custom base URL. Defaults to OpenAI's API.
-                - organization (str, optional): OpenAI organization ID.
-                - project (str, optional): OpenAI project ID.
-                - timeout (float, optional): Request timeout in seconds. Defaults to 30.0.
-                - model (str, optional): Default model name. Defaults to "gpt-4-1-nano".
-                - stream (bool, optional): Enable streaming responses. Defaults to True.
-                - max_retries (int, optional): Maximum retry attempts. Defaults to 2.
+            config (Dict[str, Any]): Configuration dictionary to create OpenAISettings.
         """
-        super().__init__(config)
-        self._http_client: Optional[AsyncClient] = None #for AsyncOpenAI compatibility
+        super().__init__()
+        self._settings = settings
+        self._http_client: Optional[AsyncClient] = None  # for AsyncOpenAI compatibility
         self._client: Optional[AsyncOpenAI] = None
-        self._api_key = config.get("api_key")
-        self._base_url = config.get("base_url")
-        self._organization = config.get("organization")
-        self._project = config.get("project")
-        self._timeout = config.get("timeout", 30.0)
-        self._max_retries = config.get("max_retries", 2)
-        self._default_model = config.get("model", "gpt-4-1-nano")
-        self._stream_enabled = config.get("stream", True)
 
-        self._toolLifecycle_subscriber = ToolLifecycleSubscriber("ollama")
+        self._toolLifecycle_subscriber = ToolLifecycleSubscriber("openai")
         
-        if not self._api_key:
+        if not self._settings.api_key:
             raise ValueError("OpenAI API key is required")
-        
-        logger.debug(f"Initialized OpenAIProvider with model: {self._default_model}")
     
     @property
     def provider_name(self) -> str:
@@ -81,22 +66,17 @@ class OpenAIProvider(LLMProvider):
             self._stream_publisher = StreamPublisher("openai")
             mcp_manager.publisher.subscribe(self._toolLifecycle_subscriber)
 
-            # Initialize OpenAI async client
+            # Initialize OpenAI async client using settings
             client_kwargs = {
-                "api_key": self._api_key,
-                "timeout": self._timeout,
-                "max_retries": self._max_retries
+                "api_key": self._settings.api_key,
+                "timeout": self._settings.timeout,
             }
             
             # Add optional parameters if provided
-            if self._base_url:
-                client_kwargs["base_url"] = self._base_url
-            if self._organization:
-                client_kwargs["organization"] = self._organization  
-            if self._project:
-                client_kwargs["project"] = self._project
+            if self._settings.api_base and self._settings.api_base != "https://api.openai.com/v1":
+                client_kwargs["base_url"] = self._settings.api_base
             
-            self._http_client = AsyncClient(timeout=self._timeout)
+            self._http_client = AsyncClient(timeout=self._settings.timeout)
             self._client = AsyncOpenAI(**client_kwargs, http_client=self._http_client)
             
             # Test connection by listing models
@@ -122,35 +102,38 @@ class OpenAIProvider(LLMProvider):
     def prepare_chat_payload(
         self,
         messages: List[Dict[str, Any]],
-        model: Optional[str] = None,
+        model: str,
         **kwargs
     ) -> Dict[str, Any]:
         """Prepare chat payload for OpenAI API format.
         
         Args:
             messages (List[Dict[str, Any]]): List of message dictionaries.
-            model (str, optional): Model name to use. Uses default if not provided.
+            model (str): Model name to use.
             **kwargs: Additional chat parameters.
         
         Returns:
             Dict[str, Any]: Formatted payload for OpenAI chat API.
         """
-        # Use provided model or fallback to default
-        selected_model = model or self._default_model
-        
         # Base payload structure
         payload = {
-            "model": selected_model,
+            "model": model,
             "messages": messages,
-            "stream": kwargs.get("stream", self._stream_enabled)
+            "stream": kwargs.get("stream", True)
         }
         
-        # Add OpenAI-specific optional parameters
+        # Add settings-based parameters with kwargs override
+        payload["temperature"] = kwargs.get("temperature", self._settings.temperature)
+        payload["top_p"] = kwargs.get("top_p", self._settings.top_p)
+        payload["max_completion_tokens"] = kwargs.get("max_completion_tokens", self._settings.max_completion_tokens)
+    
+        
+        # Add other OpenAI-specific optional parameters
         openai_params = [
-            "temperature", "top_p", "n", "stop", "max_tokens", "presence_penalty",
+            "n", "stop", "presence_penalty",
             "frequency_penalty", "logit_bias", "user", "response_format", "seed",
-            "logprobs", "top_logprobs", "tool_choice", "parallel_tool_calls",
-            "stream_options", "service_tier", "max_completion_tokens"
+            "logprobs", "top_logprobs", "parallel_tool_calls",
+            "stream_options", "service_tier"
         ]
         
         for param in openai_params:
@@ -162,7 +145,7 @@ class OpenAIProvider(LLMProvider):
             # Enable usage tracking in streaming mode
             payload["stream_options"] = {"include_usage": True}
         
-        logger.debug(f"Prepared OpenAI chat payload for model: {selected_model}")
+        logger.debug(f"Prepared OpenAI chat payload for model: {model}")
         return payload
     
     def add_tools_to_payload(

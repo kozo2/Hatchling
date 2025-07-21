@@ -13,10 +13,10 @@ import time
 
 # Add the parent directory to the path for imports
 sys.path.insert(0, str(Path(__file__).parent.parent))
+from hatchling.config.settings import OllamaSettings
 from hatchling.core.llm.tool_management.adapters import MCPToolAdapterRegistry
 from hatchling.core.llm.providers.registry import ProviderRegistry
 from hatchling.core.llm.providers.ollama_provider import OllamaProvider
-from hatchling.mcp_utils.mcp_tool_data import MCPToolInfo, MCPToolStatus, MCPToolStatusReason
 from hatchling.core.llm.providers.subscription import (
     StreamSubscriber,
     ContentPrinterSubscriber,
@@ -27,6 +27,7 @@ from hatchling.core.llm.providers.subscription import (
     StreamEventType,
     StreamEvent
 )
+from hatchling.mcp_utils.mcp_tool_data import MCPToolInfo, MCPToolStatus, MCPToolStatusReason
 
 logger = logging.getLogger("integration_test_ollama")
 
@@ -58,13 +59,9 @@ class TestOllamaProviderIntegration(unittest.TestCase):
         """Set up test fixtures."""
         # Check if Ollama is available
         try:
-            config = {
-                "host": "http://localhost:11434",
-                "model": "llama3.2",  # Default model for testing
-                "timeout": 30.0
-            }
             MCPToolAdapterRegistry.create_adapter("ollama")
-            self.provider = ProviderRegistry.create_provider("ollama", config)
+            settings = OllamaSettings(ollama_ip="localhost", ollama_port=11434, timeout=30.0)
+            self.provider = ProviderRegistry.create_provider("ollama", settings)
             self.loop = asyncio.new_event_loop()
             asyncio.set_event_loop(self.loop)
 
@@ -96,13 +93,8 @@ class TestOllamaProviderIntegration(unittest.TestCase):
 
     async def async_test_provider_initialization(self):
         """Test provider initialization with real connection."""
-        config = {
-            "host": "http://localhost:11434",
-            "model": "llama3.2",
-            "timeout": 30.0
-        }
-        
-        provider = ProviderRegistry.create_provider("ollama", config)
+        settings = OllamaSettings(ollama_ip="localhost", ollama_port=11434, timeout=30.0)
+        provider = ProviderRegistry.create_provider("ollama", settings)
         self.assertIsInstance(provider, OllamaProvider)
         
         # Test initialization
@@ -143,7 +135,7 @@ class TestOllamaProviderIntegration(unittest.TestCase):
             {"role": "user", "content": "Hello, how are you?"}
         ]
         
-        payload = self.provider.prepare_chat_payload(messages, temperature=0.7)
+        payload = self.provider.prepare_chat_payload(messages, "llama3.2", temperature=0.7)
         
         self.assertIsInstance(payload, dict)
         self.assertIn("model", payload)
@@ -198,7 +190,7 @@ class TestOllamaProviderIntegration(unittest.TestCase):
         messages = [
                     {"role": "user", "content": "Compute 789+654."}
                 ]
-        payload = self.provider.prepare_chat_payload(messages, temperature=0.1, num_predict=100)
+        payload = self.provider.prepare_chat_payload(messages, "llama3.2", temperature=0.1, num_predict=100)
         payload_with_tools = self.provider.add_tools_to_payload(payload.copy(), [tool_name])
 
         self.assertIn("model", payload)
@@ -257,7 +249,7 @@ class TestOllamaProviderIntegration(unittest.TestCase):
         messages = [
             {"role": "user", "content": "Greetings!"}
         ]
-        payload = self.provider.prepare_chat_payload(messages, temperature=0.1, num_predict=10)
+        payload = self.provider.prepare_chat_payload(messages, "llama3.2", temperature=0.1, num_predict=10)
 
         self.assertIn("model", payload)
         self.assertIn("messages", payload)

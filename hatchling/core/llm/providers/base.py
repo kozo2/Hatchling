@@ -18,13 +18,8 @@ class LLMProvider(ABC):
     functionality and feature discovery across different LLM services.
     """
 
-    def __init__(self, config: dict):
-        """Initialize the provider with configuration.
-
-        Args:
-            config (dict): Provider configuration dictionary.
-        """
-        self.config = config
+    def __init__(self):
+        """Initialize the provider with configuration."""
         self._stream_publisher : Optional[StreamPublisher] = None
         self._toolLifecycle_subscriber: Optional[ToolLifecycleSubscriber] = None
 
@@ -73,14 +68,14 @@ class LLMProvider(ABC):
     def prepare_chat_payload(
         self,
         messages: List[Dict[str, Any]],
-        model: str = None,
+        model: str,
         **kwargs
     ) -> Dict[str, Any]:
         """Prepare a provider-specific chat request payload.
 
         Args:
             messages (List[Dict[str, Any]]): List of message dictionaries in standard format.
-            model (str, optional): Model name to use. Defaults to provider's default.
+            model (str): Model name to use.
             **kwargs: Additional provider-specific parameters (e.g., temperature, max_tokens).
 
         Returns:

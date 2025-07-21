@@ -14,6 +14,7 @@ from .base import LLMProvider
 from .registry import ProviderRegistry
 from .subscription import StreamPublisher, StreamEventType, ToolLifecycleSubscriber
 from hatchling.mcp_utils.manager import mcp_manager
+from hatchling.config.ollama_settings import OllamaSettings
 
 logger = logging.getLogger(__name__)
 
@@ -26,33 +27,22 @@ class OllamaProvider(LLMProvider):
     multiple model architectures available through Ollama.
     """
     
-    def __init__(self, config: Dict[str, Any]):
+    def __init__(self, settings: OllamaSettings):
         """Initialize the Ollama provider.
         
         Args:
-            config (Dict[str, Any]): Configuration dictionary containing:
-                - host (str, optional): Ollama server URL. Defaults to "http://localhost:11434".
-                - timeout (float, optional): Request timeout in seconds. Defaults to 30.0.
-                - model (str, optional): Default model name. Defaults to "llama2".
-                - stream (bool, optional): Enable streaming responses. Defaults to True.
-                - **kwargs: Additional parameters passed to AsyncClient.
+            settings (OllamaSettings): An instance of OllamaSettings containing configuration.
         """
-        super().__init__(config)
+        super().__init__()
+        self._settings = settings
         self._client: Optional[AsyncClient] = None
-        self._host = config.get("host", "http://localhost:11434")
-        self._timeout = config.get("timeout", 30.0)
-        self._default_model = config.get("model", "llama3.2")
-        self._stream_enabled = config.get("stream", True)
+        
+        # Build host URL from settings
+        self._host = f"http://{self._settings.ollama_ip}:{self._settings.ollama_port}"
 
         self._toolLifecycle_subscriber = ToolLifecycleSubscriber("ollama")
         
-        # Store additional client options
-        self._client_options = {
-            key: value for key, value in config.items()
-            if key not in ["host", "timeout", "model", "stream"]
-        }
-        
-        logger.debug(f"Initialized OllamaProvider with host: {self._host}, model: {self._default_model}")
+        logger.debug(f"Initialized OllamaProvider with host: {self._host}")
     
     @property
     def provider_name(self) -> str:
@@ -74,11 +64,7 @@ class OllamaProvider(LLMProvider):
             self._stream_publisher = StreamPublisher("ollama")
             mcp_manager.publisher.subscribe(self._toolLifecycle_subscriber)
 
-            self._client = AsyncClient(
-                host=self._host,
-                timeout=self._timeout,
-                **self._client_options
-            )
+            self._client = AsyncClient(host=self._host)
             
             # Test connection by checking if server is available
             await self._client.list()  # This will raise an exception if server is unavailable
@@ -101,32 +87,29 @@ class OllamaProvider(LLMProvider):
     def prepare_chat_payload(
         self,
         messages: List[Dict[str, Any]],
-        model: Optional[str] = None,
+        model: str,
         **kwargs
     ) -> Dict[str, Any]:
         """Prepare chat payload for Ollama API format.
         
         Args:
             messages (List[Dict[str, Any]]): List of message dictionaries.
-            model (str, optional): Model name to use. Uses default if not provided.
+            model (str): Model name to use.
             **kwargs: Additional chat parameters.
         
         Returns:
             Dict[str, Any]: Formatted payload for Ollama chat API.
         """
-        # Use provided model or fallback to default
-        selected_model = model or self._default_model
-        
         # Base payload structure
         payload = {
-            "model": selected_model,
+            "model": model,
             "messages": messages,
-            "stream": kwargs.get("stream", self._stream_enabled)
+            "stream": kwargs.get("stream", True)
         }
         
         # Add optional parameters if provided
         optional_params = [
-            "format", "options", "template", "system", "context", 
+            "format", "template", "system", "context", 
             "raw", "keep_alive"
         ]
         
@@ -134,26 +117,42 @@ class OllamaProvider(LLMProvider):
             if param in kwargs:
                 payload[param] = kwargs[param]
         
-        # Handle options parameter (model-specific settings)
-        if "options" not in payload and any(
-            key in kwargs for key in ["temperature", "top_p", "top_k", "num_predict"]
-        ):
-            payload["options"] = {}
-            
-            # Map common parameters to Ollama options
-            param_mapping = {
-                "temperature": "temperature",
-                "top_p": "top_p", 
-                "top_k": "top_k",
-                "max_tokens": "num_predict",
-                "num_predict": "num_predict"
-            }
-            
-            for param, ollama_param in param_mapping.items():
-                if param in kwargs:
-                    payload["options"][ollama_param] = kwargs[param]
+        # Build options from settings with kwargs override
+        options = {}
         
-        logger.debug(f"Prepared Ollama chat payload for model: {selected_model}")
+        # Map settings to Ollama options
+        settings_mapping = {
+            "num_ctx": self._settings.num_ctx,
+            "repeat_last_n": self._settings.repeat_last_n,
+            "repeat_penalty": self._settings.repeat_penalty,
+            "temperature": self._settings.temperature,
+            "seed": self._settings.seed,
+            "num_predict": self._settings.num_predict,
+            "top_k": self._settings.top_k,
+            "top_p": self._settings.top_p,
+            "min_p": self._settings.min_p,
+        }
+        
+        if self._settings.stop:
+            options["stop"] = self._settings.stop
+        
+        # Apply settings defaults
+        for key, value in settings_mapping.items():
+            options[key] = kwargs.get(key, value)
+        
+        # Map common parameters to Ollama options with kwargs override
+        param_mapping = {
+            "max_tokens": "num_predict",
+        }
+        
+        for param, ollama_param in param_mapping.items():
+            if param in kwargs:
+                options[ollama_param] = kwargs[param]
+        
+        if options:
+            payload["options"] = options
+        
+        logger.debug(f"Prepared Ollama chat payload for model: {model}")
         return payload
     
     def add_tools_to_payload(
