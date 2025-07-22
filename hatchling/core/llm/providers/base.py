@@ -10,7 +10,7 @@ from typing import Dict, List, Any, Optional
 
 from hatchling.core.llm.streaming_management import StreamPublisher
 from hatchling.core.llm.streaming_management.tool_lifecycle_subscriber import ToolLifecycleSubscriber
-
+from hatchling.config.settings import AppSettings
 
 class LLMProvider(ABC):
     """Abstract base class for LLM providers.
@@ -19,8 +19,9 @@ class LLMProvider(ABC):
     functionality and feature discovery across different LLM services.
     """
 
-    def __init__(self):
+    def __init__(self, settings: AppSettings):
         """Initialize the provider with configuration."""
+        self._settings = settings
         self._stream_publisher : Optional[StreamPublisher] = None
         self._toolLifecycle_subscriber: Optional[ToolLifecycleSubscriber] = None
 

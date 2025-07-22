@@ -16,7 +16,7 @@ from .registry import ProviderRegistry
 from hatchling.mcp_utils import mcp_manager
 from hatchling.core.llm.streaming_management import StreamPublisher, StreamEventType
 from hatchling.core.llm.streaming_management.tool_lifecycle_subscriber import ToolLifecycleSubscriber
-from hatchling.config.openai_settings import OpenAISettings
+from hatchling.config.settings import AppSettings
 
 logger = logging.getLogger(__name__)
 
@@ -29,20 +29,20 @@ class OpenAIProvider(LLMProvider):
     It supports streaming responses, tool calling, and all OpenAI chat models.
     """
     
-    def __init__(self, settings: OpenAISettings):
+    def __init__(self, settings: AppSettings):
         """Initialize the OpenAI provider.
-        
         Args:
-            config (Dict[str, Any]): Configuration dictionary to create OpenAISettings.
+            settings (AppSettings): Application settings containing OpenAI configuration.
+        Raises:
+            ValueError: If OpenAI API key is not provided in settings.
         """
-        super().__init__()
-        self._settings = settings
+        super().__init__(settings)
         self._http_client: Optional[AsyncClient] = None  # for AsyncOpenAI compatibility
         self._client: Optional[AsyncOpenAI] = None
 
-        self._toolLifecycle_subscriber = ToolLifecycleSubscriber("openai")
+        self._toolLifecycle_subscriber = ToolLifecycleSubscriber(settings.llm.provider_name)
         
-        if not self._settings.api_key:
+        if not self._settings.openai.api_key:
             raise ValueError("OpenAI API key is required")
     
     @property
@@ -67,15 +67,15 @@ class OpenAIProvider(LLMProvider):
 
             # Initialize OpenAI async client using settings
             client_kwargs = {
-                "api_key": self._settings.api_key,
-                "timeout": self._settings.timeout,
+                "api_key": self._settings.openai.api_key,
+                "timeout": self._settings.openai.timeout,
             }
             
             # Add optional parameters if provided
-            if self._settings.api_base and self._settings.api_base != "https://api.openai.com/v1":
-                client_kwargs["base_url"] = self._settings.api_base
+            if self._settings.openai.api_base and self._settings.openai.api_base != "https://api.openai.com/v1":
+                client_kwargs["base_url"] = self._settings.openai.api_base
             
-            self._http_client = AsyncClient(timeout=self._settings.timeout)
+            self._http_client = AsyncClient(timeout=self._settings.openai.timeout)
             self._client = AsyncOpenAI(**client_kwargs, http_client=self._http_client)
             
             # Test connection by listing models
@@ -123,9 +123,9 @@ class OpenAIProvider(LLMProvider):
         }
         
         # Add settings-based parameters with kwargs override
-        payload["temperature"] = kwargs.get("temperature", self._settings.temperature)
-        payload["top_p"] = kwargs.get("top_p", self._settings.top_p)
-        payload["max_completion_tokens"] = kwargs.get("max_completion_tokens", self._settings.max_completion_tokens)
+        payload["temperature"] = kwargs.get("temperature", self._settings.openai.temperature)
+        payload["top_p"] = kwargs.get("top_p", self._settings.openai.top_p)
+        payload["max_completion_tokens"] = kwargs.get("max_completion_tokens", self._settings.openai.max_completion_tokens)
     
         
         # Add other OpenAI-specific optional parameters

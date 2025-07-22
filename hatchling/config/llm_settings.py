@@ -15,7 +15,7 @@ class LLMSettings(BaseModel):
     """Settings for LLM (Large Language Model) configuration."""
 
     # Provider selection
-    provider: ELLMProvider = Field(
+    provider_enum: ELLMProvider = Field(
         default_factory=lambda: os.environ.get("LLM_PROVIDER", ELLMProvider.OLLAMA),
         description="LLM provider to use ('ollama' or 'openai').",
         json_schema_extra={"access_level": SettingAccessLevel.NORMAL},
@@ -28,9 +28,9 @@ class LLMSettings(BaseModel):
     )
 
     @property
-    def get_provider(self) -> str:
+    def provider_name(self) -> str:
         """Return the current LLM provider."""
-        return self.provider.value
+        return self.provider_enum.value
 
     class Config:
         extra = "forbid"

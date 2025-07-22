@@ -16,7 +16,7 @@ from hatchling.core.llm.streaming_management.stream_publisher import StreamPubli
 from hatchling.core.llm.streaming_management.stream_data import StreamEventType
 from hatchling.core.llm.streaming_management.tool_lifecycle_subscriber import ToolLifecycleSubscriber
 from hatchling.mcp_utils.manager import mcp_manager
-from hatchling.config.ollama_settings import OllamaSettings
+from hatchling.config.settings import AppSettings
 
 logger = logging.getLogger(__name__)
 
@@ -29,20 +29,22 @@ class OllamaProvider(LLMProvider):
     multiple model architectures available through Ollama.
     """
     
-    def __init__(self, settings: OllamaSettings):
-        """Initialize the Ollama provider.
-        
+    def __init__(self, settings: AppSettings):
+        """Initialize the Ollama provider. 
+
         Args:
-            settings (OllamaSettings): An instance of OllamaSettings containing configuration.
+            settings (AppSettings): Application settings containing Ollama configuration.
+
+        Raises:
+            ValueError: If Ollama settings are invalid or missing required fields.
         """
-        super().__init__()
-        self._settings = settings
+        super().__init__(settings)
         self._client: Optional[AsyncClient] = None
         
         # Build host URL from settings
-        self._host = f"http://{self._settings.ollama_ip}:{self._settings.ollama_port}"
+        self._host = f"http://{self._settings.ollama.ip}:{self._settings.ollama.port}"
 
-        self._toolLifecycle_subscriber = ToolLifecycleSubscriber("ollama")
+        self._toolLifecycle_subscriber = ToolLifecycleSubscriber(settings.llm.provider_name)
         
         logger.debug(f"Initialized OllamaProvider with host: {self._host}")
     
@@ -125,19 +127,19 @@ class OllamaProvider(LLMProvider):
         
         # Map settings to Ollama options
         settings_mapping = {
-            "num_ctx": self._settings.num_ctx,
-            "repeat_last_n": self._settings.repeat_last_n,
-            "repeat_penalty": self._settings.repeat_penalty,
-            "temperature": self._settings.temperature,
-            "seed": self._settings.seed,
-            "num_predict": self._settings.num_predict,
-            "top_k": self._settings.top_k,
-            "top_p": self._settings.top_p,
-            "min_p": self._settings.min_p,
+            "num_ctx": self._settings.ollama.num_ctx,
+            "repeat_last_n": self._settings.ollama.repeat_last_n,
+            "repeat_penalty": self._settings.ollama.repeat_penalty,
+            "temperature": self._settings.ollama.temperature,
+            "seed": self._settings.ollama.seed,
+            "num_predict": self._settings.ollama.num_predict,
+            "top_k": self._settings.ollama.top_k,
+            "top_p": self._settings.ollama.top_p,
+            "min_p": self._settings.ollama.min_p,
         }
         
-        if self._settings.stop:
-            options["stop"] = self._settings.stop
+        if self._settings.ollama.stop:
+            options["stop"] = self._settings.ollama.stop
         
         # Apply settings defaults
         for key, value in settings_mapping.items():

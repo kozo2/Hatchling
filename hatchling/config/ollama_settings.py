@@ -16,14 +16,14 @@ class OllamaSettings(BaseModel):
     """
 
     # Ollama Connection settings
-    ollama_ip: str = Field(
-        default_factory=lambda: os.environ.get("OLLAMA_IP", "localhost"),
+    ip: str = Field(
+        default_factory=lambda: os.environ.get("ip", "localhost"),
         description="IP address for the Ollama API endpoint.",
         json_schema_extra={"access_level": SettingAccessLevel.PROTECTED},
     )
 
-    ollama_port: int = Field(
-        default_factory=lambda: int(os.environ.get("OLLAMA_PORT", 11434)),
+    port: int = Field(
+        default_factory=lambda: int(os.environ.get("port", 11434)),
         description="Port for the Ollama API endpoint.",
         json_schema_extra={"access_level": SettingAccessLevel.PROTECTED},
     )
