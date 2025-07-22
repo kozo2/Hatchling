@@ -151,34 +151,40 @@ class OpenAIProvider(LLMProvider):
     def add_tools_to_payload(
         self,
         payload: Dict[str, Any],
-        tools: List[str]
+        tools: Optional[List[str]] = None
     ) -> Dict[str, Any]:
         """Add tool definitions to the OpenAI chat payload using the tool lifecycle subscriber.
         
         Args:
             payload (Dict[str, Any]): Base chat payload.
-            tools (List[str]): List of tool names.
-        
+            tools (Optional[List[str]]): List of tool names to add to the payload. If None, all available and enabled tools are added.
+                                         If provided, only the specified tools that are enabled will be added to the payload.
+
         Returns:
             Dict[str, Any]: Updated payload with tools.
         """
-        if not tools:
-            return payload
 
         openai_tools = []
         all_tools = self._toolLifecycle_subscriber.get_all_tools()
         enabled_tools = self._toolLifecycle_subscriber.get_enabled_tools()
-        for tool_name in tools:
-            if tool_name not in all_tools:
-                error_msg = f"Function definition for {tool_name} not found in tool cache"
-                logger.error(error_msg)
-                raise ValueError(error_msg)
-            if tool_name not in enabled_tools:
-                warning_msg = f"Function {tool_name} is disabled with reason: {self._toolLifecycle_subscriber.prettied_reason(all_tools[tool_name].reason)}"
-                logger.warning(warning_msg)
-                continue  # skip disabled tools
-            # OpenAI expects the provider_format to be compatible
-            openai_tools.append(enabled_tools[tool_name].provider_format)
+
+        if not tools:
+            openai_tools = [
+                tool.provider_format for tool in enabled_tools.values()
+            ]
+
+        else:
+            for tool_name in tools:
+                if tool_name not in all_tools:
+                    error_msg = f"Function definition for {tool_name} not found in tool cache"
+                    logger.error(error_msg)
+                    raise ValueError(error_msg)
+                if tool_name not in enabled_tools:
+                    warning_msg = f"Function {tool_name} is disabled with reason: {self._toolLifecycle_subscriber.prettied_reason(all_tools[tool_name].reason)}"
+                    logger.warning(warning_msg)
+                    continue  # skip disabled tools
+                # OpenAI expects the provider_format to be compatible
+                openai_tools.append(enabled_tools[tool_name].provider_format)
 
         if openai_tools:
             payload["tools"] = openai_tools

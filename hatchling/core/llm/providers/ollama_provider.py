@@ -161,40 +161,48 @@ class OllamaProvider(LLMProvider):
     def add_tools_to_payload(
         self, 
         payload: Dict[str, Any], 
-        tools: List[str]
+        tools: Optional[List[str]] = None
     ) -> Dict[str, Any]:
         """Add tool definitions to the Ollama chat payload.
         
         Args:
             payload (Dict[str, Any]): Base chat payload.
-            tools (List[str]): List of tool names.
-        
+            tools (Optional[List[str]]): Specific list of tool names to add to the payload. If None, all available and enabled tools are added.
+                                         If provided, only the specified tools that are enabled will be added to the payload.
         Returns:
             Dict[str, Any]: Updated payload with tools.
         """
-        if not tools:
-            return payload
         
         # Convert tools to Ollama format
         ollama_tools = []
         all_tools = self._toolLifecycle_subscriber.get_all_tools()
         enabled_tools = self._toolLifecycle_subscriber.get_enabled_tools()
-        for tool_name in tools:
-            # Ensure the function definition exists in the tool cache
-            if not tool_name in all_tools:
-                error_msg = f"Function definition for {tool_name} not found in tool cache"
-                logger.error(error_msg)
-                raise ValueError(error_msg)
-            
-            if not tool_name in enabled_tools:
-                warning_msg = f"Function {tool_name} is disabled with reason: {self._toolLifecycle_subscriber.prettied_reason(all_tools[tool_name].reason)}" 
-                logger.warning(warning_msg)
-                continue #skipping disabled tools
-            
-            ollama_tools.append(enabled_tools[tool_name].provider_format)
-            
-        # Add tools to payload
-        payload["tools"] = ollama_tools
+
+        # If no specific tools provided, use all enabled tools
+        if tools is None:
+            ollama_tools = [
+                tool.provider_format for tool in enabled_tools.values()
+            ]
+
+        else:
+            for tool_name in tools:
+                # Ensure the function definition exists in the tool cache
+                if not tool_name in all_tools:
+                    error_msg = f"Function definition for {tool_name} not found in tool cache"
+                    logger.error(error_msg)
+                    raise ValueError(error_msg)
+                
+                if not tool_name in enabled_tools:
+                    warning_msg = f"Function {tool_name} is disabled with reason: {self._toolLifecycle_subscriber.prettied_reason(all_tools[tool_name].reason)}" 
+                    logger.warning(warning_msg)
+                    continue #skipping disabled tools
+                
+                ollama_tools.append(enabled_tools[tool_name].provider_format)
+        
+        if ollama_tools:
+            # Add tools to payload
+            payload["tools"] = ollama_tools
+            logger.debug(f"Added {len(ollama_tools)} tools to Ollama payload")
 
         return payload
     

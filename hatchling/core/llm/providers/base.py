@@ -89,13 +89,15 @@ class LLMProvider(ABC):
     def add_tools_to_payload(
         self,
         payload: Dict[str, Any],
-        tools: List[str]
+        tools: Optional[List[str]] = None
     ) -> Dict[str, Any]:
         """Add tools to the payload in provider-specific format.
 
         Args:
             payload (Dict[str, Any]): The base payload to modify.
-            tools (List[str]): List of tool names to add to the payload.
+            tools (Optional[List[str]]): Specific list of tool names to add to the payload.
+                                         If None, all available and enabled tools are added.
+                                         Among these provided tools, only those that are enabled will be added to the payload.
 
         Returns:
             Dict[str, Any]: Modified payload with tools added in provider format.
