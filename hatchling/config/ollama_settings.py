@@ -86,5 +86,9 @@ class OllamaSettings(BaseModel):
         json_schema_extra={"access_level": SettingAccessLevel.NORMAL},
     )
 
+    @property
+    def api_url(self) -> str:
+        return f"http://{self.ip}:{self.port}"
+
     class Config:
         extra = "forbid"

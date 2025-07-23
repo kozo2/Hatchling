@@ -7,16 +7,16 @@ for the Ollama local inference server using the official ollama Python client.
 import json
 import logging
 import uuid
-from typing import Dict, Any, List, Optional, AsyncIterator, Union
+from typing import Dict, Any, List, Optional, Union
 from ollama import AsyncClient
 
 from .base import LLMProvider
 from .registry import ProviderRegistry
+from hatchling.config.settings import AppSettings
 from hatchling.core.llm.streaming_management.stream_publisher import StreamPublisher
 from hatchling.core.llm.streaming_management.stream_data import StreamEventType
 from hatchling.core.llm.streaming_management.tool_lifecycle_subscriber import ToolLifecycleSubscriber
 from hatchling.mcp_utils.manager import mcp_manager
-from hatchling.config.settings import AppSettings
 
 logger = logging.getLogger(__name__)
 
@@ -40,13 +40,9 @@ class OllamaProvider(LLMProvider):
         """
         super().__init__(settings)
         self._client: Optional[AsyncClient] = None
+        self.initialize()
         
-        # Build host URL from settings
-        self._host = f"http://{self._settings.ollama.ip}:{self._settings.ollama.port}"
-
-        self._toolLifecycle_subscriber = ToolLifecycleSubscriber(settings.llm.provider_name)
-        
-        logger.debug(f"Initialized OllamaProvider with host: {self._host}")
+        logger.debug(f"Initialized OllamaProvider with host: {self._settings.ollama.api_url}")
     
     @property
     def provider_name(self) -> str:
@@ -57,7 +53,7 @@ class OllamaProvider(LLMProvider):
         """
         return "ollama"
     
-    async def initialize(self) -> None:
+    def initialize(self) -> None:
         """Initialize the Ollama async client and verify connection.
         
         Raises:
@@ -65,15 +61,12 @@ class OllamaProvider(LLMProvider):
             ValueError: If configuration is invalid.
         """
         try:
+            self._client = AsyncClient(host=self._settings.ollama.api_url)
+            self._toolLifecycle_subscriber = ToolLifecycleSubscriber(self._settings.llm.provider_name)
             self._stream_publisher = StreamPublisher("ollama")
             mcp_manager.publisher.subscribe(self._toolLifecycle_subscriber)
-
-            self._client = AsyncClient(host=self._host)
             
-            # Test connection by checking if server is available
-            await self._client.list()  # This will raise an exception if server is unavailable
-            
-            logger.info(f"Successfully connected to Ollama server at {self._host}")
+            logger.info(f"Successfully connected to Ollama server at {self._settings.ollama.api_url}")
             
         except Exception as e:
             error_msg = f"Failed to initialize Ollama client: {str(e)}"

@@ -10,6 +10,7 @@ import logging
 from hatchling.config.settings import AppSettings
 from hatchling.core.llm.providers.base import LLMProvider
 
+logger = logging.getLogger(__name__)
 
 class ProviderRegistry:
     """Registry for managing LLM providers.
@@ -41,7 +42,7 @@ class ProviderRegistry:
                 raise ValueError(f"Provider class {provider_class.__name__} must inherit from LLMProvider")
             
             cls._providers[name] = provider_class
-            logging.getLogger(__name__).debug(f"Registered provider '{name}' -> {provider_class.__name__}")
+            logger.debug(f"Registered provider '{name}' -> {provider_class.__name__}")
             return provider_class
         return decorator
     
@@ -63,10 +64,8 @@ class ProviderRegistry:
             available = list(cls._providers.keys())
             raise ValueError(f"Unknown provider: '{name}'. Available providers: {available}")
         
-        # Create a new instance each time for now
-        # TODO: Consider caching instances if needed for performance
         instance = cls._providers[name](settings)
-        logging.getLogger(__name__).debug(f"Created provider instance: {name}")
+        logger.debug(f"Created provider instance: {name}")
         return instance
     
     @classmethod
@@ -133,4 +132,4 @@ class ProviderRegistry:
         """
         cls._providers.clear()
         cls._instances.clear()
-        logging.getLogger(__name__).debug("Cleared provider registry")
+        logger.debug("Cleared provider registry")

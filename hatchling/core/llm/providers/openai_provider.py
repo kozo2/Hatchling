@@ -40,7 +40,7 @@ class OpenAIProvider(LLMProvider):
         self._http_client: Optional[AsyncClient] = None  # for AsyncOpenAI compatibility
         self._client: Optional[AsyncOpenAI] = None
 
-        self._toolLifecycle_subscriber = ToolLifecycleSubscriber(settings.llm.provider_name)
+        self.initialize()  # Initialize the client immediately
         
         if not self._settings.openai.api_key:
             raise ValueError("OpenAI API key is required")
@@ -54,7 +54,7 @@ class OpenAIProvider(LLMProvider):
         """
         return "openai"
     
-    async def initialize(self) -> None:
+    def initialize(self) -> None:
         """Initialize the OpenAI async client and verify connection.
         
         Raises:
@@ -62,15 +62,12 @@ class OpenAIProvider(LLMProvider):
             ValueError: If API key is invalid.
         """
         try:
-            self._stream_publisher = StreamPublisher("openai")
-            mcp_manager.publisher.subscribe(self._toolLifecycle_subscriber)
-
             # Initialize OpenAI async client using settings
             client_kwargs = {
                 "api_key": self._settings.openai.api_key,
                 "timeout": self._settings.openai.timeout,
             }
-            
+
             # Add optional parameters if provided
             if self._settings.openai.api_base and self._settings.openai.api_base != "https://api.openai.com/v1":
                 client_kwargs["base_url"] = self._settings.openai.api_base
@@ -78,9 +75,11 @@ class OpenAIProvider(LLMProvider):
             self._http_client = AsyncClient(timeout=self._settings.openai.timeout)
             self._client = AsyncOpenAI(**client_kwargs, http_client=self._http_client)
             
-            # Test connection by listing models
-            await self._client.models.list()
+            self._stream_publisher = StreamPublisher("openai")
+            mcp_manager.publisher.subscribe(self._toolLifecycle_subscriber)
             
+            self._toolLifecycle_subscriber = ToolLifecycleSubscriber(self._settings.llm.provider_name)
+
             logger.info("Successfully connected to OpenAI API")
             
         except Exception as e:

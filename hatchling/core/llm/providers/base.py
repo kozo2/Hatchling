@@ -45,14 +45,13 @@ class LLMProvider(ABC):
         return self._stream_publisher    
 
     @abstractmethod
-    async def initialize(self) -> None:
-        """Initialize the provider and verify connectivity.
+    def initialize(self) -> None:
+        """Initialize the provider.
 
-        This method should perform any necessary setup and verify that the
-        provider can be used (e.g., check connectivity, validate configuration).
+        This method should perform any necessary setup.
 
         Raises:
-            Exception: If initialization fails or configuration is invalid.
+            Exception: If initialization fails.
         """
         pass
 
