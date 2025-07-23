@@ -51,24 +51,24 @@ class MCPToolExecution:
         """
         return self._stream_publisher
     
-    async def initialize_mcp(self, server_paths: List[str]) -> bool:
-        """Initialize connection to MCP servers.
+    # async def initialize_mcp(self, server_paths: List[str]) -> bool:
+    #     """Initialize connection to MCP servers.
         
-        Args:
-            server_paths (List[str]): List of paths to MCP server scripts.
+    #     Args:
+    #         server_paths (List[str]): List of paths to MCP server scripts.
             
-        Returns:
-            bool: True if connection was successful, False otherwise.
-        """
-        # Use MCPManager to initialize everything
-        self.tools_enabled = await mcp_manager.initialize(server_paths)
+    #     Returns:
+    #         bool: True if connection was successful, False otherwise.
+    #     """
+    #     # Use MCPManager to initialize everything
+    #     self.tools_enabled = await mcp_manager.initialize(server_paths)
         
-        if self.tools_enabled:
-            self.logger.info(f"Connected to MCP servers")
-        else:
-            self.logger.warning("Failed to connect to any MCP server")
+    #     if self.tools_enabled:
+    #         self.logger.info(f"Connected to MCP servers")
+    #     else:
+    #         self.logger.warning("Failed to connect to any MCP server")
             
-        return self.tools_enabled
+    #     return self.tools_enabled
 
     def reset_for_new_query(self, query: str) -> None:
         """Reset tool execution state for a new user query.
@@ -288,7 +288,11 @@ class MCPToolExecution:
                     message_tool_calls: List[Dict[str, Any]],
                     tool_results: List[Dict[str, Any]]
                     ) -> Tuple[str, List[Dict[str, Any]], List[Dict[str, Any]]]:
-        """Handle the response from the LLM API and manage tool calling chains.
+        """
+        .. deprecated:: 2025.07.21
+            This method is deprecated and will be removed in a future release.
+        
+        Handle the response from the LLM API and manage tool calling chains.
         
         Args:
             session: The http session to use for API requests.

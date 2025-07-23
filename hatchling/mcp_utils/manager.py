@@ -516,34 +516,35 @@ class MCPManager:
         """Reset the tracking of which servers were used."""
         self._used_servers_in_session.clear()
     
-    async def process_tool_calls(self, tool_calls: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
-        """Process tool calls in Ollama format.
+    # async def process_tool_calls(self, tool_calls: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+    #     """Process tool calls in Ollama format.
         
-        Args:
-            tool_calls (List[Dict[str, Any]]): List of tool calls in Ollama format.
+    #     Args:
+    #         tool_calls (List[Dict[str, Any]]): List of tool calls in Ollama format.
             
-        Returns:
-            List[Dict[str, Any]]: List of tool responses in Ollama format.
+    #     Returns:
+    #         List[Dict[str, Any]]: List of tool responses in Ollama format.
             
-        Raises:
-            ConnectionError: If MCP system is not properly initialized.
-        """
-        if not self.connected or not self._adapter:
-            raise ConnectionError("MCP system not properly initialized")
-        return await self._adapter.process_tool_calls(tool_calls, self)
+    #     Raises:
+    #         ConnectionError: If MCP system is not properly initialized.
+    #     """
+    #     if not self.connected:
+    #         raise ConnectionError("MCP system not properly initialized")
+        
+    #     raise NotImplementedError("Adapter-based tool call processing is no longer supported here.")
     
-    def stop_all_servers(self) -> None:
-        """Stop all running MCP server processes."""
-        for path, process in list(self.server_processes.items()):
-            if process.poll() is None:  # Process is still running
-                try:
-                    process.terminate()
-                    self.logger.info(f"Terminated MCP server: {path}")
-                except Exception as e:
-                    self.logger.error(f"Error terminating MCP server {path}: {e}")
+    # def stop_all_servers(self) -> None:
+    #     """Stop all running MCP server processes."""
+    #     for path, process in list(self.server_processes.items()):
+    #         if process.poll() is None:  # Process is still running
+    #             try:
+    #                 process.terminate()
+    #                 self.logger.info(f"Terminated MCP server: {path}")
+    #             except Exception as e:
+    #                 self.logger.error(f"Error terminating MCP server {path}: {e}")
             
-            # Remove from tracking
-            del self.server_processes[path]
+    #         # Remove from tracking
+    #         del self.server_processes[path]
     
     def set_hatch_environment_manager(self, env_manager: HatchEnvironmentManager) -> None:
         """Set the Hatch environment manager for Python executable resolution.

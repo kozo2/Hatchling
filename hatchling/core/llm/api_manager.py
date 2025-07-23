@@ -2,12 +2,19 @@ import json
 from typing import List, Dict, Tuple, Any
 import logging
 import aiohttp
+import warnings
 from hatchling.core.logging.logging_manager import logging_manager
 from hatchling.config.settings import AppSettings
 from hatchling.core.chat.message_history import MessageHistory
 
 class APIManager:
-    """Manages API communication with the LLM."""
+    """
+    Responsible for managing Ollama API communication.
+
+    .. deprecated:: 2025.07.21
+        This class is deprecated and will be removed in a future release.
+        Use the new MCP-Ollama integration interface instead.
+    """
     
     def __init__(self, settings: AppSettings = None):
         """Initialize the API manager.
@@ -16,9 +23,16 @@ class APIManager:
             settings (AppSettings, optional): The application settings.
                                             If None, uses the singleton instance.
         """
-        provider = settings.llm.get_active_provider()
-        model = settings.llm.get_active_model()
+        warnings.warn(
+            "OllamaMCPAdapter is deprecated and will be removed in a future release. "
+            "Use the new LLMProvider integration interface instead.",
+            DeprecationWarning,
+            stacklevel=2
+        )
+
         self.settings = settings or AppSettings.get_instance()
+        provider = self.settings.llm.provider_name()
+        model = self.settings.llm.model
         self.logger = logging_manager.get_session(
             f"APIManager-{provider}-{model}",
             formatter=logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
