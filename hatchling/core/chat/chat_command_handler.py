@@ -10,7 +10,7 @@ from typing import Tuple, Optional
 from prompt_toolkit.completion import FuzzyCompleter
 from prompt_toolkit.styles import Style
 
-from hatchling.core.logging.session_debug_log import SessionDebugLog
+from hatchling.core.logging.logging_manager import logging_manager
 
 from hatchling.core.chat.command_completion import CommandCompleter
 from hatchling.core.chat.command_lexer import ChatCommandLexer
@@ -27,7 +27,7 @@ from hatch import HatchEnvironmentManager
 
 class ChatCommandHandler:
     """Handles processing of command inputs in the chat interface."""    
-    def __init__(self, chat_session, settings_registry: SettingsRegistry, env_manager: HatchEnvironmentManager, debug_log: SessionDebugLog, style: Optional[Style] = None):
+    def __init__(self, chat_session, settings_registry: SettingsRegistry, env_manager: HatchEnvironmentManager, style: Optional[Style] = None):
         """Initialize the command handler.
         
         Args:
@@ -41,11 +41,13 @@ class ChatCommandHandler:
 
         self.settings_registry = settings_registry
         self.env_manager = env_manager
-        self.base_commands = BaseChatCommands(chat_session, settings_registry, env_manager, debug_log, style)
-        self.hatch_commands = HatchCommands(chat_session, settings_registry, env_manager, debug_log, style)
-        self.settings_commands = SettingsCommands(chat_session, settings_registry, env_manager, debug_log, style)
+        self.base_commands = BaseChatCommands(chat_session, settings_registry, env_manager, style)
+        self.hatch_commands = HatchCommands(chat_session, settings_registry, env_manager, style)
+        self.settings_commands = SettingsCommands(chat_session, settings_registry, env_manager, style)
+        self.mcp_commands = MCPCommands(chat_session, settings_registry, env_manager, style)
+        self.model_commands = ModelCommands(chat_session, settings_registry, env_manager, style)
 
-        self.logger = debug_log
+        self.logger = logging_manager.get_session("hatchling.core.chat.command_handler")
 
         self._register_commands()
     

@@ -12,8 +12,7 @@ from prompt_toolkit import print_formatted_text
 from prompt_toolkit.formatted_text import FormattedText
 from prompt_toolkit.styles import Style
 
-from hatchling.core.logging.session_debug_log import SessionDebugLog
-from hatchling.config.settings import AppSettings
+from hatchling.core.logging.logging_manager import logging_manager
 from hatchling.config.settings_registry import SettingsRegistry
 
 from hatch import HatchEnvironmentManager
@@ -27,15 +26,13 @@ class AbstractCommands(ABC):
     methods to define their specific commands and behavior.
     """
     def __init__(self, chat_session,
-                 settings_registry: SettingsRegistry, env_manager: HatchEnvironmentManager,
-                 debug_log: SessionDebugLog, style: Optional[Style] = None):
+                 settings_registry: SettingsRegistry, env_manager: HatchEnvironmentManager, style: Optional[Style] = None):
         """Initialize the command handler.
         
         Args:
             chat_session: The chat session this handler is associated with.
             settings (AppSettings): The chat settings to use.
             env_manager (HatchEnvironmentManager): The Hatch environment manager.
-            debug_log (SessionDebugLog): Logger for command operations.
             style (Optional[Style]): Style for formatting command output.
         """
         self.chat_session = chat_session
@@ -44,7 +41,7 @@ class AbstractCommands(ABC):
         self.settings = settings_registry.settings
         
         self.env_manager = env_manager
-        self.logger = debug_log
+        self.logger = logging_manager.get_session(self.__class__.__name__)
         
         # Set up styling - use provided style or create default
         self.style = style or Style.from_dict({
