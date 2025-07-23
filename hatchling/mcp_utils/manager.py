@@ -51,7 +51,7 @@ class MCPManager:
         self._settings_registry: Optional[SettingsRegistry] = None
 
         # Tool tracking
-        self._tool_client_map = {}  # Map of tool names to clients that provide them
+        self._tool_client_map: Dict[str, MCPClient] = {}  # Map of tool names to clients that provide them
 
         # Hatch server usage
         self._used_servers_in_session = set()

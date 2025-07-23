@@ -47,12 +47,13 @@ class ProviderRegistry:
         return decorator
     
     @classmethod
-    def create_provider(cls, name: str, settings: AppSettings) -> LLMProvider:
+    def create_provider(cls, name: str, settings: AppSettings = None) -> LLMProvider:
         """Create a provider instance by name.
         
         Args:
             name (str): The name of the provider to create.
-            settings (AppSettings): Application settings to pass to the provider.
+            settings (AppSettings, optional): Application settings to pass to the provider.
+                                            If None, providers will use the singleton instance.
             
         Returns:
             LLMProvider: An instance of the requested provider.
@@ -86,7 +87,8 @@ class ProviderRegistry:
         
         Args:
             name (str): The name of the provider to retrieve.
-            settings (AppSettings): Application settings to pass to the provider.
+            settings (AppSettings, optional): Application settings to pass to the provider.
+                                            If None, providers will use the singleton instance.
             
         Returns:
             LLMProvider: An instance of the requested provider.
@@ -98,8 +100,6 @@ class ProviderRegistry:
             raise ValueError(f"Provider '{name}' is not registered. Available providers: {list(cls._providers.keys())}")
 
         if name not in cls._instances:
-            if settings is None:
-                raise ValueError(f"Provider '{name}' has not yet been instantiated. Requires settings to be provided for instantiation.")
             cls._instances[name] = cls.create_provider(name, settings)
         return cls._instances[name]
     

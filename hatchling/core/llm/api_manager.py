@@ -9,15 +9,16 @@ from hatchling.core.chat.message_history import MessageHistory
 class APIManager:
     """Manages API communication with the LLM."""
     
-    def __init__(self, settings: AppSettings):
+    def __init__(self, settings: AppSettings = None):
         """Initialize the API manager.
         
         Args:
-            settings: The application settings
+            settings (AppSettings, optional): The application settings.
+                                            If None, uses the singleton instance.
         """
-        self.settings = settings
         provider = settings.llm.get_active_provider()
         model = settings.llm.get_active_model()
+        self.settings = settings or AppSettings.get_instance()
         self.logger = logging_manager.get_session(
             f"APIManager-{provider}-{model}",
             formatter=logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')

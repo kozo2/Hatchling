@@ -29,11 +29,12 @@ class OllamaProvider(LLMProvider):
     multiple model architectures available through Ollama.
     """
     
-    def __init__(self, settings: AppSettings):
-        """Initialize the Ollama provider. 
-
+    def __init__(self, settings: AppSettings = None):
+        """Initialize the Ollama provider.
+        
         Args:
-            settings (AppSettings): Application settings containing Ollama configuration.
+            settings (AppSettings, optional): Application settings containing Ollama configuration.
+                                            If None, uses the singleton instance.
 
         Raises:
             ValueError: If Ollama settings are invalid or missing required fields.

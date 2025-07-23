@@ -19,9 +19,14 @@ class LLMProvider(ABC):
     functionality and feature discovery across different LLM services.
     """
 
-    def __init__(self, settings: AppSettings):
-        """Initialize the provider with configuration."""
-        self._settings = settings
+    def __init__(self, settings: AppSettings = None):
+        """Initialize the provider with configuration.
+        
+        Args:
+            settings (AppSettings, optional): Configuration settings. 
+                                            If None, uses the singleton instance.
+        """
+        self._settings = settings or AppSettings.get_instance()
         self._stream_publisher : Optional[StreamPublisher] = None
         self._toolLifecycle_subscriber: Optional[ToolLifecycleSubscriber] = None
 

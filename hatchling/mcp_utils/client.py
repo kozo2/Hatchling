@@ -12,11 +12,12 @@ from hatchling.config.settings import AppSettings
 
 class MCPClient:
     """Client for MCP servers that manages connections and tool execution."""
-    def __init__(self, settings: AppSettings, python_executable_resolver: Optional[Callable[[], str]] = None):
+    def __init__(self, settings: AppSettings = None, python_executable_resolver: Optional[Callable[[], str]] = None):
         """Initialize the MCP client.
         
         Args:
-            settings (AppSettings): The application settings instance.
+            settings (AppSettings, optional): The application settings instance.
+                                            If None, uses the singleton instance.
             python_executable_resolver (Callable[[], str], optional): Function to resolve the Python executable
                 for the current environment. If None, defaults to "python".
         """
@@ -30,7 +31,7 @@ class MCPClient:
         self.write = None
 
         # Store settings
-        self.settings = settings
+        self.settings = settings or AppSettings.get_instance()
         
         # Python executable resolution
         self._python_executable_resolver = python_executable_resolver

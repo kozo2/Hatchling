@@ -16,13 +16,10 @@ from hatchling.config.settings import AppSettings
 class ToolExecutionManager:
     """Manages tool execution and tool calling chains."""
     
-    def __init__(self, settings: AppSettings):
         """Initialize the tool execution manager.
         
         Args:
-            settings (AppSettings): The application settings.
         """
-        self.settings = settings
         provider = settings.llm.get_active_provider()
         model = settings.llm.get_active_model()
         self.logger = logging_manager.get_session(

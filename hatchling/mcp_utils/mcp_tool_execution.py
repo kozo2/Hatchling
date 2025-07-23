@@ -19,22 +19,21 @@ from hatchling.core.llm.streaming_management import StreamPublisher, StreamEvent
 class MCPToolExecution:
     """Manages tool execution and tool calling chains with event publishing."""
     
-    def __init__(self, settings: AppSettings):
+    def __init__(self, settings: AppSettings = None):
         """Initialize the MCP tool execution manager.
         
         Args:
-            settings (AppSettings): The application settings.
+            settings (AppSettings, optional): The application settings.
+                                            If None, uses the singleton instance.
         """
-        self.settings = settings
-        provider = settings.llm.get_active_provider()
-        model = settings.llm.model
+        self.settings = settings or AppSettings.get_instance()
         self.logger = logging_manager.get_session(
-            f"MCPToolExecution-{provider}-{model}",
+            f"MCPToolExecution-{self.settings.llm.provider_name}-{self.settings.llm.model}",
             formatter=logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
         )
         
         # Initialize event publisher
-        self._stream_publisher = StreamPublisher(f"MCPToolExecution-{provider}-{model}")
+        self._stream_publisher = StreamPublisher(self.settings.llm.provider_enum)
         
         self.tools_enabled = False
         

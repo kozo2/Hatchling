@@ -29,10 +29,13 @@ class OpenAIProvider(LLMProvider):
     It supports streaming responses, tool calling, and all OpenAI chat models.
     """
     
-    def __init__(self, settings: AppSettings):
+    def __init__(self, settings: AppSettings = None):
         """Initialize the OpenAI provider.
+        
         Args:
-            settings (AppSettings): Application settings containing OpenAI configuration.
+            settings (AppSettings, optional): Application settings containing OpenAI configuration.
+                                            If None, uses the singleton instance.
+        
         Raises:
             ValueError: If OpenAI API key is not provided in settings.
         """
