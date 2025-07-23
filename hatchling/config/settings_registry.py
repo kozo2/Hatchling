@@ -404,8 +404,18 @@ class SettingsRegistry:
         # if value is "None" (as a string), convert it to None
         if isinstance(value, str) and value.lower() == "none":
             value = None
-        category_dict[name] = value
+
+        # Convert to Enum if needed
+        field_info = type(category_model).model_fields[name]
+        field_type = field_info.annotation
+        import enum
+        if isinstance(field_type, type) and issubclass(field_type, enum.Enum) and value is not None:
+            if not isinstance(value, field_type):
+                self.logger.info(f"Converting value '{value}' to enum {field_type.__name__}")
+                value = field_type(value)
         
+        category_dict[name] = value
+
         # This will raise ValidationError if the value is invalid
         new_category_model = type(category_model)(**category_dict)
         
