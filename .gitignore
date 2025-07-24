@@ -7,6 +7,9 @@ __logs__/
 .vscode/
 *.code-workspace
 
+# env file sample
+**.env
+
 # Python
 __pycache__/
 *.py[cod]
@@ -43,9 +46,7 @@ coverage.xml
 *.ipynb_checkpoints
 *.pyc
 
-# env file sample
-.env.*
-**/.env
+
 
 # Docker
 *.dockerfile
