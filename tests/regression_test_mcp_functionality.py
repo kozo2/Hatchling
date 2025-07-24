@@ -157,17 +157,18 @@ class TestMCPManagerRegressionTests(unittest.TestCase):
         self.manager.reset_session_tracking()
         self.assertEqual(len(self.manager._used_servers_in_session), 0)
     
-    def test_ollama_adapter_integration_still_works(self):
-        """Test that Ollama adapter integration still works."""
-        # Should have adapter attribute
-        self.assertTrue(hasattr(self.manager, '_adapter'))
+    def test_tool_management_integration_still_works(self):
+        """Test that tool management integration still works."""
+        # Should have mcp_tools property
+        self.assertTrue(hasattr(self.manager, 'mcp_tools'))
         
-        # Should have get_ollama_tools method
-        self.assertTrue(hasattr(self.manager, 'get_ollama_tools'))
+        # Should have tool tracking methods
+        self.assertTrue(hasattr(self.manager, 'enable_tool'))
+        self.assertTrue(hasattr(self.manager, 'disable_tool'))
         
-        # Test calling get_ollama_tools when not connected
-        tools = self.manager.get_ollama_tools()
-        self.assertIsInstance(tools, list)
+        # Test accessing mcp_tools when not connected
+        tools = self.manager.mcp_tools
+        self.assertIsInstance(tools, dict)
         self.assertEqual(len(tools), 0)  # Should be empty when not connected
     
     def test_async_methods_still_exist(self):
@@ -178,7 +179,6 @@ class TestMCPManagerRegressionTests(unittest.TestCase):
             'connect_to_servers',
             'disconnect_all',
             'execute_tool',
-            'process_tool_calls',
             'get_citations_for_session'
         ]
         

@@ -76,7 +76,7 @@ class TestEnhancedMCPManagerEventPublishing(unittest.TestCase):
         """Test that publisher property is accessible."""
         publisher = self.manager.publisher
         self.assertIsNotNone(publisher)
-        self.assertEqual(publisher.provider_name, "mcp_manager")
+        self.assertEqual(publisher.provider, "mcp_manager")
     
     def test_server_event_publishing_methods(self):
         """Test server event publishing helper methods."""
@@ -136,11 +136,11 @@ class TestEnhancedMCPManagerEventPublishing(unittest.TestCase):
         
         self.assertEqual(event.type, StreamEventType.MCP_TOOL_ENABLED)
         self.assertEqual(event.data["tool_name"], "test_tool")
-        self.assertEqual(event.data["tool_description"], "A test tool")
-        self.assertEqual(event.data["server_path"], "/path/to/server.py")
-        self.assertEqual(event.data["status"], "enabled")
-        self.assertEqual(event.data["reason"], "server_up")
-    
+        self.assertEqual(event.data["mcp_tool_info"].description, "A test tool")
+        self.assertEqual(event.data["mcp_tool_info"].server_path, "/path/to/server.py")
+        self.assertEqual(event.data["mcp_tool_info"].status.value, "enabled")
+        self.assertEqual(event.data["mcp_tool_info"].reason.value, "server_up")
+
     def test_tool_enable_disable_functionality(self):
         """Test tool enable/disable functionality with events."""
         # First, manually add a tool to managed tools

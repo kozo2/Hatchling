@@ -23,7 +23,7 @@ class MockAppSettings:
     
     def __init__(self):
         self.llm = MagicMock()
-        self.llm.get_active_provider.return_value = "openai"
+        self.llm.provider_name.return_value = "openai"
         self.llm.get_active_model.return_value = "gpt-4"
         self.tool_calling = MagicMock()
         self.tool_calling.max_iterations = 5
@@ -38,7 +38,7 @@ class TestToolExecutionRegression(unittest.TestCase):
         self.mock_settings = MockAppSettings()
         
         # Mock the logging manager to avoid file system dependencies
-        with patch('hatchling.core.llm.mcp_tool_execution.logging_manager') as mock_logging:
+        with patch('hatchling.mcp_utils.mcp_tool_execution.logging_manager') as mock_logging:
             mock_logging.get_session.return_value = logging.getLogger("test")
             self.tool_execution = MCPToolExecution(self.mock_settings)
     
@@ -52,35 +52,29 @@ class TestToolExecutionRegression(unittest.TestCase):
         self.assertTrue(hasattr(self.tool_execution, 'tool_call_start_time'))
         self.assertTrue(hasattr(self.tool_execution, 'root_tool_query'))
     
-    def test_initialize_mcp_method_still_works(self):
-        """Test that initialize_mcp method still works as expected."""
-        self.assertTrue(hasattr(self.tool_execution, 'initialize_mcp'))
-        self.assertTrue(callable(getattr(self.tool_execution, 'initialize_mcp')))
+    def test_mcp_manager_integration_still_works(self):
+        """Test that MCP manager integration still works as expected."""
+        # MCPToolExecution should still integrate with mcp_manager for tool execution
+        self.assertTrue(hasattr(self.tool_execution, 'execute_tool'))
+        self.assertTrue(asyncio.iscoroutinefunction(self.tool_execution.execute_tool))
         
-        # Test method signature (should be async)
-        method = getattr(self.tool_execution, 'initialize_mcp')
+        # The core execute_tool method should still exist and be functional
+        method = getattr(self.tool_execution, 'execute_tool')
         self.assertTrue(asyncio.iscoroutinefunction(method))
     
-    def test_get_tools_for_payload_method_still_works(self):
-        """Test that get_tools_for_payload method still works."""
-        self.assertTrue(hasattr(self.tool_execution, 'get_tools_for_payload'))
-        self.assertTrue(callable(getattr(self.tool_execution, 'get_tools_for_payload')))
+    def test_tool_execution_workflow_still_works(self):
+        """Test that tool execution workflow still works."""
+        # Should have the core tool execution methods
+        self.assertTrue(hasattr(self.tool_execution, 'execute_tool'))
+        self.assertTrue(hasattr(self.tool_execution, 'process_tool_call'))
         
-        # Mock mcp_manager to return some tools
-        with patch('hatchling.core.llm.mcp_tool_execution.mcp_manager') as mock_mcp:
-            mock_tools = [
-                {"type": "function", "function": {"name": "test_func", "description": "Test function"}}
-            ]
-            mock_mcp.get_ollama_tools.return_value = mock_tools
-            
-            # Test OpenAI provider format
-            self.mock_settings.llm.get_active_provider.return_value = "openai"
-            result = self.tool_execution.get_tools_for_payload()
-            
-            # Should return OpenAI format (list of functions)
-            self.assertIsInstance(result, list)
-            if len(result) > 0:
-                self.assertIn("name", result[0])
+        # Both should be async methods
+        self.assertTrue(asyncio.iscoroutinefunction(self.tool_execution.execute_tool))
+        self.assertTrue(asyncio.iscoroutinefunction(self.tool_execution.process_tool_call))
+        
+        # Should support tool call handling
+        self.assertTrue(hasattr(self.tool_execution, 'handle_streaming_tool_calls'))
+        self.assertTrue(asyncio.iscoroutinefunction(self.tool_execution.handle_streaming_tool_calls))
     
     def test_reset_for_new_query_method_still_works(self):
         """Test that reset_for_new_query method still works."""
@@ -213,10 +207,11 @@ class TestToolExecutionRegression(unittest.TestCase):
         self.assertEqual(self.tool_execution.settings, self.mock_settings)
         
         # Test that provider detection still works through settings
-        provider = self.tool_execution.settings.llm.get_active_provider()
+        provider = self.tool_execution.settings.llm.provider_name()
         self.assertEqual(provider, "openai")  # From our mock
         
-        model = self.tool_execution.settings.llm.model
+        # Fix the model access for mock
+        model = self.tool_execution.settings.llm.get_active_model()
         self.assertEqual(model, "gpt-4")  # From our mock
     
     def test_new_stream_publisher_doesnt_break_existing_functionality(self):

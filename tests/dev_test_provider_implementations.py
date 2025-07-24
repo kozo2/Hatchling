@@ -56,8 +56,8 @@ class TestProviderImplementations(unittest.TestCase):
         mock_async_client.return_value = mock_client_instance
 
         settings = OllamaSettings(
-            ollama_ip="localhost",
-            ollama_port=11434,
+            ip="localhost",
+            port=11434,
             model="llama3.2",
             timeout=30.0,
         )
@@ -66,7 +66,7 @@ class TestProviderImplementations(unittest.TestCase):
         
         # Test properties
         self.assertEqual(provider.provider_name, "ollama")
-        self.assertEqual(provider._host, f"http://{settings.ollama_ip}:{settings.ollama_port}")
+        self.assertEqual(provider._host, f"http://{settings.ip}:{settings.port}")
         self.assertEqual(provider._default_model, "llama2")
         self.assertEqual(provider._timeout, 30.0)
     

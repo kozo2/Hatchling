@@ -31,7 +31,7 @@ class MockAppSettings:
     
     def __init__(self):
         self.llm = MagicMock()
-        self.llm.get_active_provider.return_value = "openai"
+        self.llm.provider_name.return_value = "openai"
         self.llm.get_active_model.return_value = "gpt-4"
         self.tool_calling = MagicMock()
         self.tool_calling.max_iterations = 5
@@ -76,7 +76,7 @@ class TestMCPToolExecution(AsyncTestCase):
         self.mock_settings = MockAppSettings()
         
         # Mock the logging manager to avoid file system dependencies
-        with patch('hatchling.core.llm.mcp_tool_execution.logging_manager') as mock_logging:
+        with patch('hatchling.mcp_utils.mcp_tool_execution.logging_manager') as mock_logging:
             mock_logging.get_session.return_value = logging.getLogger("test")
             self.tool_execution = MCPToolExecution(self.mock_settings)
         
@@ -123,13 +123,13 @@ class TestMCPToolExecution(AsyncTestCase):
         self.assertEqual(self.tool_execution.root_tool_query, test_query)
         self.assertIsNotNone(self.tool_execution.tool_call_start_time)
     
-    @patch('hatchling.core.llm.mcp_tool_execution.mcp_manager')
+    @patch('hatchling.mcp_utils.mcp_tool_execution.mcp_manager')
     def test_execute_tool_success_with_events(self, mock_mcp_manager):
         """Test successful tool execution with event publishing."""
         async def async_test():
             # Mock MCP manager response (make it async)
             mock_response = {"content": '{"result": "success", "value": 42}'}
-            mock_mcp_manager.process_tool_calls = AsyncMock(return_value=[mock_response])
+            mock_mcp_manager.execute_tool = AsyncMock(return_value=[mock_response])
             
             # Execute tool
             result = await self.tool_execution.execute_tool(
@@ -165,12 +165,12 @@ class TestMCPToolExecution(AsyncTestCase):
         
         self.run_async(async_test())
     
-    @patch('hatchling.core.llm.mcp_tool_execution.mcp_manager')
+    @patch('hatchling.mcp_utils.mcp_tool_execution.mcp_manager')
     def test_execute_tool_failure_with_error_event(self, mock_mcp_manager):
         """Test tool execution failure with error event publishing."""
         async def async_test():
             # Mock MCP manager to raise an exception
-            mock_mcp_manager.process_tool_calls = AsyncMock(side_effect=Exception("Test error"))
+            mock_mcp_manager.execute_tool = AsyncMock(side_effect=Exception("Test error"))
             
             # Execute tool
             result = await self.tool_execution.execute_tool(
@@ -192,12 +192,12 @@ class TestMCPToolExecution(AsyncTestCase):
         
         self.run_async(async_test())
     
-    @patch('hatchling.core.llm.mcp_tool_execution.mcp_manager')
+    @patch('hatchling.mcp_utils.mcp_tool_execution.mcp_manager')
     def test_execute_tool_no_response_with_error_event(self, mock_mcp_manager):
         """Test tool execution with no response and error event."""
         async def async_test():
             # Mock MCP manager to return empty response (make it async)
-            mock_mcp_manager.process_tool_calls = AsyncMock(return_value=[])
+            mock_mcp_manager.execute_tool = AsyncMock(return_value=[])
             
             # Execute tool
             result = await self.tool_execution.execute_tool(
@@ -292,15 +292,18 @@ class TestMCPToolCallSubscriber(unittest.TestCase):
     
     def test_handle_tool_call_event(self):
         """Test handling of TOOL_CALL events."""
-        # Create test event
+        # Create test event in OpenAI format
         test_event = StreamEvent(
             type=StreamEventType.TOOL_CALL,
             data={
-                "tool_id": "test_call_123",
-                "function_name": "test_function",
-                "arguments": {"param1": "value1", "param2": 42}
+                "id": "test_call_123",
+                "type": "function",
+                "function": {
+                    "name": "test_function",
+                    "arguments": '{"param1": "value1", "param2": 42}'
+                }
             },
-            provider="test_provider"
+            provider=ELLMProvider.OPENAI, #example provider
         )
         
         # Handle the event
@@ -315,7 +318,6 @@ class TestMCPToolCallSubscriber(unittest.TestCase):
         self.assertEqual(dispatched_event.data["tool_id"], "test_call_123")
         self.assertEqual(dispatched_event.data["function_name"], "test_function")
         self.assertEqual(dispatched_event.data["arguments"], {"param1": "value1", "param2": 42})
-        self.assertEqual(dispatched_event.data["dispatched_by"], "MCPToolCallSubscriber")
     
     def test_handle_unexpected_event_type(self):
         """Test handling of unexpected event types."""
@@ -323,7 +325,7 @@ class TestMCPToolCallSubscriber(unittest.TestCase):
         test_event = StreamEvent(
             type=StreamEventType.CONTENT,
             data={"content": "test content"},
-            provider="test_provider"
+            provider=ELLMProvider.OPENAI, #example provider
         )
         
         # Capture log output
@@ -335,24 +337,26 @@ class TestMCPToolCallSubscriber(unittest.TestCase):
     
     def test_handle_tool_call_with_error(self):
         """Test error handling during tool call processing."""
-        # Create event with missing data
+        # Create event with data that will cause parsing to fail by passing wrong provider
         test_event = StreamEvent(
             type=StreamEventType.TOOL_CALL,
-            data={},  # Missing required fields
-            provider="test_provider"
+            data={
+                "id": "test_call_error",
+                "function": {
+                    "name": "test_function",
+                    "arguments": '{"param": "value"}'
+                }
+            },
+            provider=ELLMProvider.OLLAMA,  # Wrong provider for OpenAI-format data
         )
         
-        # Handle the event
+        # Handle the event - should cause parsing error due to provider mismatch
         self.subscriber.on_event(test_event)
         
-        # Should still publish a dispatched event with default values
+        # No dispatched events should be published due to parsing error
         events = self.event_collector.events
         dispatched_events = [e for e in events if e.type == StreamEventType.TOOL_CALL_DISPATCHED]
-        self.assertEqual(len(dispatched_events), 1)
-        
-        dispatched_event = dispatched_events[0]
-        self.assertEqual(dispatched_event.data["tool_id"], "unknown")
-        self.assertEqual(dispatched_event.data["function_name"], "")
+        self.assertEqual(len(dispatched_events), 0)
 
 def run_enhanced_tool_execution_tests():
     """Run all enhanced tool execution tests.

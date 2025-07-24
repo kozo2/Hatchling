@@ -52,7 +52,7 @@ class TestToolLifecycleManagement(unittest.TestCase):
     def setUp(self):
         """Set up test fixtures before each test method."""
         MCPToolAdapterRegistry.register("test_provider")
-        MCPToolAdapterRegistry.create_adapter("test_provider")
+        MCPToolAdapterRegistry.get_adapter("test_provider")
         self.publisher = StreamPublisher("test_provider")
         self.lifecycle_subscriber = ToolLifecycleSubscriber("test_provider")
         self.publisher.subscribe(self.lifecycle_subscriber)
@@ -347,11 +347,11 @@ class TestToolAdapters(unittest.TestCase):
             self.assertIn(provider, MCPToolAdapterRegistry.list_adapters())
             
             # Create adapters using the registry
-            adapter = MCPToolAdapterRegistry.create_adapter(provider)
+            adapter = MCPToolAdapterRegistry.get_adapter(provider)
             self.assertIsInstance(adapter, BaseMCPToolAdapter)
 
             # Check that getting the same adapter returns the same instance
-            same_adapter = MCPToolAdapterRegistry.get_adapter_instance(provider)
+            same_adapter = MCPToolAdapterRegistry.get_adapter(provider)
             self.assertEqual(adapter, same_adapter)
             
             # Test converting a tool with both adapters

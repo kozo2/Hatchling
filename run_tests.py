@@ -197,12 +197,14 @@ def run_feature_tests():
 def main():
     """Main test runner function."""
     parser = argparse.ArgumentParser(description="Run Hatchling settings tests")
-    parser.add_argument("--development", action="store_true", 
+    parser.add_argument("--development", "--dev", action="store_true", 
                        help="Run development tests")
     parser.add_argument("--regression", action="store_true",
                        help="Run regression tests")
     parser.add_argument("--feature", action="store_true",
                        help="Run feature tests")
+    parser.add_argument("--integration", action="store_true",
+                       help="Run integration tests")
     parser.add_argument("--phase", type=int,
                        help="Run development tests for specific phase only")
     parser.add_argument("--all", action="store_true",
