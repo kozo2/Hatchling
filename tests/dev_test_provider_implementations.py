@@ -21,6 +21,7 @@ from hatchling.core.llm.providers import (
     ProviderRegistry
 )
 from hatchling.config.settings import OllamaSettings, OpenAISettings
+from hatchling.config.llm_settings import ELLMProvider
 from hatchling.core.llm.providers.ollama_provider import OllamaProvider
 from hatchling.core.llm.providers.openai_provider import OpenAIProvider
 
@@ -37,9 +38,9 @@ class TestProviderImplementations(unittest.TestCase):
         from hatchling.core.llm.providers.ollama_provider import OllamaProvider
         
         # Check registration
-        self.assertIn("ollama", ProviderRegistry._providers)
-        self.assertEqual(ProviderRegistry._providers["ollama"], OllamaProvider)
-    
+        self.assertIn(ELLMProvider.OLLAMA, ProviderRegistry._providers)
+        self.assertEqual(ProviderRegistry._providers[ELLMProvider.OLLAMA], OllamaProvider)
+
     def test_openai_provider_registration(self):
         """Test that OpenAIProvider registers correctly."""  
         # Import should trigger registration
@@ -304,13 +305,13 @@ class TestProviderImplementations(unittest.TestCase):
         # Test Ollama provider creation
         with patch('hatchling.core.llm.providers.ollama_provider.AsyncClient'):
             settings = OllamaSettings(model="llama2")
-            ollama_provider = ProviderRegistry.create_provider("ollama", settings)
+            ollama_provider = ProviderRegistry.create_provider(ELLMProvider.OLLAMA, settings)
             self.assertIsInstance(ollama_provider, OllamaProvider)
             self.assertEqual(ollama_provider.provider_name, "ollama")
 
         # Test OpenAI provider creation
         settings = OpenAISettings(api_key="test-key", model="gpt-4")
-        openai_provider = ProviderRegistry.create_provider("openai", settings)
+        openai_provider = ProviderRegistry.create_provider(ELLMProvider.OPENAI, settings)
         self.assertIsInstance(openai_provider, OpenAIProvider)
         self.assertEqual(openai_provider.provider_name, "openai")
     

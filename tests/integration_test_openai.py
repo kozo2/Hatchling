@@ -146,15 +146,15 @@ class TestOpenAIProviderIntegration(unittest.TestCase):
 
     def test_provider_registration(self):
         """Test that OpenAIProvider is properly registered."""
-        self.assertIn("openai", ProviderRegistry.list_providers())
-        provider_class = ProviderRegistry.get_provider_class("openai")
+        self.assertIn(ELLMProvider.OPENAI, ProviderRegistry.list_providers())
+        provider_class = ProviderRegistry.get_provider_class(ELLMProvider.OPENAI)
         self.assertEqual(provider_class, OpenAIProvider)
 
     async def async_test_provider_initialization(self):
         """Test provider initialization with real API connection."""
         api_key = os.environ.get('OPENAI_API_KEY')
         settings = OpenAISettings(api_key=api_key, timeout=30.0)
-        provider = ProviderRegistry.create_provider("openai", settings)
+        provider = ProviderRegistry.create_provider(ELLMProvider.OPENAI, settings)
         self.assertIsInstance(provider, OpenAIProvider)
         
         # Test initialization
@@ -248,7 +248,7 @@ class TestOpenAIProviderIntegration(unittest.TestCase):
         self.provider._toolLifecycle_subscriber = tls
         tool_call_subscriber = TestStreamToolCallSubscriber()
         self.provider.publisher.subscribe(tool_call_subscriber)
-        mcp_activity_mock_publisher = StreamPublisher("openai")
+        mcp_activity_mock_publisher = StreamPublisher(ELLMProvider.OPENAI)
         mcp_activity_mock_publisher.subscribe(tls)
         mcp_activity_mock_publisher.publish(StreamEventType.MCP_TOOL_ENABLED, event.data)
 

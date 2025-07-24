@@ -63,7 +63,7 @@ class TestOllamaProviderSync(unittest.TestCase):
         
         try:
             # Create adapter and get provider
-            self.provider = ProviderRegistry.get_provider("ollama")
+            self.provider = ProviderRegistry.get_provider(ELLMProvider.OLLAMA)
 
             # Not checking health because the method is async
             # health = self.provider.check_health()
@@ -83,8 +83,8 @@ class TestOllamaProviderSync(unittest.TestCase):
     
     def test_provider_registration(self):
         """Test that OllamaProvider is properly registered."""
-        self.assertIn("ollama", ProviderRegistry.list_providers())
-        provider_class = ProviderRegistry.get_provider_class("ollama")
+        self.assertIn(ELLMProvider.OLLAMA, ProviderRegistry.list_providers())
+        provider_class = ProviderRegistry.get_provider_class(ELLMProvider.OLLAMA)
         self.assertEqual(provider_class, OllamaProvider)
 
     def test_provider_initialization(self):
@@ -202,7 +202,7 @@ class TestOllamaProviderIntegration(unittest.IsolatedAsyncioTestCase):
         
         try:
             # Create adapter and get provider
-            self.provider = ProviderRegistry.get_provider("ollama")
+            self.provider = ProviderRegistry.get_provider(ELLMProvider.OLLAMA)
 
             # Try to check health
             health = await self.provider.check_health()

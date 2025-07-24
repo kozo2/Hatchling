@@ -265,7 +265,7 @@ class TestMCPToolCallSubscriber(unittest.TestCase):
         
         # Mock the tool execution
         self.mock_tool_execution = MagicMock()
-        self.mock_tool_execution.stream_publisher = StreamPublisher("test_publisher")
+        self.mock_tool_execution.stream_publisher = StreamPublisher(ELLMProvider.OPENAI)  # Use OpenAI as an example provider
         
         # Create subscriber
         self.subscriber = MCPToolCallSubscriber(self.mock_tool_execution)

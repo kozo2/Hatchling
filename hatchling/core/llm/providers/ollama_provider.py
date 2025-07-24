@@ -13,6 +13,7 @@ from ollama import AsyncClient
 from .base import LLMProvider
 from .registry import ProviderRegistry
 from hatchling.config.settings import AppSettings
+from hatchling.config.llm_settings import ELLMProvider
 from hatchling.core.llm.streaming_management.stream_publisher import StreamPublisher
 from hatchling.core.llm.streaming_management.stream_data import StreamEventType
 from hatchling.core.llm.streaming_management.tool_lifecycle_subscriber import ToolLifecycleSubscriber
@@ -20,7 +21,7 @@ from hatchling.mcp_utils.manager import mcp_manager
 
 logger = logging.getLogger(__name__)
 
-@ProviderRegistry.register("ollama")
+@ProviderRegistry.register(ELLMProvider.OLLAMA)
 class OllamaProvider(LLMProvider):
     """Ollama provider for local LLM inference.
     
@@ -50,9 +51,9 @@ class OllamaProvider(LLMProvider):
         """Return the provider name.
         
         Returns:
-            str: The provider name "ollama".
+            str: The provider name "ollama" (from ELLMProvider enum).
         """
-        return "ollama"
+        return ELLMProvider.OLLAMA.value
     
     def initialize(self) -> None:
         """Initialize the Ollama async client and verify connection.
@@ -63,8 +64,8 @@ class OllamaProvider(LLMProvider):
         """
         try:
             self._client = AsyncClient(host=self._settings.ollama.api_url)
-            self._toolLifecycle_subscriber = ToolLifecycleSubscriber(self._settings.llm.provider_name)
-            self._stream_publisher = StreamPublisher("ollama")
+            self._toolLifecycle_subscriber = ToolLifecycleSubscriber(ELLMProvider.OLLAMA.value)
+            self._stream_publisher = StreamPublisher(ELLMProvider.OLLAMA)
             mcp_manager.publisher.subscribe(self._toolLifecycle_subscriber)
             
             logger.info(f"Successfully connected to Ollama server at {self._settings.ollama.api_url}")

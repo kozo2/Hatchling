@@ -13,15 +13,16 @@ from openai import AsyncOpenAI
 
 from .base import LLMProvider
 from .registry import ProviderRegistry
+from hatchling.config.settings import AppSettings
+from hatchling.config.llm_settings import ELLMProvider
 from hatchling.mcp_utils import mcp_manager
 from hatchling.core.llm.streaming_management import StreamPublisher, StreamEventType
 from hatchling.core.llm.streaming_management.tool_lifecycle_subscriber import ToolLifecycleSubscriber
-from hatchling.config.settings import AppSettings
 
 logger = logging.getLogger(__name__)
 
 
-@ProviderRegistry.register("openai")
+@ProviderRegistry.register(ELLMProvider.OPENAI)
 class OpenAIProvider(LLMProvider):
     """OpenAI provider for ChatGPT and GPT models.
     
@@ -55,7 +56,7 @@ class OpenAIProvider(LLMProvider):
         Returns:
             str: The provider name "openai".
         """
-        return "openai"
+        return ELLMProvider.OPENAI.value
     
     def initialize(self) -> None:
         """Initialize the OpenAI async client and verify connection.
@@ -77,8 +78,8 @@ class OpenAIProvider(LLMProvider):
             
             self._http_client = AsyncClient(timeout=self._settings.openai.timeout)
             self._client = AsyncOpenAI(**client_kwargs, http_client=self._http_client)
-            
-            self._stream_publisher = StreamPublisher("openai")
+
+            self._stream_publisher = StreamPublisher(ELLMProvider.OPENAI)
             mcp_manager.publisher.subscribe(self._toolLifecycle_subscriber)
             
             self._toolLifecycle_subscriber = ToolLifecycleSubscriber(self._settings.llm.provider_name)
