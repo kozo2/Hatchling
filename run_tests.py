@@ -194,6 +194,42 @@ def run_feature_tests():
     return True
 
 
+def run_integration_tests():
+    """Run integration tests for command system and tool call flow."""
+    logger.info("Running integration tests...")
+    success = True
+    
+    # Command System Integration tests
+    logger.info("Running Command System integration tests...")
+    try:
+        from tests.integration_test_command_system import run_command_system_integration_tests
+        if not run_command_system_integration_tests():
+            logger.error("Command System integration tests failed")
+            success = False
+    except ImportError as e:
+        logger.error(f"Could not import Command System integration tests: {e}")
+        success = False
+    except Exception as e:
+        logger.error(f"Command System integration tests failed: {e}")
+        success = False
+    
+    # Tool Call Flow Integration tests  
+    logger.info("Running Tool Call Flow integration tests...")
+    try:
+        from tests.integration_test_tool_call_flow import run_tool_call_flow_integration_tests
+        if not run_tool_call_flow_integration_tests():
+            logger.error("Tool Call Flow integration tests failed")
+            success = False
+    except ImportError as e:
+        logger.error(f"Could not import Tool Call Flow integration tests: {e}")
+        success = False
+    except Exception as e:
+        logger.error(f"Tool Call Flow integration tests failed: {e}")
+        success = False
+    
+    return success
+
+
 def main():
     """Main test runner function."""
     parser = argparse.ArgumentParser(description="Run Hatchling settings tests")
@@ -213,7 +249,7 @@ def main():
     args = parser.parse_args()
     
     # If no specific test type is specified, run all
-    if not any([args.development, args.regression, args.feature, args.all]):
+    if not any([args.development, args.regression, args.feature, args.integration, args.all]):
         args.all = True
     
     success = True
@@ -230,6 +266,13 @@ def main():
         logger.info("REGRESSION TESTS")
         logger.info("=" * 50)
         if not run_regression_tests():
+            success = False
+    
+    if args.all or args.integration:
+        logger.info("=" * 50)
+        logger.info("INTEGRATION TESTS")
+        logger.info("=" * 50)
+        if not run_integration_tests():
             success = False
     
     if args.all or args.feature:
