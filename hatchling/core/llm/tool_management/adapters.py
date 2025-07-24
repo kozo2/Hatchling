@@ -105,18 +105,26 @@ class MCPToolAdapterRegistry:
         instance = cls._adapters[name](name)
         cls._instances[name] = instance
         return instance
-    
+
     @classmethod
-    def get_adapter_instance(cls, name: str) -> Optional[BaseMCPToolAdapter]:
-        """Get an existing adapter instance by name.
-        
+    def get_adapter(cls, name: str) -> Optional[BaseMCPToolAdapter]:
+        """Get the adapter instance for a given name.
+
         Args:
             name (str): The name of the provider to get the adapter for.
             
         Returns:
             Optional[BaseMCPToolAdapter]: The adapter instance, or None if not found.
+
+        Raises:
+            ValueError: If the adapter is not registered.
         """
-        return cls._instances.get(name)
+        if name not in cls._adapters:
+            raise ValueError(f"Adapter '{name}' is not registered. Available adapters: {list(cls._adapters.keys())}")
+        
+        if name not in cls._instances:
+            cls._instances[name] = cls.create_adapter(name)
+        return cls._instances[name]
 
     @classmethod
     def list_adapters(cls) -> List[str]:

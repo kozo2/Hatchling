@@ -24,7 +24,7 @@ class ToolLifecycleSubscriber(StreamSubscriber):
         """
         self.provider_name = provider_name
         self._tool_cache: Dict[str, MCPToolInfo] = {}
-        self._mcp_tool_adapter = MCPToolAdapterRegistry.get_adapter_instance(provider_name)
+        self._mcp_tool_adapter = MCPToolAdapterRegistry.get_adapter(provider_name)
         self.logger = logging.getLogger(f"{self.__class__.__name__}[{provider_name}]")
     
     def on_event(self, event: StreamEvent) -> None:
