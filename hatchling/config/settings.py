@@ -8,7 +8,7 @@ from enum import Enum
 from typing import Optional
 
 from pydantic import BaseModel, Field
-from .llm_settings import LLMSettings
+from .llm_settings import LLMSettings, ELLMProvider
 from .openai_settings import OpenAISettings
 from .ollama_settings import OllamaSettings
 from .path_settings import PathSettings
@@ -78,6 +78,16 @@ class AppSettings(BaseModel):
         global _app_settings_instance
         with _app_settings_lock:
             _app_settings_instance = None
+
+    @property
+    def api_base(self) -> str:
+        """Get the base API URL for the configured LLM provider."""
+        if self.llm.provider_enum == ELLMProvider.OPENAI:
+            return self.openai.api_base
+        elif self.llm.provider_enum == ELLMProvider.OLLAMA:
+            return self.ollama.api_base
+        else:
+            raise ValueError(f"Unsupported LLM provider: {self.llm.provider_enum}")
     
     class Config:
         extra = "forbid"

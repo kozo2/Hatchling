@@ -224,9 +224,16 @@ class CLIChat:
                     if not user_message.strip():
                         # Skip empty input
                         continue
-                      # Send the query
-                    print_pt(FormattedText([('green', '\nAssistant: ')]), end='', flush=True)
-                    await self.chat_session.send_message(user_message, session)
+
+                    # Send the query
+                    print_pt(FormattedText([('green', f"\n{self.settings_registry.settings.llm.provider_name} "+
+                                             f"({self.settings_registry.settings.api_base}) - "+
+                                             f"{self.settings_registry.settings.llm.model}: ")]
+                                        ),
+                                end='', flush=True)
+
+                    await self.chat_session.send_message(user_message)
+                    
                     print_pt('')  # Add an extra newline for readability
                 except KeyboardInterrupt:
                     print_pt(FormattedText([('red', '\nInterrupted. Ending chat session...')]))

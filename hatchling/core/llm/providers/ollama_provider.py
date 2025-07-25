@@ -44,7 +44,7 @@ class OllamaProvider(LLMProvider):
         self._client: Optional[AsyncClient] = None
         self.initialize()
         
-        logger.debug(f"Initialized OllamaProvider with host: {self._settings.ollama.api_url}")
+        logger.debug(f"Initialized OllamaProvider with host: {self._settings.ollama.api_base}")
     
     @property
     def provider_name(self) -> str:
@@ -63,12 +63,12 @@ class OllamaProvider(LLMProvider):
             ValueError: If configuration is invalid.
         """
         try:
-            self._client = AsyncClient(host=self._settings.ollama.api_url)
+            self._client = AsyncClient(host=self._settings.ollama.api_base)
             self._toolLifecycle_subscriber = ToolLifecycleSubscriber(ELLMProvider.OLLAMA.value)
             self._stream_publisher = StreamPublisher(ELLMProvider.OLLAMA)
             mcp_manager.publisher.subscribe(self._toolLifecycle_subscriber)
             
-            logger.info(f"Successfully connected to Ollama server at {self._settings.ollama.api_url}")
+            logger.info(f"Successfully connected to Ollama server at {self._settings.ollama.api_base}")
             
         except Exception as e:
             error_msg = f"Failed to initialize Ollama client: {str(e)}"

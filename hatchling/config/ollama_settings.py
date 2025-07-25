@@ -87,7 +87,7 @@ class OllamaSettings(BaseModel):
     )
 
     @property
-    def api_url(self) -> str:
+    def api_base(self) -> str:
         return f"http://{self.ip}:{self.port}"
 
     class Config:
