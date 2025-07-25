@@ -220,6 +220,11 @@ class OllamaProvider(LLMProvider):
             raise RuntimeError("Ollama client not initialized. Call initialize() first.")
         
         try:
+            # Given Ollama's IP can be configured in settings, we ensure the client is set up correctly
+            # TODO: This shouldn't be here because it means we are re-initializing the client every time
+            #       Probably should be changed upon setting change.
+            self._client = AsyncClient(host=self._settings.ollama.api_base)
+
             # Ensure streaming is enabled for this request
             payload["stream"] = True
 
