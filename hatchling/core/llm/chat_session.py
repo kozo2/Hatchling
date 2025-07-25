@@ -1,174 +1,107 @@
-import aiohttp
 import logging
-from typing import List, Dict, Tuple, Any, Optional
+from typing import List, Dict, Any
 
-from hatchling.core.logging.session_debug_log import SessionDebugLog
-from hatchling.mcp_utils.manager import mcp_manager
 from hatchling.core.logging.logging_manager import logging_manager
-from hatchling.config.settings import AppSettings
 from hatchling.core.chat.message_history import MessageHistory
-from hatchling.core.llm.tool_execution_manager import ToolExecutionManager
-from hatchling.core.llm.api_manager import APIManager
+from hatchling.core.llm.streaming.tool_result_collector_subscriber import ToolResultCollectorSubscriber
+from hatchling.core.llm.streaming.tool_chaining_subscriber import ToolChainingSubscriber
+from hatchling.core.llm.providers import ProviderRegistry
+from hatchling.core.llm.streaming_management import (
+    ContentPrinterSubscriber, 
+    UsageStatsSubscriber, 
+    ErrorHandlerSubscriber,
+    ContentAccumulatorSubscriber
+)
+from hatchling.config.settings import AppSettings
+from hatchling.mcp_utils import mcp_manager
+from hatchling.mcp_utils.mcp_tool_execution import MCPToolExecution
+from hatchling.mcp_utils.mcp_tool_call_subscriber import MCPToolCallSubscriber
 
 class ChatSession:
-    def __init__(self, settings: AppSettings):
+    def __init__(self, settings: AppSettings = None):
         """Initialize a chat session with the specified settings.
         
         Args:
-            settings (AppSettings): Configuration settings for the chat session.
+            settings (AppSettings, optional): Configuration settings for the chat session. 
+                                            If None, uses the singleton instance.
         """
-        self.settings = settings
-        provider = settings.llm.get_active_provider()
-        model = settings.llm.get_active_model()
-        self.model_name = model
+        self.settings = settings or AppSettings.get_instance()
         # Unified logger naming: ChatSession-provider-model
         self.logger = logging_manager.get_session(
-            f"ChatSession-{provider}-{model}",
+            f"ChatSession-{self.settings.llm.provider_name}-{self.settings.llm.model}",
             formatter=logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
         )
-        
+        # Initialize MCPToolExecution for execution of tool calls from LLM providers
+        self.tool_execution = MCPToolExecution()
         # Initialize message components
         self.history = MessageHistory(self.logger)
-        self.tool_executor = ToolExecutionManager(settings)
-        self.api_manager = APIManager(settings)
-    
-    async def initialize_mcp(self, server_paths: List[str]) -> bool:
-        """Initialize connection to MCP servers.
+
+        # Set up subscribers for the streaming response
+        # ContentPrinterSubscriber prints the response streamed results to the console
+        self.content_printer = ContentPrinterSubscriber(include_role=False)
+        # ContentAccumulatorSubscriber collects the streamed response content
+        self.content_collector = ContentAccumulatorSubscriber()
+        # UsageStatsSubscriber collects usage statistics for the session
+        self.usage_stats = UsageStatsSubscriber()
+        # ErrorHandlerSubscriber handles any errors that occur during streaming
+        # and logs them appropriately
+        self.error_handler = ErrorHandlerSubscriber()
+
+        # Create tool chaining subscriber for automatic tool calling chains
+        self._tool_chaining_subscriber = ToolChainingSubscriber(
+            self.settings, self.history, self.tool_execution
+        )
+        self.tool_execution.stream_publisher.subscribe(self._tool_chaining_subscriber)
+        # Create and subscribe the MCP tool call subscriber for LLM tool calls
+        self._tool_call_subscriber = MCPToolCallSubscriber(self.tool_execution)
         
-        Args:
-            server_paths (List[str]): List of paths to MCP server scripts.
-            
-        Returns:
-            bool: True if connection was successful, False otherwise.
-        """
-        return await self.tool_executor.initialize_mcp(server_paths)
+        
+        # Initializing all connections of subscribers to instances of LLM providers
+        for _provider_enum in ProviderRegistry.list_providers():
+            self.logger.debug(f"Initializing streaming subscriptions for : {_provider_enum.value}")
+            _provider = ProviderRegistry.get_provider(_provider_enum, self.settings)
+
+            # Subscribe to provider's publisher
+            self.logger.debug("Subscribed to LLM provider's stream publisher (content, usage stats, error handling)")
+            _provider.publisher.subscribe(self.content_printer)
+            _provider.publisher.subscribe(self.content_collector)
+            _provider.publisher.subscribe(self.usage_stats)
+            _provider.publisher.subscribe(self.error_handler)
+            self.logger.debug("Created MCPToolCallSubscriber for handling tool calls")
+            _provider.publisher.subscribe(self._tool_call_subscriber)
     
-    async def send_message(self, user_message: str, session: aiohttp.ClientSession) -> str:
-        """Send the current message history to the Ollama API and stream the response.
+    async def send_message(self, user_message: str) -> None:
+        """Send the current message history to the LLM provider and stream the response.
         
         Args:
             user_message (str): The user's message to process.
-            session (aiohttp.ClientSession): The session to use for the request.
-            
-        Returns:
-            str: The assistant's response text.
         """
-        # Add user message
+        # Add user message to history
         self.history.add_user_message(user_message)
-        
-        # Reset tool calling counters for a new user message
-        self.tool_executor.reset_for_new_query(user_message)
 
-        # Prepare payload and send message to LLM
-        payload = self.api_manager.prepare_request_payload(self.history.get_messages())
-        if self.tool_executor.tools_enabled:
-            tools = self.tool_executor.get_tools_for_payload()
-            payload = self.api_manager.add_tools_to_payload(payload, tools)
+        # Get current provider based on settings
+        provider = ProviderRegistry.get_current_provider(self.settings)
         
-        # Process the initial response
-        full_response, message_tool_calls, tool_results = await self.api_manager.stream_response(
-            session, payload, self.history, self.tool_executor, print_output=True, update_history=True
+        # Reset tool calling counters and collectors for a new user message
+        self.tool_execution.reset_for_new_query(user_message)
+        self._tool_chaining_subscriber.reset_for_new_query()
+
+        # Prepare payload using provider abstraction
+        payload = provider.prepare_chat_payload(
+            self.history.get_messages(), 
+            self.settings.llm.model
         )
         
-        # Check if we have tool results that need further processing
-        if self.tool_executor.tools_enabled and self.tool_executor.current_tool_call_iteration > 0:
-            # Only process tool calling chains if we've started using tools
-            full_response, message_tool_calls, tool_results = await self.tool_executor.handle_tool_calling_chain(
-                                                        session,
-                                                        self.api_manager,
-                                                        self.history,
-                                                        full_response,
-                                                        message_tool_calls,
-                                                        tool_results)
+        # Add tools to payload
+        # TODO: Currently, we are adding everything to the payload as we are not specifying
+        # tools in add_tools_to_payload.
+        # In the future, we must allow users to specify tools directly in the query.
+        payload = provider.add_tools_to_payload(payload)
         
-            full_response = await self._format_response_with_tool_results(session, message_tool_calls, tool_results, is_final=True)
-
-        return full_response
-    
-    async def _format_response_with_tool_results(self, session: aiohttp.ClientSession,
-                                        message_tool_calls: List[Dict[str, Any]] = None,
-                                        tool_results: List[Dict[str, Any]] = None,
-                                        is_final: bool = True,
-                                        limit_reason: str = None) -> str:
-        """Format a response based on tool results.
+        # Stream the response using provider abstraction
+        await provider.stream_chat_response(payload)
         
-        Args:
-            session (aiohttp.ClientSession): The http session to use for the request.
-            message_tool_calls (List[Dict[str, Any]], optional): The tool calls to format. Defaults to None.
-            tool_results (List[Dict[str, Any]], optional): The tool results to format. Defaults to None.
-            is_final (bool, optional): Whether this is the final response (True) or partial (False). Defaults to True.
-            limit_reason (str, optional): If partial, the reason for stopping (max iterations or time limit). Defaults to None.
-            
-        Returns:
-            str: The formatted response text.
-        """
-        try:
-            response_type = "final" if is_final else "partial"
-            self.logger.debug(f"Generating {response_type} response for tool operations")
-            
-            # Build the prompt based on whether it's a final or partial response
-            prompt = f"I used tools in reaction to: `{self.tool_executor.root_tool_query}`."
-            prompt += "\n"
-            prompt += f"Here are the tool calls: {message_tool_calls}."
-            prompt += "\n"
-            prompt += f"Here are the tool results: {tool_results}."
-            prompt += "\n\n"
-            
-            if not is_final and limit_reason:
-                prompt += f" However, I reached {limit_reason} ({self.tool_executor.current_tool_call_iteration} iterations)."
-                prompt += "\n"
-                prompt += "Provide a partial answer to the original question based on these partial results and ask if the user wants to continue processing."
-            else:  # final response
-                prompt += "Provide a final answer to the original question based on these complete results."
-            
-            # Only fetch and include citations if this is the final response
-            if is_final:
-                
-                citations = await mcp_manager.get_citations_for_session()
-                
-                if citations:
-                    # Add citations to the prompt
-                    prompt += "\n\n"
-                    prompt += "Please include the following citations for the tools used in your response. After your main answer, add a section titled 'Citations' with this information:"
-                    for server_citations in citations.values():
-                        prompt += f"\n- {server_citations["server_name"]}"
-                        prompt += f"\n  Origin: {server_citations["origin"]}"
-                        prompt += f"\n  Implementation: {server_citations["mcp"]}"
-                
-                # Reset tracking for next session
-                mcp_manager.reset_session_tracking()
-            
-            prompt += "\n\n"
-            prompt += "Adapt the the level of complexity and information in your answer to the the individual tool result."
-            prompt += " Simple tool result leads to simple answer, while complex tool result lead to more details in the final answer."
-                
-            self.logger.debug(f"Prompt for formatting:\n{prompt}")
-            
-            # Create a clean message history with just what we need for formatting
-            clean_history = MessageHistory(self.logger)
-            
-            # Include the root query for context
-            clean_history.add_user_message(self.tool_executor.root_tool_query)
-            
-            # Add the formatting request
-            clean_history.add_user_message(prompt)
-            
-            # Create a new payload without tools (we don't want more tool calls in the formatted response)
-            payload = {
-                "model": self.model_name,
-                "messages": clean_history.get_messages(),
-                "stream": True
-            }
-            
-            # Get the formatted response using our shared helper
-            prefix = f"\n{response_type.capitalize()} response based on tool results:"
-            full_response, _, _ = await self.api_manager.stream_response(
-                session, payload, clean_history, self.tool_executor, print_output=True, prefix=prefix, update_history=True
-            )
-                    
-        except Exception as e:
-            response_type = "final" if is_final else "partial"
-            full_response = f"Error formatting {response_type} response: {e}"
-            self.logger.error(full_response)
-
-        return full_response
+        # Update message history with the response
+        # Note: Tool calls are handled by MCPToolCallSubscriber through events
+        self.history.add_assistant_message(self.content_collector.full_response)
+        self.content_collector.reset()  # Reset collector for next message

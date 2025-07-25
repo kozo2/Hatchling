@@ -10,6 +10,7 @@ from .stream_subscribers import (
     UsageStatsSubscriber,
     ErrorHandlerSubscriber
 )
+from .content_collector_subscriber import ContentAccumulatorSubscriber
 
 __all__ = [
     "StreamEventType",
@@ -19,5 +20,6 @@ __all__ = [
     "CallableSubscriber",
     "ContentPrinterSubscriber",
     "UsageStatsSubscriber",
-    "ErrorHandlerSubscriber"
+    "ErrorHandlerSubscriber",
+    "ContentAccumulatorSubscriber"
 ]

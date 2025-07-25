@@ -89,6 +89,7 @@ class UsageStatsSubscriber(StreamSubscriber):
     def __init__(self):
         """Initialize usage stats subscriber."""
         self.total_tokens = 0
+        self.total_current = 0
         self.prompt_tokens = 0
         self.completion_tokens = 0
         self.start_time = None
@@ -106,28 +107,26 @@ class UsageStatsSubscriber(StreamSubscriber):
         elif event.type == StreamEventType.USAGE:
             # Record final usage stats
             usage_data = event.data.get("usage", {})
-            self.total_tokens = usage_data.get("total_tokens", 0)
+            self.total_current = usage_data.get("total_tokens", 0)
+            self.total_tokens += self.total_current
             self.prompt_tokens = usage_data.get("prompt_tokens", 0)
             self.completion_tokens = usage_data.get("completion_tokens", 0)
-            self.end_time = event.timestamp
             self._print_stats()
+            self.start_time = None  # Reset for next session
+            self.end_time = None  # Reset for next session
         elif event.type == StreamEventType.FINISH and self.start_time and not self.end_time:
             # If no usage event, record end time on finish
             self.end_time = event.timestamp
-            self._print_stats()
     
     def _print_stats(self) -> None:
         """Print usage statistics and generation rate."""
         print(f"\n\n=== Usage Statistics ===")
+        print(f"Query tokens: {self.total_current} (in: {self.prompt_tokens} | out: {self.completion_tokens})")
         print(f"Total tokens: {self.total_tokens}")
-        print(f"Prompt tokens: {self.prompt_tokens}")
-        print(f"Completion tokens: {self.completion_tokens}")
-        
         if self.start_time and self.end_time and self.completion_tokens > 0:
             duration = self.end_time - self.start_time
             tokens_per_second = self.completion_tokens / duration if duration > 0 else 0
-            print(f"Generation time: {duration:.2f} seconds")
-            print(f"Generation rate: {tokens_per_second:.2f} tokens/second")
+            print(f"Query time: {duration:.2f} seconds ({tokens_per_second:.2f} TPS)")
         print("========================")
     
     def get_subscribed_events(self) -> List[StreamEventType]:

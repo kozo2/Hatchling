@@ -103,6 +103,23 @@ class ProviderRegistry:
         if provider_enum not in cls._instances:
             cls._instances[provider_enum] = cls.create_provider(provider_enum, settings)
         return cls._instances[provider_enum]
+    
+    @classmethod
+    def get_current_provider(cls, settings: Optional[AppSettings] = None) -> LLMProvider:
+        """Get the currently configured provider instance.
+        
+        Args:
+            settings (AppSettings, optional): Application settings to pass to the provider.
+                                            If None, providers will use the singleton instance.
+            
+        Returns:
+            LLMProvider: The currently configured provider instance.
+            
+        Raises:
+            ValueError: If no provider is configured.
+        """
+        settings = settings or AppSettings.get_instance()
+        return cls.get_provider(settings.llm.provider_enum, settings)
 
     @classmethod
     def list_providers(cls) -> List[ELLMProvider]:
