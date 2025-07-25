@@ -58,6 +58,7 @@ class ChatCommandHandler:
         self.commands.update(self.base_commands.reload_commands())
         self.commands.update(self.hatch_commands.reload_commands())
         self.commands.update(self.settings_commands.reload_commands())
+        self.commands.update(self.model_commands.reload_commands())
 
         self.command_completer = FuzzyCompleter(CommandCompleter(self.commands, self.env_manager))
         self.command_lexer = ChatCommandLexer(self.commands)
@@ -81,6 +82,7 @@ class ChatCommandHandler:
         self.base_commands.print_commands_help()
         self.hatch_commands.print_commands_help()
         self.settings_commands.print_commands_help()
+        self.model_commands.print_commands_help()
             
         print("======================\n")
 
