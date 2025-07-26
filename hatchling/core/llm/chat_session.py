@@ -3,8 +3,7 @@ from typing import List, Dict, Any
 
 from hatchling.core.logging.logging_manager import logging_manager
 from hatchling.core.chat.message_history import MessageHistory
-from hatchling.core.llm.streaming.tool_result_collector_subscriber import ToolResultCollectorSubscriber
-from hatchling.core.llm.streaming.tool_chaining_subscriber import ToolChainingSubscriber
+from hatchling.core.llm.tool_management.tool_chaining_subscriber import ToolChainingSubscriber
 from hatchling.core.llm.providers import ProviderRegistry
 from hatchling.core.llm.streaming_management import (
     ContentPrinterSubscriber, 
@@ -28,30 +27,16 @@ class ChatSession:
         self.settings = settings or AppSettings.get_instance()
         # Unified logger naming: ChatSession-provider-model
         self.logger = logging_manager.get_session(
-            f"ChatSession-{self.settings.llm.provider_name}-{self.settings.llm.model}",
+            f"ChatSession",
             formatter=logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
         )
         # Initialize MCPToolExecution for execution of tool calls from LLM providers
         self.tool_execution = MCPToolExecution()
         # Initialize message components
-        self.history = MessageHistory(self.logger)
-
-        # Set up subscribers for the streaming response
-        # ContentPrinterSubscriber prints the response streamed results to the console
-        self.content_printer = ContentPrinterSubscriber(include_role=False)
-        # ContentAccumulatorSubscriber collects the streamed response content
-        self.content_collector = ContentAccumulatorSubscriber()
-        # UsageStatsSubscriber collects usage statistics for the session
-        self.usage_stats = UsageStatsSubscriber()
-        # ErrorHandlerSubscriber handles any errors that occur during streaming
-        # and logs them appropriately
-        self.error_handler = ErrorHandlerSubscriber()
+        self.history = MessageHistory()
 
         # Create tool chaining subscriber for automatic tool calling chains
-        self._tool_chaining_subscriber = ToolChainingSubscriber(
-            self.settings, self.history, self.tool_execution
-        )
-        self.tool_execution.stream_publisher.subscribe(self._tool_chaining_subscriber)
+        self._tool_chaining_subscriber = ToolChainingSubscriber(self.settings, self.tool_execution)
         # Create and subscribe the MCP tool call subscriber for LLM tool calls
         self._tool_call_subscriber = MCPToolCallSubscriber(self.tool_execution)
         
@@ -61,14 +46,35 @@ class ChatSession:
             self.logger.debug(f"Initializing streaming subscriptions for : {_provider_enum.value}")
             _provider = ProviderRegistry.get_provider(_provider_enum, self.settings)
 
-            # Subscribe to provider's publisher
-            self.logger.debug("Subscribed to LLM provider's stream publisher (content, usage stats, error handling)")
-            _provider.publisher.subscribe(self.content_printer)
-            _provider.publisher.subscribe(self.content_collector)
-            _provider.publisher.subscribe(self.usage_stats)
-            _provider.publisher.subscribe(self.error_handler)
-            self.logger.debug("Created MCPToolCallSubscriber for handling tool calls")
+            # Subscribe core subscribers to provider's publisher
+            self.logger.debug("Subscribed core subscribers to LLM provider's stream publisher")
+            
+            # Subscribe tool handling subscribers
+            self.logger.debug("Subscribed tool handling subscribers")
             _provider.publisher.subscribe(self._tool_call_subscriber)
+            _provider.publisher.subscribe(self._tool_chaining_subscriber)
+            
+        self.tool_execution.stream_publisher.subscribe(self._tool_chaining_subscriber)
+    
+    def register_subscriber(self, subscriber) -> None:
+        """Register a subscriber to all relevant publishers.
+        
+        This method provides decoupled registration for UI and other subscribers
+        without tight coupling to backend logic.
+        
+        Args:
+            subscriber: The subscriber to register (must implement StreamSubscriber interface).
+        """
+        # Subscribe to all LLM provider publishers
+        for _provider_enum in ProviderRegistry.list_providers():
+            _provider = ProviderRegistry.get_provider(_provider_enum, self.settings)
+            _provider.publisher.subscribe(subscriber)
+        
+        # Subscribe to tool execution events
+        self.tool_execution.stream_publisher.subscribe(subscriber)
+        self._tool_chaining_subscriber.publisher.subscribe(subscriber)
+        
+        self.logger.debug(f"Registered subscriber {type(subscriber).__name__} to all publishers")
     
     async def send_message(self, user_message: str) -> None:
         """Send the current message history to the LLM provider and stream the response.
@@ -84,7 +90,7 @@ class ChatSession:
         
         # Reset tool calling counters and collectors for a new user message
         self.tool_execution.reset_for_new_query(user_message)
-        self._tool_chaining_subscriber.reset_for_new_query()
+        # self._tool_chaining_subscriber.reset_for_new_query()
 
         # Prepare payload using provider abstraction
         payload = provider.prepare_chat_payload(
@@ -100,8 +106,3 @@ class ChatSession:
         
         # Stream the response using provider abstraction
         await provider.stream_chat_response(payload)
-        
-        # Update message history with the response
-        # Note: Tool calls are handled by MCPToolCallSubscriber through events
-        self.history.add_assistant_message(self.content_collector.full_response)
-        self.content_collector.reset()  # Reset collector for next message
