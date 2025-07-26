@@ -54,6 +54,15 @@ class OllamaProvider(LLMProvider):
             str: The provider name "ollama" (from ELLMProvider enum).
         """
         return ELLMProvider.OLLAMA.value
+
+    @property
+    def provider_enum(self) -> ELLMProvider:
+        """Return the provider enum.
+        
+        Returns:
+            ELLMProvider: The enum value for Ollama provider.
+        """
+        return ELLMProvider.OLLAMA
     
     def initialize(self) -> None:
         """Initialize the Ollama async client and verify connection.

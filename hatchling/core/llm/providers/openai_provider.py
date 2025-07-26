@@ -58,6 +58,15 @@ class OpenAIProvider(LLMProvider):
         """
         return ELLMProvider.OPENAI.value
     
+    @property
+    def provider_enum(self) -> ELLMProvider:
+        """Return the provider enum.
+        
+        Returns:
+            ELLMProvider: The enum value for OpenAI provider.
+        """
+        return ELLMProvider.OPENAI
+
     def initialize(self) -> None:
         """Initialize the OpenAI async client and verify connection.
         

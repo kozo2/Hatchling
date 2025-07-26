@@ -39,6 +39,16 @@ class LLMProvider(ABC):
             str: The provider name (e.g., "openai", "ollama").
         """
         pass
+
+    @property
+    @abstractmethod
+    def provider_enum(self) -> str:
+        """Return the provider's enum name.
+
+        Returns:
+            str: The enum name of the provider (e.g., "OPENAI", "OLLAMA").
+        """
+        pass
     
     @property
     def publisher(self) -> StreamPublisher:
