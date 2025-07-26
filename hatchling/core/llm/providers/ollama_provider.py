@@ -294,9 +294,10 @@ class OllamaProvider(LLMProvider):
             # Handle completion state
             if chunk.get("done", False):
                 # Publish finish event
+                finish_reason = chunk.get("done_reason", "stop")
                 self._stream_publisher.publish(
                     StreamEventType.FINISH,
-                    {"finish_reason": "stop"}
+                    {"finish_reason": finish_reason}
                 )
                 
                 # Handle usage stats if available in final chunk
@@ -317,7 +318,7 @@ class OllamaProvider(LLMProvider):
                 tool_calls = chunk["message"]["tool_calls"]
                 # Publish tool calls
                 self._stream_publisher.publish(
-                    StreamEventType.TOOL_CALL,
+                    StreamEventType.LLM_TOOL_CALL_REQUEST,
                     {"tool_calls": tool_calls}
                 )
             

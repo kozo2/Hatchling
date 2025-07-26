@@ -325,7 +325,7 @@ class OpenAIProvider(LLMProvider):
                         if tool_call.function.arguments:
                             tool_call_data["function"]["arguments"] = tool_call.function.arguments
                     
-                    self._stream_publisher.publish(StreamEventType.TOOL_CALL, tool_call_data)
+                    self._stream_publisher.publish(StreamEventType.LLM_TOOL_CALL_REQUEST, tool_call_data)
             
             # Handle deprecated function_call
             if delta.function_call:
@@ -335,7 +335,7 @@ class OpenAIProvider(LLMProvider):
                 if delta.function_call.arguments:
                     function_call_data["arguments"] = delta.function_call.arguments
                 
-                self._stream_publisher.publish(StreamEventType.TOOL_CALL, {
+                self._stream_publisher.publish(StreamEventType.LLM_TOOL_CALL_REQUEST, {
                     "function_call": function_call_data,
                     "deprecated": True
                 })
