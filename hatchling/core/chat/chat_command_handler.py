@@ -20,32 +20,30 @@ from hatchling.config.settings_registry import SettingsRegistry
 from hatchling.core.chat.base_commands import BaseChatCommands
 from hatchling.core.chat.hatch_commands import HatchCommands
 from hatchling.core.chat.settings_commands import SettingsCommands
-from hatchling.config.i18n import translate
+from hatchling.core.chat.model_commands import ModelCommands
 
-from hatch import HatchEnvironmentManager
+from hatchling.mcp_utils.manager import mcp_manager
+from hatchling.config.i18n import translate
 
 
 class ChatCommandHandler:
     """Handles processing of command inputs in the chat interface."""    
-    def __init__(self, chat_session, settings_registry: SettingsRegistry, env_manager: HatchEnvironmentManager, style: Optional[Style] = None):
+    def __init__(self, chat_session, settings_registry: SettingsRegistry, style: Optional[Style] = None):
         """Initialize the command handler.
         
         Args:
             chat_session: The chat session this handler is associated with.
             settings_registry (SettingsRegistry): The settings registry containing configuration.
-            env_manager (HatchEnvironmentManager): The Hatch environment manager.
-            debug_log (SessionDebugLog): Logger for command operations.
             style (Optional[Style]): Style for formatting command output.
         """
 
 
         self.settings_registry = settings_registry
-        self.env_manager = env_manager
-        self.base_commands = BaseChatCommands(chat_session, settings_registry, env_manager, style)
-        self.hatch_commands = HatchCommands(chat_session, settings_registry, env_manager, style)
-        self.settings_commands = SettingsCommands(chat_session, settings_registry, env_manager, style)
         self.mcp_commands = MCPCommands(chat_session, settings_registry, env_manager, style)
-        self.model_commands = ModelCommands(chat_session, settings_registry, env_manager, style)
+        self.base_commands = BaseChatCommands(chat_session, settings_registry, style)
+        self.hatch_commands = HatchCommands(chat_session, settings_registry, style)
+        self.settings_commands = SettingsCommands(chat_session, settings_registry, style)
+        self.model_commands = ModelCommands(chat_session, settings_registry, style)
 
         self.logger = logging_manager.get_session("hatchling.core.chat.command_handler")
 
@@ -58,9 +56,10 @@ class ChatCommandHandler:
         self.commands.update(self.base_commands.reload_commands())
         self.commands.update(self.hatch_commands.reload_commands())
         self.commands.update(self.settings_commands.reload_commands())
+        self.commands.update(self.mcp_commands.reload_commands())
         self.commands.update(self.model_commands.reload_commands())
 
-        self.command_completer = FuzzyCompleter(CommandCompleter(self.commands, self.env_manager))
+        self.command_completer = FuzzyCompleter(CommandCompleter(self.commands, mcp_manager.hatch_env_manager))
         self.command_lexer = ChatCommandLexer(self.commands)
         
         # Keep old format for backward compatibility
