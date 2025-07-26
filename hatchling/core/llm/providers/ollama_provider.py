@@ -74,7 +74,7 @@ class OllamaProvider(LLMProvider):
         try:
             self._client = AsyncClient(host=self._settings.ollama.api_base)
             self._toolLifecycle_subscriber = ToolLifecycleSubscriber(ELLMProvider.OLLAMA.value)
-            self._stream_publisher = StreamPublisher(ELLMProvider.OLLAMA)
+            self._stream_publisher = StreamPublisher()
             mcp_manager.publisher.subscribe(self._toolLifecycle_subscriber)
             
             logger.info(f"Successfully connected to Ollama server at {self._settings.ollama.api_base}")

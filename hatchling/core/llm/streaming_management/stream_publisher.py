@@ -5,20 +5,17 @@ from typing import List, Dict, Any, Optional
 from .stream_data import StreamEvent, StreamEventType
 from .stream_subscriber import StreamSubscriber
 
-from hatchling.config.llm_settings import ELLMProvider
-
 logger = logging.getLogger(__name__)
 
 class StreamPublisher:
     """Publisher for streaming events using the observer pattern."""
 
-    def __init__(self, provider: ELLMProvider):
+    def __init__(self):
         """Initialize the publisher.
         
         Args:
             provider (ELLMProvider): The LLM provider publishing events.
         """
-        self.provider = provider
         self._subscribers: List[StreamSubscriber] = []
         self._active_request_id: Optional[str] = None
     
@@ -62,10 +59,12 @@ class StreamPublisher:
             event_type (StreamEventType): Type of event to publish.
             data (Dict[str, Any]): Event data.
         """
+        from hatchling.core.llm.providers import ProviderRegistry
+        
         event = StreamEvent(
             type=event_type,
             data=data,
-            provider=self.provider,
+            provider=ProviderRegistry.get_current_provider().provider_enum,
             request_id=self._active_request_id
         )
         

@@ -88,7 +88,7 @@ class OpenAIProvider(LLMProvider):
             self._http_client = AsyncClient(timeout=self._settings.openai.timeout)
             self._client = AsyncOpenAI(**client_kwargs, http_client=self._http_client)
 
-            self._stream_publisher = StreamPublisher(ELLMProvider.OPENAI)
+            self._stream_publisher = StreamPublisher()
             self._toolLifecycle_subscriber = ToolLifecycleSubscriber(self._settings.llm.provider_name)
             mcp_manager.publisher.subscribe(self._toolLifecycle_subscriber)
 
