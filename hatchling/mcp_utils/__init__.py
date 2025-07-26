@@ -6,6 +6,7 @@ All the MCP utilities for Hatchling. Including Client-Server communication, tool
 from .mcp_tool_data import MCPToolInfo, MCPToolStatus, MCPToolStatusReason
 from .client import MCPClient
 from .manager import MCPManager, mcp_manager
+from .mcp_server_api import MCPServerAPI
 
 __all__ = [
     "MCPToolInfo",
@@ -13,5 +14,6 @@ __all__ = [
     "MCPToolStatusReason",
     "MCPClient",
     "MCPManager",
-    "mcp_manager"
+    "mcp_manager",
+    "MCPServerAPI"
 ]

@@ -7,8 +7,9 @@ from .adapters import (
     OllamaMCPToolAdapter,
 )
 
-from .tool_call_parse_strategy import ToolCallParseStrategy
+from .tool_call_parse_strategy import ToolCallParseStrategy, ToolCallParsedResult
 from .tool_call_parse_registry import ToolCallParseRegistry
+
 
 from .tool_call_parse_strategies import (
     OpenAIToolCallParseStrategy,
@@ -23,5 +24,6 @@ __all__ = [
     'ToolCallParseRegistry',
     'ToolCallParseStrategy',
     'OpenAIToolCallParseStrategy',
-    'OllamaToolCallParseStrategy'
+    'OllamaToolCallParseStrategy',
+    'ToolCallParsedResult'
 ]

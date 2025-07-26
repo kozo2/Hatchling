@@ -5,19 +5,17 @@ including user messages, assistant responses, and tool interactions.
 """
 
 from typing import List, Dict, Any, Optional
-from hatchling.core.logging.session_debug_log import SessionDebugLog
+from hatchling.core.logging.logging_manager import logging_manager
+
+from hatchling.core.llm.tool_management.tool_result_collector_subscriber import ToolCallParsedResult, ToolCallExecutionResultLight
 
 class MessageHistory:
     """Simple manager for chat message history without any complex optimizations."""
     
-    def __init__(self, debug_log: Optional[SessionDebugLog] = None):
-        """Initialize an empty message history.
-        
-        Args:
-            debug_log (Optional[SessionDebugLog]): Optional logger for debug information.
-        """
+    def __init__(self):
+        """Initialize an empty message history."""
         self.messages: List[Dict[str, Any]] = []
-        self.logger = debug_log
+        self.logger = logging_manager.get_session("MessageHistory")
     
     def add_user_message(self, content: str) -> None:
         """Add a user message to the history.
@@ -25,73 +23,49 @@ class MessageHistory:
         Args:
             content (str): The message content.
         """
-        self.messages.append({"role": "user", "content": content})
-        if self.logger:
-            self.logger.debug(f"MessageHistory - Added user message: {content}")
+        self.add_custom_content_message("user", content)
+        self.logger.debug(f"MessageHistory - Added user message: {content}")
     
-    def add_assistant_message(self, content: str, tool_calls: List[Dict[str, Any]] = None) -> None:
+    def add_custom_content_message(self, role: str, content: str) -> None:
+        """Add a custom message to the history.
+        
+        Args:
+            role (str): The role of the message sender (e.g., "system", "user", "assistant").
+            content (str): The message content.
+        """
+        self.messages.append({"role": role, "content": content})
+        self.logger.debug(f"MessageHistory - Added custom message from {role}: {content}")
+    
+    def add_assistant_message(self, content: str) -> None:
         """Add an assistant message to the history.
         
         Args:
             content (str): The message content.
             tool_calls (List[Dict[str, Any]], optional): Optional list of tool calls.
         """
-        if not tool_calls:
-            self.messages.append({"role": "assistant", "content": content})
-        else:
-            self.messages.append({
-                "role": "assistant", 
-                "content": content,
-                "tool_calls": tool_calls
-            })
-        
-        if self.logger:
-            self.logger.debug(f"MessageHistory - Added assistant message: {content}")
-    
-    def add_tool_result(self, tool_call_id: str, function_name: str, content: str) -> None:
-        """Add a tool result to the history.
-        
+        self.add_custom_content_message("assistant", content)
+        self.logger.debug(f"MessageHistory - Added assistant message: {content}")
+
+    def add_tool_call(self, tool_call: Dict[str, str]) -> None:
+        """Add a parsed tool call to the message history.
+
         Args:
-            tool_call_id (str): ID of the tool call this result is for.
-            function_name (str): Name of the function that was called.
-            content (str): The tool result content.
+            tool_call (Dict[str, str]): The parsed tool call to add as a dict in a format expected by the LLM provider.
         """
-        self.messages.append({
-            "role": "tool",
-            "tool_call_id": tool_call_id,
-            "name": function_name,
-            "content": content
-        })
-        
-        if self.logger:
-            self.logger.debug(f"MessageHistory - Added tool result for {function_name}: {content}")
-    
-    def update_message_history(self, full_response: str, message_tool_calls: List[Dict[str, Any]], 
-                               tool_results: List[Dict[str, Any]]) -> None:
-        """Update the message history with the response and tool results.
-        
+
+        self.messages.append({"role": "assistant", "tool_calls": [tool_call]})
+        self.logger.debug(f"MessageHistory - Added tool call: {tool_call}")
+
+    def add_tool_result(self, tool_result: Dict[str, str]) -> None:
+        """Add a tool execution result to the message history.
+
         Args:
-            full_response (str): The complete response from the LLM.
-            message_tool_calls (List[Dict[str, Any]]): List of tool calls from the response.
-            tool_results (List[Dict[str, Any]]): List of tool execution results.
+            tool_result (Dict[str, str]): The tool execution result to add as a dict in a format expected by the LLM provider.
         """
-        # Only update if we got a response or tool results
-        if not full_response.strip() and not tool_results:
-            return
-            
-        # First add the assistant message
-        if message_tool_calls:
-            self.add_assistant_message(full_response, message_tool_calls)
-        else:
-            self.add_assistant_message(full_response)
         
-        # Add all tool results to the message history
-        for tool_result in tool_results:
-            self.add_tool_result(
-                tool_result["tool_call_id"], 
-                tool_result["name"], 
-                tool_result["content"]
-            )
+        self.messages.append({"role": "tool", **tool_result})
+        self.logger.debug(f"MessageHistory - Added tool call result: {tool_result}")
+
     
     def get_messages(self) -> List[Dict[str, Any]]:
         """Get all messages.
@@ -100,36 +74,6 @@ class MessageHistory:
             List[Dict[str, Any]]: List of message dictionaries.
         """
         return self.messages
-    
-    def get_last_user_message(self) -> Optional[str]:
-        """Get the content of the last user message.
-        
-        Returns:
-            Optional[str]: Content of the last user message, or None if not found.
-        """
-        for message in reversed(self.messages):
-            if message["role"] == "user":
-                return message["content"]
-        return None
-    
-    def replace_last_assistant_message(self, content: str, tool_calls: List[Dict[str, Any]] = None) -> None:
-        """Replace the last assistant message.
-        
-        Args:
-            content (str): The new content.
-            tool_calls (List[Dict[str, Any]], optional): Optional tool calls to include.
-        """
-        for i in range(len(self.messages) - 1, -1, -1):
-            if self.messages[i]["role"] == "assistant":
-                if tool_calls:
-                    self.messages[i] = {
-                        "role": "assistant", 
-                        "content": content,
-                        "tool_calls": tool_calls
-                    }
-                else:
-                    self.messages[i] = {"role": "assistant", "content": content}
-                return
     
     def copy(self) -> 'MessageHistory':
         """Create a copy of this message history.
@@ -144,8 +88,8 @@ class MessageHistory:
     def clear(self) -> None:
         """Clear all messages."""
         self.messages = []
-        if self.logger:
-            self.logger.info("MessageHistory - Cleared!")
+        
+        self.logger.info("MessageHistory - Cleared!")
     
     def __len__(self) -> int:
         """Get the number of messages.

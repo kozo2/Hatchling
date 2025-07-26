@@ -9,12 +9,46 @@ import logging
 import time
 import asyncio
 from typing import List, Dict, Tuple, Any, Optional
+from dataclasses import dataclass
 
 from hatchling.mcp_utils.manager import mcp_manager
 from hatchling.core.logging.logging_manager import logging_manager
 from hatchling.config.settings import AppSettings
 from hatchling.core.llm.streaming_management import StreamPublisher, StreamEventType
+from hatchling.core.llm.tool_management import ToolCallParsedResult
 
+@dataclass
+class ToolCallExecutionResult:
+    """Data class to hold the result of a tool call execution."""
+    tool_call_id: str
+    function_name: str
+    arguments: Dict[str, Any]
+    result: Any
+    error: Optional[str] = None
+
+    def to_dict(self) -> Dict[str, Any]:
+        """Convert the result to a dictionary."""
+        return {
+            "tool_call_id": self.tool_call_id,
+            "function_name": self.function_name,
+            "arguments": self.arguments,
+            "result": self.result,
+            "error": self.error
+        }
+    
+    def to_openai_dict(self) -> Dict[str, Any]:
+        """Convert the result to a dictionary suitable for OpenAI API."""
+        return {
+            "tool_call_id": self.tool_call_id,
+            "content": str(self.result.content[0].text) if self.result.content[0].text else "No result",
+        }
+
+    def to_ollama_dict(self) -> Dict[str, Any]:
+        """Convert the result to a dictionary suitable for Ollama API."""
+        return {
+            "content": str(self.result.content[0].text) if self.result.content[0].text else "No result",
+            "tool_name": self.function_name
+        }
 
 class MCPToolExecution:
     """Manages tool execution and tool calling chains with event publishing."""
@@ -27,15 +61,11 @@ class MCPToolExecution:
                                             If None, uses the singleton instance.
         """
         self.settings = settings or AppSettings.get_instance()
-        self.logger = logging_manager.get_session(
-            f"MCPToolExecution-{self.settings.llm.provider_name}-{self.settings.llm.model}",
-            formatter=logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
-        )
+        self.logger = logging_manager.get_session("MCPToolExecution")
+        logging_manager.set_log_level(logging.DEBUG)
         
         # Initialize event publisher
-        self._stream_publisher = StreamPublisher(self.settings.llm.provider_enum)
-        
-        self.tools_enabled = False
+        self._stream_publisher = StreamPublisher()
         
         # Tool calling control properties
         self.current_tool_call_iteration = 0
@@ -50,25 +80,6 @@ class MCPToolExecution:
             StreamPublisher: The stream publisher instance.
         """
         return self._stream_publisher
-    
-    # async def initialize_mcp(self, server_paths: List[str]) -> bool:
-    #     """Initialize connection to MCP servers.
-        
-    #     Args:
-    #         server_paths (List[str]): List of paths to MCP server scripts.
-            
-    #     Returns:
-    #         bool: True if connection was successful, False otherwise.
-    #     """
-    #     # Use MCPManager to initialize everything
-    #     self.tools_enabled = await mcp_manager.initialize(server_paths)
-        
-    #     if self.tools_enabled:
-    #         self.logger.info(f"Connected to MCP servers")
-    #     else:
-    #         self.logger.warning("Failed to connect to any MCP server")
-            
-    #     return self.tools_enabled
 
     def reset_for_new_query(self, query: str) -> None:
         """Reset tool execution state for a new user query.
@@ -80,117 +91,65 @@ class MCPToolExecution:
         self.tool_call_start_time = time.time()
         self.root_tool_query = query
     
-    def _publish_tool_event(self, event_type: StreamEventType, data: Dict[str, Any]) -> None:
-        """Publish a tool-related event.
-        
-        Args:
-            event_type (StreamEventType): The type of event to publish.
-            data (Dict[str, Any]): The event data.
-        """
-        try:
-            self._stream_publisher.publish(event_type, data)
-        except Exception as e:
-            self.logger.warning(f"Failed to publish tool event {event_type}: {e}")
-    
-    async def execute_tool(self, tool_id: str, function_name: str, arguments: Dict[str, Any]) -> Optional[Dict[str, Any]]:
+    async def execute_tool(self, parsed_tool_call: ToolCallParsedResult) -> None:
         """Execute a tool and return its result.
-        
+
+        Sends the tool call to the MCPManager for execution and publishes events
+        for tool call dispatched, progress, result, and error handling.
+        You can subscribe to `stream_publisher` of this class to receive
+        MCP_TOOL_CALL_DISPATCHED, MCP_TOOL_CALL_PROGRESS, MCP_TOOL_CALL_RESULT, and MCP_TOOL_CALL_ERROR events.
+        That will allow you to react to tool calls in real-time and handle them accordingly.
+
         Args:
-            tool_id (str): The ID of the tool.
-            function_name (str): The name of the function to execute.
-            arguments (Dict[str, Any]): The arguments to pass to the function.
-            
-        Returns:
-            Optional[Dict[str, Any]]: The tool result dictionary, or None if execution failed.
+            parsed_tool_call (ToolCallParsedResult): The parsed tool call containing
+                tool_id, function_name, and arguments.
         """
+        self.logger.debug(
+            f"Redirecting to tool execution for (tool_call_id: {parsed_tool_call.tool_call_id}; "
+            f"function: {parsed_tool_call.function_name}; arguments: {parsed_tool_call.arguments})"
+        )
+
+        self.current_tool_call_iteration += 1
+
+        # Publish tool call dispatched event
+        self._stream_publisher.publish(StreamEventType.MCP_TOOL_CALL_DISPATCHED, parsed_tool_call.to_dict())
+
+        # Publish tool call progress event
+        self._stream_publisher.publish(StreamEventType.MCP_TOOL_CALL_PROGRESS, parsed_tool_call.to_dict())
+
         try:
-            # Increment the tool call iteration counter each time a tool is executed
-            self.current_tool_call_iteration += 1
-            
-            # Publish tool call dispatched event
-            self._publish_tool_event(StreamEventType.TOOL_CALL_DISPATCHED, {
-                "tool_id": tool_id,
-                "function_name": function_name,
-                "arguments": arguments,
-                "iteration": self.current_tool_call_iteration
-            })
-            
-            # Format the tool call for the MCPManager
-            formatted_tool_call = {
-                "id": tool_id,
-                "function": {
-                    "name": function_name,
-                    "arguments": json.dumps(arguments) if isinstance(arguments, dict) else arguments
-                }
-            }
-            
-            # Publish tool call progress event
-            self._publish_tool_event(StreamEventType.TOOL_CALL_PROGRESS, {
-                "tool_id": tool_id,
-                "function_name": function_name,
-                "status": "executing",
-                "message": f"Executing {function_name}"
-            })
-            
             # Process the tool call using MCPManager
-            tool_responses = await mcp_manager.process_tool_calls([formatted_tool_call])
-            
-            if tool_responses and len(tool_responses) > 0:
-                tool_response = tool_responses[0]
-                result_content = tool_response.get("content", "No result")
-                
-                # Try to parse the content to a more user-friendly format
-                try:
-                    if isinstance(result_content, str):
-                        parsed_result = json.loads(result_content)
-                        result_content = parsed_result
-                except json.JSONDecodeError:
-                    # Keep as string if it's not valid JSON
-                    pass
-                
-                # Show the tool result to the user
-                self.logger.info(f"[Tool result: {result_content}]")
-                
-                # Create result dictionary
-                result = {
-                    "role": "tool",
-                    "tool_call_id": tool_id,
-                    "name": function_name,
-                    "content": str(result_content)
-                }
-                
-                # Publish successful tool call result event
-                self._publish_tool_event(StreamEventType.TOOL_CALL_RESULT, {
-                    "tool_id": tool_id,
-                    "function_name": function_name,
-                    "result": result,
-                    "status": "success"
-                })
-                
-                return result
+            tool_response = await mcp_manager.execute_tool(
+                tool_name=parsed_tool_call.function_name,
+                arguments=parsed_tool_call.arguments
+            )
+            self.logger.debug(f"Tool {parsed_tool_call.function_name} executed with responses: {tool_response}")
+
+            if tool_response and not tool_response.isError:
+                result_obj = ToolCallExecutionResult(
+                    **parsed_tool_call.to_dict(),
+                    result=tool_response,
+                    error=None
+                )
+                self._stream_publisher.publish(StreamEventType.MCP_TOOL_CALL_RESULT, result_obj.to_dict())
             else:
-                # Publish tool call error for no response
-                self._publish_tool_event(StreamEventType.TOOL_CALL_ERROR, {
-                    "tool_id": tool_id,
-                    "function_name": function_name,
-                    "error": "No response from tool execution",
-                    "status": "no_response"
-                })
-                
+                result_obj = ToolCallExecutionResult(
+                    **parsed_tool_call.to_dict(),
+                    result=tool_response,
+                    error="Tool execution failed or returned no valid response"
+                )
+                self._stream_publisher.publish(StreamEventType.MCP_TOOL_CALL_ERROR, result_obj.to_dict())
+
         except Exception as e:
             self.logger.error(f"Error executing tool: {e}")
-            
-            # Publish tool call error event
-            self._publish_tool_event(StreamEventType.TOOL_CALL_ERROR, {
-                "tool_id": tool_id,
-                "function_name": function_name,
-                "error": str(e),
-                "status": "execution_error"
-            })
-        
-        return None
-    
-    def execute_tool_sync(self, tool_id: str, function_name: str, arguments: Dict[str, Any]) -> None:
+            result_obj = ToolCallExecutionResult(
+                **parsed_tool_call.to_dict(),
+                result=None,
+                error=str(e)
+            )
+            self._stream_publisher.publish(StreamEventType.MCP_TOOL_CALL_ERROR, result_obj.to_dict())
+
+    def execute_tool_sync(self, parsed_tool_call: ToolCallParsedResult) -> None:
         """Synchronous wrapper for execute_tool that handles async execution internally.
         
         This method creates a task to execute the tool asynchronously without blocking
@@ -198,87 +157,18 @@ class MCPToolExecution:
         dispatch tool execution but don't need to wait for the result.
         
         Args:
-            tool_id (str): The ID of the tool.
-            function_name (str): The name of the function to execute.
-            arguments (Dict[str, Any]): The arguments to pass to the function.
+            parsed_tool_call (ToolCallParsedResult): The parsed tool call containing
+                tool_id, function_name, and arguments.
         """
         try:
             # Try to create a task in the current event loop
-            asyncio.create_task(self.execute_tool(tool_id, function_name, arguments))
+            asyncio.create_task(self.execute_tool(parsed_tool_call))
         except RuntimeError:
             # No event loop running, create one for this execution
             try:
-                asyncio.run(self.execute_tool(tool_id, function_name, arguments))
+                asyncio.run(self.execute_tool(parsed_tool_call))
             except Exception as e:
                 self.logger.warning(f"Failed to execute tool synchronously: {e}")
-    
-    async def process_tool_call(self, tool_call: Dict[str, Any], tool_id: str) -> Optional[Dict[str, Any]]:
-        """
-        .. deprecated:: 2025.07.21
-            This method is deprecated and will be removed in a future release.
-
-        Process a single tool call and return the result.
-        
-        Args:
-            tool_call (Dict[str, Any]): The tool call to process.
-            tool_id (str): The ID of the tool call.
-            
-        Returns:
-            Optional[Dict[str, Any]]: The tool result dictionary, or None if processing failed.
-        """
-        function_name = tool_call["function"]["name"]
-        arguments = tool_call["function"]["arguments"]
-        
-        # Parse arguments if needed
-        try:
-            if isinstance(arguments, str):
-                arguments = json.loads(arguments)
-        except json.JSONDecodeError:
-            arguments = {}
-        
-        # Show tool usage to the user
-        self.logger.info(f"[Using tool: {function_name} with arguments: {json.dumps(arguments)}]")
-        
-        # Execute tool and get result
-        if self.tools_enabled:
-            return await self.execute_tool(tool_id, function_name, arguments)
-        
-        return None
-
-    async def handle_streaming_tool_calls(self, data: Dict[str, Any], message_tool_calls: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
-        """
-        .. deprecated:: 2025.07.21
-            This method is deprecated and will be removed in a future release.
-
-        Process tool calls from streaming response data.
-        
-        Args:
-            data (Dict[str, Any]): The response data from the LLM.
-            message_tool_calls (List[Dict[str, Any]]): List of processed tool calls.
-            
-        Returns:
-            List[Dict[str, Any]]: List of tool results.
-        """
-        tool_results = []
-        current_tool_calls = data["message"]["tool_calls"]
-        self.logger.info(f"Found tool calls: {json.dumps(current_tool_calls)}")
-        
-        # Process each tool call
-        for tool_call in current_tool_calls:
-            tool_id = tool_call.get("id", "unknown")
-            # Skip if we've already processed this tool call
-            if any(tc.get("id") == tool_id for tc in message_tool_calls):
-                continue
-                
-            # Add to our tracking list
-            message_tool_calls.append(tool_call)
-            
-            # Process the tool call
-            tool_result = await self.process_tool_call(tool_call, tool_id)
-            if tool_result:
-                tool_results.append(tool_result)
-        
-        return tool_results
 
     async def handle_tool_calling_chain(self,
                     session,
