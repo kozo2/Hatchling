@@ -47,13 +47,12 @@ class CallableSubscriber(StreamSubscriber):
 class ContentPrinterSubscriber(StreamSubscriber):
     """Subscriber that prints content to console as it arrives."""
     
-    def __init__(self, include_role: bool = False):
+    def __init__(self):
         """Initialize content printer.
         
         Args:
             include_role (bool): Whether to print role information.
         """
-        self.include_role = include_role
         self._first_content = True
     
     def on_event(self, event: StreamEvent) -> None:
@@ -77,10 +76,7 @@ class ContentPrinterSubscriber(StreamSubscriber):
         Returns:
             List[StreamEventType]: Event types to subscribe to.
         """
-        events = [StreamEventType.CONTENT]
-        if self.include_role:
-            events.append(StreamEventType.ROLE)
-        return events
+        return [StreamEventType.CONTENT]
 
 
 class UsageStatsSubscriber(StreamSubscriber):
