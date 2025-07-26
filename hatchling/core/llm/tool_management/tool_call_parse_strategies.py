@@ -6,10 +6,12 @@ for both OpenAI and Ollama LLM providers, handling their different event formats
 
 import json
 import logging
-from typing import Dict, Any
+from typing import Dict, Any, Optional
+from uuid import uuid4
 
 from hatchling.core.llm.streaming_management.stream_subscribers import StreamEvent
 from .tool_call_parse_registry import ToolCallParseRegistry, ToolCallParseStrategy
+from .tool_call_parse_strategy import ToolCallParsedResult  # Import the dataclass
 from hatchling.config.llm_settings import ELLMProvider
 
 logger = logging.getLogger(__name__)
@@ -28,16 +30,15 @@ class OpenAIToolCallParseStrategy(ToolCallParseStrategy):
         # Buffer for accumulating partial tool call data across multiple events
         self._tool_call_buffers: Dict[int, Dict[str, Any]] = {}
     
-    def parse_tool_call(self, event: StreamEvent) -> Dict[str, Any]:
+    def parse_tool_call(self, event: StreamEvent) -> Optional[ToolCallParsedResult]:
         """Parse an OpenAI tool call event.
-        
+
         Args:
             event (StreamEvent): The OpenAI tool call event.
-            
-        Returns:
-            Dict[str, Any]: Normalized tool call data with tool_id, function_name, and arguments.
 
-            
+        Returns:
+            ToolCallParsedResult: Normalized tool call result.
+
         Raises:
             ValueError: If the event cannot be parsed as a valid OpenAI tool call.
         """
@@ -50,11 +51,16 @@ class OpenAIToolCallParseStrategy(ToolCallParseStrategy):
             # Handle OpenAI's deprecated function_call format
             if "function_call" in data and data.get("deprecated", False):
                 function_call = data["function_call"]
-                return {
-                    "tool_id": "function_call",  # No ID in the deprecated format
-                    "function_name": function_call.get("name", ""),
-                    "arguments": self._parse_arguments(function_call.get("arguments", "{}"))
-                }
+                parsedToolCall = ToolCallParsedResult(
+                    tool_call_id="function_call",
+                    function_name=function_call.get("name", ""),
+                    arguments=self._parse_arguments(function_call.get("arguments", "{}"))
+                )
+
+                if "_partial" in parsedToolCall.arguments:
+                    return None
+                
+                return parsedToolCall
             
             # Handle modern tool_calls format
             index = data.get("index", 0)
@@ -77,14 +83,19 @@ class OpenAIToolCallParseStrategy(ToolCallParseStrategy):
                 self._tool_call_buffers[index]["function"]["arguments"] += args_fragment
             else:
                 raise ValueError(f"Received continuation for unknown tool call at index {index}")
-            
+
             # Return current state (may be partial)
             tool_call = self._tool_call_buffers.get(index, {})
-            return {
-                "tool_id": tool_call.get("id", f"unknown_{index}"),
-                "function_name": tool_call.get("function", {}).get("name", ""),
-                "arguments": self._parse_arguments(tool_call.get("function", {}).get("arguments", "{}"))
-            }
+            parsedToolCall = ToolCallParsedResult(
+                tool_call_id=tool_call.get("id", f"unknown_{index}"),
+                function_name=tool_call.get("function", {}).get("name", ""),
+                arguments=self._parse_arguments(tool_call.get("function", {}).get("arguments", "{}"))
+            )
+
+            # If arguments are still partial, return None to indicate more data is needed
+            if "_partial" in parsedToolCall.arguments:
+                return None
+            return parsedToolCall
             
         except Exception as e:
             logger.error(f"Error parsing OpenAI tool call: {e}")
@@ -100,7 +111,7 @@ class OpenAIToolCallParseStrategy(ToolCallParseStrategy):
             Dict[str, Any]: Parsed arguments as a dictionary.
         """
         if not args_str:
-            return {}
+            return {"_partial": ""}
             
         try:
             return json.loads(args_str)
@@ -119,15 +130,15 @@ class OllamaToolCallParseStrategy(ToolCallParseStrategy):
         """Initialize the Ollama tool call parse strategy."""
         super().__init__(provider=ELLMProvider.OLLAMA)
     
-    def parse_tool_call(self, event: StreamEvent) -> Dict[str, Any]:
+    def parse_tool_call(self, event: StreamEvent) -> Optional[ToolCallParsedResult]:
         """Parse an Ollama tool call event.
-        
+
         Args:
             event (StreamEvent): The Ollama tool call event.
-            
+
         Returns:
-            Dict[str, Any]: Normalized tool call data with tool_id, function_name, and arguments.
-            
+            ToolCallParsedResult: Normalized tool call result.
+
         Raises:
             ValueError: If the event cannot be parsed as a valid Ollama tool call.
         """
@@ -143,7 +154,7 @@ class OllamaToolCallParseStrategy(ToolCallParseStrategy):
             tool_call = tool_calls[0]
             
             # Extract standard fields
-            tool_id = tool_call.get("id", "unknown")
+            tool_id = tool_call.get("id", event.request_id)  # Use a UUID if no ID is provided
             function_name = tool_call.get("function", {}).get("name", "")
             arguments = tool_call.get("function", {}).get("arguments", {})
             
@@ -151,15 +162,16 @@ class OllamaToolCallParseStrategy(ToolCallParseStrategy):
             if isinstance(arguments, str):
                 try:
                     arguments = json.loads(arguments)
+                    #in fact
                 except json.JSONDecodeError:
                     logger.warning(f"Failed to parse Ollama tool call arguments: {arguments}")
                     arguments = {"_raw": arguments}
             
-            return {
-                "tool_id": tool_id,
-                "function_name": function_name,
-                "arguments": arguments
-            }
+            return ToolCallParsedResult(
+                tool_call_id=tool_id,
+                function_name=function_name,
+                arguments=arguments
+            )
             
         except Exception as e:
             logger.error(f"Error parsing Ollama tool call: {e}")
