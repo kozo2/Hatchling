@@ -43,17 +43,17 @@ class TestStreamEventsFoundation(unittest.TestCase):
     
     def test_tool_execution_events_defined(self):
         """Test that tool execution events are properly defined."""
-        self.assertTrue(hasattr(StreamEventType, 'TOOL_CALL_DISPATCHED'))
-        self.assertEqual(StreamEventType.TOOL_CALL_DISPATCHED.value, "tool_call_dispatched")
+        self.assertTrue(hasattr(StreamEventType, 'MCP_TOOL_CALL_DISPATCHED'))
+        self.assertEqual(StreamEventType.MCP_TOOL_CALL_DISPATCHED.value, "MCP_TOOL_CALL_DISPATCHED")
         
-        self.assertTrue(hasattr(StreamEventType, 'TOOL_CALL_RESULT'))
-        self.assertEqual(StreamEventType.TOOL_CALL_RESULT.value, "tool_call_result")
+        self.assertTrue(hasattr(StreamEventType, 'MCP_TOOL_CALL_RESULT'))
+        self.assertEqual(StreamEventType.MCP_TOOL_CALL_RESULT.value, "MCP_TOOL_CALL_RESULT")
         
-        self.assertTrue(hasattr(StreamEventType, 'TOOL_CALL_PROGRESS'))
-        self.assertEqual(StreamEventType.TOOL_CALL_PROGRESS.value, "tool_call_progress")
+        self.assertTrue(hasattr(StreamEventType, 'MCP_TOOL_CALL_PROGRESS'))
+        self.assertEqual(StreamEventType.MCP_TOOL_CALL_PROGRESS.value, "MCP_TOOL_CALL_PROGRESS")
         
-        self.assertTrue(hasattr(StreamEventType, 'TOOL_CALL_ERROR'))
-        self.assertEqual(StreamEventType.TOOL_CALL_ERROR.value, "tool_call_error")
+        self.assertTrue(hasattr(StreamEventType, 'MCP_TOOL_CALL_ERROR'))
+        self.assertEqual(StreamEventType.MCP_TOOL_CALL_ERROR.value, "tool_call_error")
     
     def test_mcp_tool_status_enum(self):
         """Test that MCPToolStatus enum is properly defined."""

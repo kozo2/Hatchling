@@ -239,7 +239,7 @@ class TestCommandSystemIntegration(AsyncTestCase):
                 # Capture output
                 output = StringIO()
                 with redirect_stdout(output):
-                    result = await self.cmd_handler.process_command("model:provider:list")
+                    result = await self.cmd_handler.process_command("model:provider:supported")
                 
                 # Verify command was recognized and executed
                 is_command, should_continue = result
@@ -351,8 +351,11 @@ class TestCommandArgumentValidation(AsyncTestCase):
     def test_optional_argument_handling(self):
         """Test handling of optional arguments."""
         with patch('hatchling.core.llm.model_manager_api.ModelManagerAPI.list_available_models') as mock_api:
-            mock_api.return_value = {"openai": ["gpt-4", "gpt-3.5"]}
-            
+            mock_api.return_value = [
+                MagicMock(provider='openai', name='gpt-4'),
+                MagicMock(provider='openai', name='gpt-3.5'),
+            ]
+
             async def async_test():
                 # Test with optional argument
                 result = await self.cmd_handler.process_command("model:list openai")

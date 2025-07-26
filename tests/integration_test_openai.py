@@ -47,7 +47,7 @@ class TestStreamToolCallSubscriber(StreamSubscriber):
     def on_event(self, event: StreamEvent) -> None:
         """Handle incoming stream events, reconstructing OpenAI-style tool call arguments if fragmented."""
 
-        if event.type == StreamEventType.TOOL_CALL:
+        if event.type == StreamEventType.LLM_TOOL_CALL_REQUEST:
             # OpenAI-style: first chunk has 'type' == 'function', then subsequent have type None and 'arguments' fragments
             index = event.data["index"]
             if index not in self._tool_call_buffers:
@@ -78,7 +78,7 @@ class TestStreamToolCallSubscriber(StreamSubscriber):
             logger.warning(f"Unexpected event type: {event.type}")
     
     def get_subscribed_events(self):
-        return [StreamEventType.TOOL_CALL, StreamEventType.CONTENT, StreamEventType.USAGE, StreamEventType.FINISH]
+        return [StreamEventType.LLM_TOOL_CALL_REQUEST, StreamEventType.CONTENT, StreamEventType.USAGE, StreamEventType.FINISH]
 
 
 class TestOpenAIProviderIntegration(unittest.TestCase):
@@ -105,7 +105,7 @@ class TestOpenAIProviderIntegration(unittest.TestCase):
             
         try:
             settings = OpenAISettings(api_key=api_key, timeout=30.0)
-            MCPToolAdapterRegistry.create_adapter("openai")
+            MCPToolAdapterRegistry.get_adapter("openai")
             self.provider = ProviderRegistry.create_provider("openai", settings)
             self.loop = asyncio.new_event_loop()
             asyncio.set_event_loop(self.loop)
@@ -248,7 +248,7 @@ class TestOpenAIProviderIntegration(unittest.TestCase):
         self.provider._toolLifecycle_subscriber = tls
         tool_call_subscriber = TestStreamToolCallSubscriber()
         self.provider.publisher.subscribe(tool_call_subscriber)
-        mcp_activity_mock_publisher = StreamPublisher(ELLMProvider.OPENAI)
+        mcp_activity_mock_publisher = StreamPublisher()
         mcp_activity_mock_publisher.subscribe(tls)
         mcp_activity_mock_publisher.publish(StreamEventType.MCP_TOOL_ENABLED, event.data)
 

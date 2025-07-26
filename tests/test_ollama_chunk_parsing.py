@@ -29,7 +29,7 @@ class TestOllamaChunkParsing(unittest.TestCase):
         self.provider = ProviderRegistry.create_provider("ollama", self.config)
         
         # Mocking the provider's initialize. Only focus on the stream publisher
-        self.provider._stream_publisher = StreamPublisher("ollama")
+        self.provider._stream_publisher = StreamPublisher()
         
         # Mock Ollama response chunks based on actual Ollama streaming format
         self.mock_chunks = [

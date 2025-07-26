@@ -55,7 +55,7 @@ class MockAppSettings:
         
         # Add ollama settings for OllamaProvider tests
         self.ollama = MagicMock()
-        self.ollama.api_url = "http://localhost:11434"
+        self.ollama.api_base = "http://localhost:11434"
         self.ollama.num_ctx = 2048
         self.ollama.repeat_last_n = 64
         self.ollama.repeat_penalty = 1.1
@@ -120,21 +120,21 @@ class ToolCallEventCollector(StreamSubscriber):
     
     def get_subscribed_events(self):
         return [
-            StreamEventType.TOOL_CALL,
-            StreamEventType.TOOL_CALL_DISPATCHED,
-            StreamEventType.TOOL_CALL_PROGRESS,
-            StreamEventType.TOOL_CALL_RESULT,
-            StreamEventType.TOOL_CALL_ERROR
+            StreamEventType.LLM_TOOL_CALL_REQUEST,
+            StreamEventType.MCP_TOOL_CALL_DISPATCHED,
+            StreamEventType.MCP_TOOL_CALL_PROGRESS,
+            StreamEventType.MCP_TOOL_CALL_RESULT,
+            StreamEventType.MCP_TOOL_CALL_ERROR
         ]
     
     def on_event(self, event: StreamEvent) -> None:
         self.events.append(event)
         
-        if event.type == StreamEventType.TOOL_CALL:
+        if event.type == StreamEventType.LLM_TOOL_CALL_REQUEST:
             self.tool_call_events.append(event)
-        elif event.type == StreamEventType.TOOL_CALL_RESULT:
+        elif event.type == StreamEventType.MCP_TOOL_CALL_RESULT:
             self.tool_result_events.append(event)
-        elif event.type == StreamEventType.TOOL_CALL_ERROR:
+        elif event.type == StreamEventType.MCP_TOOL_CALL_ERROR:
             self.tool_error_events.append(event)
 
 
@@ -182,7 +182,7 @@ class TestToolCallFlowIntegration(AsyncTestCase):
         async def async_test():
             # Create OpenAI-style tool call event
             tool_call_event = StreamEvent(
-                type=StreamEventType.TOOL_CALL,
+                type=StreamEventType.LLM_TOOL_CALL_REQUEST,
                 data={
                     "id": "call_123",
                     "type": "function",
@@ -209,8 +209,8 @@ class TestToolCallFlowIntegration(AsyncTestCase):
                 events = self.event_collector.events
                 self.assertGreater(len(events), 0, "Tool call events should be published")
                 
-                # Check for TOOL_CALL_DISPATCHED event
-                dispatched_events = [e for e in events if e.type == StreamEventType.TOOL_CALL_DISPATCHED]
+                # Check for MCP_TOOL_CALL_DISPATCHED event
+                dispatched_events = [e for e in events if e.type == StreamEventType.MCP_TOOL_CALL_DISPATCHED]
                 self.assertGreaterEqual(len(dispatched_events), 1, "Should have at least one dispatched event")
                 
                 # Find the correct dispatched event
@@ -231,7 +231,7 @@ class TestToolCallFlowIntegration(AsyncTestCase):
         async def async_test():
             # Create Ollama-style tool call event
             tool_call_event = StreamEvent(
-                type=StreamEventType.TOOL_CALL,
+                type=StreamEventType.LLM_TOOL_CALL_REQUEST,
                 data={
                     "tool_calls": [
                         {
@@ -261,8 +261,8 @@ class TestToolCallFlowIntegration(AsyncTestCase):
                 events = self.event_collector.events
                 self.assertGreater(len(events), 0, "Tool call events should be published")
                 
-                # Check for TOOL_CALL_DISPATCHED event
-                dispatched_events = [e for e in events if e.type == StreamEventType.TOOL_CALL_DISPATCHED]
+                # Check for MCP_TOOL_CALL_DISPATCHED event
+                dispatched_events = [e for e in events if e.type == StreamEventType.MCP_TOOL_CALL_DISPATCHED]
                 self.assertEqual(len(dispatched_events), 1, "Should have one dispatched event")
         
         self.run_async(async_test())
@@ -272,7 +272,7 @@ class TestToolCallFlowIntegration(AsyncTestCase):
         async def async_test():
             # Create tool call event
             tool_call_event = StreamEvent(
-                type=StreamEventType.TOOL_CALL,
+                type=StreamEventType.LLM_TOOL_CALL_REQUEST,
                 data={
                     "id": "call_error",
                     "type": "function",
@@ -295,7 +295,7 @@ class TestToolCallFlowIntegration(AsyncTestCase):
                 await asyncio.sleep(0.1)
                 
                 # Verify error events were published
-                error_events = [e for e in self.event_collector.events if e.type == StreamEventType.TOOL_CALL_ERROR]
+                error_events = [e for e in self.event_collector.events if e.type == StreamEventType.MCP_TOOL_CALL_ERROR]
                 self.assertEqual(len(error_events), 1, "Should have one error event")
                 
                 error_event = error_events[0]
@@ -403,7 +403,7 @@ class TestToolCallFlowIntegration(AsyncTestCase):
                 # Process each tool call
                 for i, tool_call in enumerate(tool_calls):
                     event = StreamEvent(
-                        type=StreamEventType.TOOL_CALL,
+                        type=StreamEventType.LLM_TOOL_CALL_REQUEST,
                         data=tool_call,
                         provider=ELLMProvider.OPENAI
                     )
@@ -413,7 +413,7 @@ class TestToolCallFlowIntegration(AsyncTestCase):
                 await asyncio.sleep(0.2)
                 
                 # Verify all tool calls were processed
-                dispatched_events = [e for e in self.event_collector.events if e.type == StreamEventType.TOOL_CALL_DISPATCHED]
+                dispatched_events = [e for e in self.event_collector.events if e.type == StreamEventType.MCP_TOOL_CALL_DISPATCHED]
                 self.assertGreaterEqual(len(dispatched_events), 2, "Should process both tool calls")
                 
                 # Verify tool calls were processed (check for both call IDs in all events)
@@ -436,7 +436,7 @@ class TestChatSessionToolCallIntegration(AsyncTestCase):
         
         # Mock provider and chat session
         self.mock_provider = MagicMock()
-        self.mock_provider.publisher = StreamPublisher("test_provider")
+        self.mock_provider.publisher = StreamPublisher()
         
         # Subscribe to events
         self.mock_provider.publisher.subscribe(self.event_collector)
@@ -464,7 +464,7 @@ class TestChatSessionToolCallIntegration(AsyncTestCase):
                 
                 # Publish tool call event
                 self.mock_provider.publisher.publish(
-                    StreamEventType.TOOL_CALL,
+                    StreamEventType.LLM_TOOL_CALL_REQUEST,
                     tool_call_data
                 )
                 
@@ -486,7 +486,7 @@ class TestChatSessionToolCallIntegration(AsyncTestCase):
                 pass  # Process chunks if needed
             
             # Verify tool call events were generated
-            tool_call_events = [e for e in self.event_collector.events if e.type == StreamEventType.TOOL_CALL]
+            tool_call_events = [e for e in self.event_collector.events if e.type == StreamEventType.LLM_TOOL_CALL_REQUEST]
             self.assertEqual(len(tool_call_events), 1, "Should generate tool call event")
             
             event = tool_call_events[0]
@@ -602,7 +602,7 @@ class TestEndToEndToolCallFlow(AsyncTestCase):
         self.tool_call_subscriber = MCPToolCallSubscriber(self.tool_execution)
         
         # Setup publisher that simulates LLM provider
-        self.llm_publisher = StreamPublisher(ELLMProvider.OPENAI)
+        self.llm_publisher = StreamPublisher()
         self.llm_publisher.subscribe(self.tool_call_subscriber)
         
         self.logger = logging.getLogger("test_e2e_flow")
@@ -634,7 +634,7 @@ class TestEndToEndToolCallFlow(AsyncTestCase):
                 
                 # Step 3: Publish tool call event (simulating LLM provider)
                 self.llm_publisher.publish(
-                    StreamEventType.TOOL_CALL,
+                    StreamEventType.LLM_TOOL_CALL_REQUEST,
                     tool_call_data
                 )
                 
@@ -645,15 +645,15 @@ class TestEndToEndToolCallFlow(AsyncTestCase):
                 events = self.event_collector.events
                 
                 # Should have dispatched event
-                dispatched_events = [e for e in events if e.type == StreamEventType.TOOL_CALL_DISPATCHED]
+                dispatched_events = [e for e in events if e.type == StreamEventType.MCP_TOOL_CALL_DISPATCHED]
                 self.assertGreaterEqual(len(dispatched_events), 1, "Should dispatch tool call")
                 
                 # Should have progress event
-                progress_events = [e for e in events if e.type == StreamEventType.TOOL_CALL_PROGRESS]
+                progress_events = [e for e in events if e.type == StreamEventType.MCP_TOOL_CALL_PROGRESS]
                 self.assertGreaterEqual(len(progress_events), 1, "Should show progress")
                 
                 # Should have result event
-                result_events = [e for e in events if e.type == StreamEventType.TOOL_CALL_RESULT]
+                result_events = [e for e in events if e.type == StreamEventType.MCP_TOOL_CALL_RESULT]
                 self.assertGreaterEqual(len(result_events), 1, "Should provide result")
                 
                 # Verify MCP tool was called with correct parameters
@@ -688,7 +688,7 @@ class TestEndToEndToolCallFlow(AsyncTestCase):
                 
                 # Publish failing tool call
                 self.llm_publisher.publish(
-                    StreamEventType.TOOL_CALL,
+                    StreamEventType.LLM_TOOL_CALL_REQUEST,
                     tool_call_data
                 )
                 
@@ -696,7 +696,7 @@ class TestEndToEndToolCallFlow(AsyncTestCase):
                 await asyncio.sleep(0.1)
                 
                 # Verify error was handled
-                error_events = [e for e in self.event_collector.events if e.type == StreamEventType.TOOL_CALL_ERROR]
+                error_events = [e for e in self.event_collector.events if e.type == StreamEventType.MCP_TOOL_CALL_ERROR]
                 self.assertEqual(len(error_events), 1, "Should handle error gracefully")
                 
                 error_event = error_events[0]

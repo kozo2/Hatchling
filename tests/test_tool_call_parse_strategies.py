@@ -18,7 +18,7 @@ class TestToolCallParseStrategiesRegistry(unittest.TestCase):
     def test_ollama_parse_strategy(self):
 
         ollama_event = StreamEvent(
-            type=StreamEventType.TOOL_CALL,
+            type=StreamEventType.LLM_TOOL_CALL_REQUEST,
             data={
                 "tool_calls": [
                     {
@@ -45,7 +45,7 @@ class TestToolCallParseStrategiesRegistry(unittest.TestCase):
     def test_ollama_parse_strategy_with_string_args(self):
 
         ollama_event = StreamEvent(
-            type=StreamEventType.TOOL_CALL,
+            type=StreamEventType.LLM_TOOL_CALL_REQUEST,
             data={
                 "tool_calls": [
                     {
@@ -72,7 +72,7 @@ class TestToolCallParseStrategiesRegistry(unittest.TestCase):
     def test_openai_parse_strategy_first_chunk(self):
 
         openai_event = StreamEvent(
-            type=StreamEventType.TOOL_CALL,
+            type=StreamEventType.LLM_TOOL_CALL_REQUEST,
             data={
                 "index": 0,
                 "id": "call_abc123",
@@ -98,7 +98,7 @@ class TestToolCallParseStrategiesRegistry(unittest.TestCase):
         strategy = ToolCallParseRegistry.get_strategy(ELLMProvider.OPENAI)
 
         first_event = StreamEvent(
-            type=StreamEventType.TOOL_CALL,
+            type=StreamEventType.LLM_TOOL_CALL_REQUEST,
             data={
                 "index": 0,
                 "id": "call_abc123",
@@ -115,7 +115,7 @@ class TestToolCallParseStrategiesRegistry(unittest.TestCase):
         strategy.parse_tool_call(first_event)
 
         continuation_event = StreamEvent(
-            type=StreamEventType.TOOL_CALL,
+            type=StreamEventType.LLM_TOOL_CALL_REQUEST,
             data={
                 "index": 0,
                 "function": {
@@ -136,7 +136,7 @@ class TestToolCallParseStrategiesRegistry(unittest.TestCase):
     def test_deprecated_function_call_format(self):
 
         deprecated_event = StreamEvent(
-            type=StreamEventType.TOOL_CALL,
+            type=StreamEventType.LLM_TOOL_CALL_REQUEST,
             data={
                 "function_call": {
                     "name": "get_weather",

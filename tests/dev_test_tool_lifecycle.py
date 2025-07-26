@@ -53,7 +53,7 @@ class TestToolLifecycleManagement(unittest.TestCase):
         """Set up test fixtures before each test method."""
         MCPToolAdapterRegistry.register("test_provider")
         MCPToolAdapterRegistry.get_adapter("test_provider")
-        self.publisher = StreamPublisher("test_provider")
+        self.publisher = StreamPublisher()
         self.lifecycle_subscriber = ToolLifecycleSubscriber("test_provider")
         self.publisher.subscribe(self.lifecycle_subscriber)
         

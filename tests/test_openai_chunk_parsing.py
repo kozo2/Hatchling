@@ -154,7 +154,7 @@ class TestOpenAIChunkParsing(unittest.TestCase):
         self.provider = OpenAIProvider(self.config)
 
         # Mocking the provider's initialize. Only focus on the stream publisher
-        self.provider._stream_publisher = StreamPublisher("openai")
+        self.provider._stream_publisher = StreamPublisher()
 
         self.chunks = create_test_chunks()
     

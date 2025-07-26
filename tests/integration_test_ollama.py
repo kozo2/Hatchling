@@ -37,7 +37,7 @@ class TestStreamToolCallSubscriber(StreamSubscriber):
 
     def on_event(self, event: StreamEvent) -> None:
         """Handle incoming stream events."""
-        if event.type == StreamEventType.TOOL_CALL:
+        if event.type == StreamEventType.LLM_TOOL_CALL_REQUEST:
             tool_calls = event.data.get("tool_calls", [])
             print(f"Received tool calls: {tool_calls}")
         elif event.type == StreamEventType.CONTENT:
@@ -51,7 +51,7 @@ class TestStreamToolCallSubscriber(StreamSubscriber):
             logger.warning(f"Unexpected event type: {event.type}")
     
     def get_subscribed_events(self):
-        return [StreamEventType.TOOL_CALL, StreamEventType.CONTENT, StreamEventType.USAGE]
+        return [StreamEventType.LLM_TOOL_CALL_REQUEST, StreamEventType.CONTENT, StreamEventType.USAGE]
 
 class TestOllamaProviderSync(unittest.TestCase):
     """Synchronous tests for OllamaProvider that don't require async operations."""
@@ -139,7 +139,7 @@ class TestOllamaProviderSync(unittest.TestCase):
     def test_tool_lifecycle_subscriber_cache(self):
         """Test ToolLifecycleSubscriber cache and event handling in isolation."""
         tls = ToolLifecycleSubscriber("ollama")
-        publisher = StreamPublisher("ollama")
+        publisher = StreamPublisher()
         publisher.subscribe(tls)
 
         # Enable two tools
@@ -271,7 +271,7 @@ class TestOllamaProviderIntegration(unittest.IsolatedAsyncioTestCase):
         self.provider._toolLifecycle_subscriber = tls
         tool_call_subscriber = TestStreamToolCallSubscriber()
         self.provider.publisher.subscribe(tool_call_subscriber)
-        mcp_activity_mock_publisher = StreamPublisher("ollama")
+        mcp_activity_mock_publisher = StreamPublisher()
         mcp_activity_mock_publisher.subscribe(tls)
         mcp_activity_mock_publisher.publish(StreamEventType.MCP_TOOL_ENABLED, event.data)
 

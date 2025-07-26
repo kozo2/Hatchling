@@ -29,7 +29,7 @@ class TestExistingEventHandling(unittest.TestCase):
     
     def setUp(self):
         """Set up test fixtures before each test method."""
-        self.publisher = StreamPublisher("test_provider")
+        self.publisher = StreamPublisher()
     
     def tearDown(self):
         """Clean up after each test method."""

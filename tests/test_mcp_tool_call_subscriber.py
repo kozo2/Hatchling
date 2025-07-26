@@ -36,7 +36,7 @@ class TestMCPToolCallSubscriberRegistry(unittest.TestCase):
     def test_on_event_ollama(self):
         # Create a mock Ollama tool call event
         ollama_event = StreamEvent(
-            type=StreamEventType.TOOL_CALL,
+            type=StreamEventType.LLM_TOOL_CALL_REQUEST,
             data={
                 "tool_calls": [
                     {
@@ -60,7 +60,7 @@ class TestMCPToolCallSubscriberRegistry(unittest.TestCase):
 
         self.mock_tool_execution.stream_publisher.publish.assert_called_once()
         args = self.mock_tool_execution.stream_publisher.publish.call_args[0]
-        self.assertEqual(args[0], StreamEventType.TOOL_CALL_DISPATCHED)
+        self.assertEqual(args[0], StreamEventType.MCP_TOOL_CALL_DISPATCHED)
         self.assertEqual(args[1]["function_name"], "get_weather")
         self.assertEqual(args[1]["tool_id"], "tool_123")
         self.assertEqual(args[1]["arguments"]["city"], "New York")
@@ -75,7 +75,7 @@ class TestMCPToolCallSubscriberRegistry(unittest.TestCase):
     def test_on_event_openai(self):
         # Create a mock OpenAI tool call event (first chunk)
         first_event = StreamEvent(
-            type=StreamEventType.TOOL_CALL,
+            type=StreamEventType.LLM_TOOL_CALL_REQUEST,
             data={
                 "index": 0,
                 "id": "call_abc123",
@@ -97,7 +97,7 @@ class TestMCPToolCallSubscriberRegistry(unittest.TestCase):
 
         # Create a mock continuation event
         continuation_event = StreamEvent(
-            type=StreamEventType.TOOL_CALL,
+            type=StreamEventType.LLM_TOOL_CALL_REQUEST,
             data={
                 "index": 0,
                 "function": {
@@ -115,7 +115,7 @@ class TestMCPToolCallSubscriberRegistry(unittest.TestCase):
 
         self.mock_tool_execution.stream_publisher.publish.assert_called_once()
         args = self.mock_tool_execution.stream_publisher.publish.call_args[0]
-        self.assertEqual(args[0], StreamEventType.TOOL_CALL_DISPATCHED)
+        self.assertEqual(args[0], StreamEventType.MCP_TOOL_CALL_DISPATCHED)
         self.assertEqual(args[1]["function_name"], "get_weather")
         self.assertEqual(args[1]["tool_id"], "call_abc123")
         self.assertEqual(args[1]["arguments"]["city"], "New York")

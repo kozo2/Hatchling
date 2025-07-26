@@ -46,10 +46,10 @@ class EventCollector(StreamSubscriber):
     
     def get_subscribed_events(self):
         return [
-            StreamEventType.TOOL_CALL_DISPATCHED,
-            StreamEventType.TOOL_CALL_PROGRESS,
-            StreamEventType.TOOL_CALL_RESULT,
-            StreamEventType.TOOL_CALL_ERROR
+            StreamEventType.MCP_TOOL_CALL_DISPATCHED,
+            StreamEventType.MCP_TOOL_CALL_PROGRESS,
+            StreamEventType.MCP_TOOL_CALL_RESULT,
+            StreamEventType.MCP_TOOL_CALL_ERROR
         ]
     
     def on_event(self, event: StreamEvent) -> None:
@@ -148,18 +148,18 @@ class TestMCPToolExecution(AsyncTestCase):
             self.assertGreater(len(events), 0)
             
             # Check for dispatched event
-            dispatched_events = [e for e in events if e.type == StreamEventType.TOOL_CALL_DISPATCHED]
+            dispatched_events = [e for e in events if e.type == StreamEventType.MCP_TOOL_CALL_DISPATCHED]
             self.assertEqual(len(dispatched_events), 1)
             self.assertEqual(dispatched_events[0].data["tool_id"], "test_123")
             self.assertEqual(dispatched_events[0].data["function_name"], "test_function")
             
             # Check for progress event
-            progress_events = [e for e in events if e.type == StreamEventType.TOOL_CALL_PROGRESS]
+            progress_events = [e for e in events if e.type == StreamEventType.MCP_TOOL_CALL_PROGRESS]
             self.assertEqual(len(progress_events), 1)
             self.assertEqual(progress_events[0].data["status"], "executing")
             
             # Check for result event
-            result_events = [e for e in events if e.type == StreamEventType.TOOL_CALL_RESULT]
+            result_events = [e for e in events if e.type == StreamEventType.MCP_TOOL_CALL_RESULT]
             self.assertEqual(len(result_events), 1)
             self.assertEqual(result_events[0].data["status"], "success")
         
@@ -184,7 +184,7 @@ class TestMCPToolExecution(AsyncTestCase):
             
             # Verify error event was published
             events = self.event_collector.events
-            error_events = [e for e in events if e.type == StreamEventType.TOOL_CALL_ERROR]
+            error_events = [e for e in events if e.type == StreamEventType.MCP_TOOL_CALL_ERROR]
             self.assertEqual(len(error_events), 1)
             self.assertEqual(error_events[0].data["tool_id"], "error_123")
             self.assertEqual(error_events[0].data["error"], "Test error")
@@ -211,7 +211,7 @@ class TestMCPToolExecution(AsyncTestCase):
             
             # Verify error event was published
             events = self.event_collector.events
-            error_events = [e for e in events if e.type == StreamEventType.TOOL_CALL_ERROR]
+            error_events = [e for e in events if e.type == StreamEventType.MCP_TOOL_CALL_ERROR]
             self.assertEqual(len(error_events), 1)
             self.assertEqual(error_events[0].data["status"], "no_response")
         
@@ -247,12 +247,12 @@ class TestMCPToolExecution(AsyncTestCase):
         # Test successful event publishing
         test_data = {"test": "data", "number": 42}
         
-        self.tool_execution._publish_tool_event(StreamEventType.TOOL_CALL_PROGRESS, test_data)
+        self.tool_execution._publish_tool_event(StreamEventType.MCP_TOOL_CALL_PROGRESS, test_data)
         
         # Verify event was received
         events = self.event_collector.events
         self.assertEqual(len(events), 1)
-        self.assertEqual(events[0].type, StreamEventType.TOOL_CALL_PROGRESS)
+        self.assertEqual(events[0].type, StreamEventType.MCP_TOOL_CALL_PROGRESS)
         self.assertEqual(events[0].data, test_data)
 
 
@@ -265,7 +265,7 @@ class TestMCPToolCallSubscriber(unittest.TestCase):
         
         # Mock the tool execution
         self.mock_tool_execution = MagicMock()
-        self.mock_tool_execution.stream_publisher = StreamPublisher(ELLMProvider.OPENAI)  # Use OpenAI as an example provider
+        self.mock_tool_execution.stream_publisher = StreamPublisher()  # Use OpenAI as an example provider
         
         # Create subscriber
         self.subscriber = MCPToolCallSubscriber(self.mock_tool_execution)
@@ -285,7 +285,7 @@ class TestMCPToolCallSubscriber(unittest.TestCase):
         
         # Check subscribed events
         subscribed_events = self.subscriber.get_subscribed_events()
-        expected_events = [StreamEventType.TOOL_CALL]
+        expected_events = [StreamEventType.LLM_TOOL_CALL_REQUEST]
         
         for event_type in expected_events:
             self.assertIn(event_type, subscribed_events)
@@ -294,7 +294,7 @@ class TestMCPToolCallSubscriber(unittest.TestCase):
         """Test handling of TOOL_CALL events."""
         # Create test event in OpenAI format
         test_event = StreamEvent(
-            type=StreamEventType.TOOL_CALL,
+            type=StreamEventType.LLM_TOOL_CALL_REQUEST,
             data={
                 "id": "test_call_123",
                 "type": "function",
@@ -309,9 +309,9 @@ class TestMCPToolCallSubscriber(unittest.TestCase):
         # Handle the event
         self.subscriber.on_event(test_event)
         
-        # Verify TOOL_CALL_DISPATCHED event was published
+        # Verify MCP_TOOL_CALL_DISPATCHED event was published
         events = self.event_collector.events
-        dispatched_events = [e for e in events if e.type == StreamEventType.TOOL_CALL_DISPATCHED]
+        dispatched_events = [e for e in events if e.type == StreamEventType.MCP_TOOL_CALL_DISPATCHED]
         self.assertEqual(len(dispatched_events), 1)
         
         dispatched_event = dispatched_events[0]
@@ -339,7 +339,7 @@ class TestMCPToolCallSubscriber(unittest.TestCase):
         """Test error handling during tool call processing."""
         # Create event with data that will cause parsing to fail by passing wrong provider
         test_event = StreamEvent(
-            type=StreamEventType.TOOL_CALL,
+            type=StreamEventType.LLM_TOOL_CALL_REQUEST,
             data={
                 "id": "test_call_error",
                 "function": {
@@ -355,7 +355,7 @@ class TestMCPToolCallSubscriber(unittest.TestCase):
         
         # No dispatched events should be published due to parsing error
         events = self.event_collector.events
-        dispatched_events = [e for e in events if e.type == StreamEventType.TOOL_CALL_DISPATCHED]
+        dispatched_events = [e for e in events if e.type == StreamEventType.MCP_TOOL_CALL_DISPATCHED]
         self.assertEqual(len(dispatched_events), 0)
 
 def run_enhanced_tool_execution_tests():
