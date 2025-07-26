@@ -18,12 +18,8 @@ The following commands are available during chat:
 |---------|-------------|----------|---------|
 | `help` | Display help for available commands | None | `help` |
 | `clear` | Clear the chat history | None | `clear` |
-| `enable_tools` | Enable MCP tools | None | `enable_tools` |
-| `disable_tools` | Disable MCP tools | None | `disable_tools` |
 | `show_logs` | Display session logs | `[n]` - Optional number of log entries to show | `show_logs` or `show_logs 10` |
-| `set_log_level` | Change log level | `<level>` - Log level (debug, info, warning, error, critical) | `set_log_level debug` |
-| `set_max_tool_call_iterations` | Set maximum tool call iterations | `<n>` - Maximum iterations | `set_max_tool_call_iterations 10` |
-| `set_max_working_time` | Set maximum working time in seconds | `<seconds>` - Maximum time | `set_max_working_time 60` |
+| `set_log_level` | Set the log level | `<level>` - Log level (debug, info, warning, error, critical) | `set_log_level debug` |
 | `version` | Display the current version of Hatchling | None | `version` |
 | `exit` or `quit` | End the chat session | None | `exit` |
 
@@ -75,3 +71,35 @@ The following commands are available during chat:
 |---------|-------------|----------|---------|
 | `settings:language:list` | List available interface languages | None | `settings:language:list` |
 | `settings:language:set` | Set the interface language | `<language_code>` - Language code to set | `settings:language:set fr` |
+
+## MCP Server and Tool Management Commands
+
+> [!Warning]
+> Still unstable on the dev branch. Commands to connect, an enable/disable tool are stable but UX is poor.
+
+| Command | Description | Arguments | Example |
+|---------|-------------|----------|---------|
+| `mcp:server:list` | List all MCP servers and their status | None | `mcp:server:list` |
+| `mcp:server:status` | Show detailed status for a specific MCP server | `<server_path>` - Path to the MCP server script | `mcp:server:status /path/to/server.py` |
+| `mcp:server:connect` | Connect to MCP servers | `[server_paths]` - Comma-separated paths to MCP server scripts (optional) | `mcp:server:connect /path/to/server1.py,/path/to/server2.py` |
+| `mcp:server:disconnect` | Disconnect from all MCP servers | None | `mcp:server:disconnect` |
+| `mcp:tool:list` | List all available MCP tools | `[server_path]` - Filter tools by server path (optional) | `mcp:tool:list` or `mcp:tool:list /path/to/server.py` |
+| `mcp:tool:info` | Show detailed information about a specific tool | `<tool_name>` - Name of the tool | `mcp:tool:info my_tool` |
+| `mcp:tool:enable` | Enable a specific MCP tool | `<tool_name>` - Name of the tool to enable | `mcp:tool:enable my_tool` |
+| `mcp:tool:disable` | Disable a specific MCP tool | `<tool_name>` - Name of the tool to disable | `mcp:tool:disable my_tool` |
+<!-- | `mcp:tool:execute` | Execute an MCP tool manually for debugging | `<tool_name>` - Name of the tool to execute | `mcp:tool:execute my_tool` | -->
+| `mcp:tool:schema` | Show the JSON schema for a tool's arguments | `<tool_name>` - Name of the tool | `mcp:tool:schema my_tool` |
+| `mcp:health` | Show overall MCP system health summary | None | `mcp:health` |
+| `mcp:citations` | Show MCP server citations for current session | None | `mcp:citations` |
+| `mcp:reset` | Reset MCP session tracking | None | `mcp:reset` |
+
+## LLM Model and Provider Management Commands
+
+| Command | Description | Arguments | Example |
+|---------|-------------|----------|---------|
+| `llm:provider:supported` | List all supported LLM providers | None | `llm:provider:supported` |
+| `llm:provider:status` | Check status of a specific provider | `[--provider-name <name>]` - Name of the provider (optional) | `llm:provider:status --provider-name ollama` |
+| `llm:model:list` | List available models | None | `llm:model:list` |
+| `llm:model:add` | Add (download) a model for Ollama; for other providers, check if the model exists online | `<model-name>` - Name of the model<br>`[--provider-name <name>]` - Provider name (optional) | `llm:model:add mistral` or `llm:model:add llama2 --provider-name ollama` |
+| `llm:model:use` | Set the default model to use for the current session | `<model-name>` - Name of the model<br>`[--force-confirmed]` - Force confirmation prompt (optional) | `llm:model:use mistral` |
+| `llm:model:remove` | Remove a model from the list of available models | `<model-name>` - Name of the model | `llm:model:remove mistral` |

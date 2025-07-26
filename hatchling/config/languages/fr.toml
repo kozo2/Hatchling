@@ -29,7 +29,11 @@ category_name = "llm"
 category_display_name = "Configuration LLM"
 category_description = "Paramètres pour la configuration du modèle de langage"
 
-# Paramètres Ollama (nouveaux/étendus)
+# Paramètres Ollama
+[settings.ollama]
+category_display_name = "Configuration Ollama"
+category_description = "Paramètres pour la configuration du LLM Ollama"
+
 [settings.ollama.ip]
 name = "Adresse IP Ollama"
 description = "Adresse IP pour le point de terminaison de l'API Ollama."
@@ -96,6 +100,15 @@ description = "Alternative à top_p, assure un équilibre entre qualité et vari
 hint = "Valeur décimale"
 
 # Paramètres OpenAI (étendus)
+[settings.openai]
+category_display_name = "Configuration OpenAI"
+category_description = "Paramètres pour la configuration du LLM OpenAI"
+
+[settings.openai.api_key]
+name = "Clé API OpenAI"
+description = "Clé API utilisée pour authentifier les services OpenAI."
+hint = "Entrez votre clé API OpenAI"
+
 [settings.openai.api_base]
 name = "URL de base API OpenAI"
 description = "URL de base pour les requêtes API OpenAI."
@@ -132,15 +145,20 @@ description = "Le choix d'outil pour les requêtes API OpenAI. (auto, none, requ
 hint = "Chaîne : auto | none | required"
 
 # Provider setting
-[settings.llm.provider]
+[settings.llm.provider_enum]
 name = "Fournisseur LLM"
-description = "Fournisseur LLM à utiliser ('ollama' ou 'openai')"
+description = "Fournisseur LLM à utiliser ('ollama' ou 'openai')."
 hint = "Choisir entre 'ollama' ou 'openai'"
 
 [settings.llm.model]
 name = "Modèle"
 description = "Modèle LLM à utiliser pour les interactions de chat"
 hint = "Exemple : mistral-small3.1"
+
+[settings.llm.models]
+name = "Modèles"
+description = "Liste des modèles LLM disponibles. Format : [(fournisseur, nom_modèle), ...(fournisseur, nom_modèle)]"
+hint = "Exemple : [(ollama, llama3.2), (openai, gpt-4o-nano)]"
 
 # Path Settings
 [settings.paths]
@@ -295,6 +313,39 @@ language_list_name = "param:langue:lister"
 language_list_description = "Lister les langues disponibles"
 language_set_name = "param:langue:définir"
 language_set_description = "Définir la langue de l'interface"
+
+[commands.llm]
+provider_supported_description = "Lister tous les fournisseurs LLM pris en charge"
+provider_status_description = "Vérifier le statut d'un fournisseur spécifique. Envoie une requête pour voir si les fournisseurs sont disponibles et réactifs."
+provider_name_arg_description = "Nom du fournisseur (ex : ollama, openai)"
+model_list_description = "Lister les modèles disponibles. Cela inclut les modèles téléchargés pour Ollama et les modèles préférés pour les autres fournisseurs."
+model_add_description = "Ajouter (télécharger) un modèle pour Ollama ; pour les autres fournisseurs, vérifier d'abord si le modèle existe en ligne."
+model_name_arg_description = "Nom du modèle à télécharger ou à définir par défaut"
+model_use_description = "Définir le modèle par défaut à utiliser pour la session en cours"
+force_confirmed_arg_description = "Forcer la confirmation même si le modèle est déjà défini par défaut"
+model_remove_description = "Supprimer un modèle de la liste des modèles disponibles"
+
+[commands.mcp]
+server_list_description = "Lister tous les serveurs MCP et leur statut"
+server_status_description = "Afficher le statut détaillé d'un serveur MCP spécifique"
+server_path_arg_description = "Chemin vers le script du serveur MCP"
+server_connect_description = "Se connecter aux serveurs MCP"
+server_paths_arg_description = "Chemins séparés par des virgules vers les scripts de serveurs MCP"
+server_disconnect_description = "Se déconnecter de tous les serveurs MCP"
+tool_list_description = "Lister tous les outils MCP disponibles"
+server_path_arg_description_optional = "Filtrer les outils par chemin de serveur (optionnel)"
+tool_info_description = "Afficher des informations détaillées sur un outil spécifique"
+tool_name_arg_description = "Nom de l'outil"
+tool_enable_description = "Activer un outil MCP spécifique"
+tool_name_arg_description_enable = "Nom de l'outil à activer"
+tool_disable_description = "Désactiver un outil MCP spécifique"
+tool_name_arg_description_disable = "Nom de l'outil à désactiver"
+tool_execute_description = "Exécuter un outil MCP manuellement pour le débogage"
+tool_name_arg_description_execute = "Nom de l'outil à exécuter"
+tool_schema_description = "Afficher le schéma JSON des arguments d'un outil"
+health_description = "Afficher le résumé de l'état de santé global du système MCP"
+citations_description = "Afficher les citations du serveur MCP pour la session en cours"
+reset_description = "Réinitialiser le suivi de session MCP"
 
 # Command arguments
 [commands.args]

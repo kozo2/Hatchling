@@ -20,6 +20,7 @@ from hatchling.config.settings_registry import SettingsRegistry
 from hatchling.core.chat.base_commands import BaseChatCommands
 from hatchling.core.chat.hatch_commands import HatchCommands
 from hatchling.core.chat.settings_commands import SettingsCommands
+from hatchling.core.chat.mcp_commands import MCPCommands
 from hatchling.core.chat.model_commands import ModelCommands
 
 from hatchling.mcp_utils.manager import mcp_manager
@@ -39,10 +40,10 @@ class ChatCommandHandler:
 
 
         self.settings_registry = settings_registry
-        self.mcp_commands = MCPCommands(chat_session, settings_registry, env_manager, style)
         self.base_commands = BaseChatCommands(chat_session, settings_registry, style)
         self.hatch_commands = HatchCommands(chat_session, settings_registry, style)
         self.settings_commands = SettingsCommands(chat_session, settings_registry, style)
+        self.mcp_commands = MCPCommands(chat_session, settings_registry, style)
         self.model_commands = ModelCommands(chat_session, settings_registry, style)
 
         self.logger = logging_manager.get_session("hatchling.core.chat.command_handler")
@@ -81,6 +82,7 @@ class ChatCommandHandler:
         self.base_commands.print_commands_help()
         self.hatch_commands.print_commands_help()
         self.settings_commands.print_commands_help()
+        self.mcp_commands.print_commands_help()
         self.model_commands.print_commands_help()
             
         print("======================\n")

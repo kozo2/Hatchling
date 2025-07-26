@@ -4,8 +4,6 @@ This module provides CLI commands for managing LLM models and providers.
 Commands follow the format 'llm:target:action' for clarity and consistency.
 """
 
-import asyncio
-from typing import Dict, List, Any, Optional
 from prompt_toolkit import print_formatted_text
 from prompt_toolkit.formatted_text import FormattedText
 
@@ -19,71 +17,71 @@ class ModelCommands(AbstractCommands):
     def _register_commands(self) -> None:
         """Register all model-related commands."""
         
+        from hatchling.config.i18n import translate
         self.commands = {
             # Provider management commands
             'llm:provider:supported': {
                 'handler': self._cmd_provider_supported,
-                'description': 'List all supported LLM providers',
+                'description': translate('commands.llm.provider_supported_description'),
                 'is_async': False,
                 'args': {}
             },
             'llm:provider:status': {
                 'handler': self._cmd_provider_status,
-                'description': 'Check status of a specific provider. Effectively sends a request to see if providers are available and responsive.',
+                'description': translate('commands.llm.provider_status_description'),
                 'is_async': True,
                 'args': {
                     'provider-name': {
                         'positional': False,
                         'completer_type': 'suggestions',
                         'values': self.settings.llm.provider_names,
-                        'description': 'Name of the provider (e.g., ollama, openai)',
+                        'description': translate('commands.llm.provider_name_arg_description'),
                         'required': False
                     }
                 }
             },
-            
-            # Model management commands  
+            # Model management commands
             'llm:model:list': {
                 'handler': self._cmd_model_list,
-                'description': 'List available models. This includes downloaded models for Ollama, and pref',
+                'description': translate('commands.llm.model_list_description'),
                 'is_async': True,
                 'args': {}
             },
             'llm:model:add': {
                 'handler': self._cmd_model_add,
-                'description': 'Add (download) a model for Ollama; for other providers, first check if the model exists online.',
+                'description': translate('commands.llm.model_add_description'),
                 'is_async': True,
                 'args': {
                     'provider-name': {
                         'positional': False,
                         'completer_type': 'suggestions',
                         'values': self.settings.llm.provider_names,
-                        'description': 'Name of the provider (e.g., ollama, openai)',
+                        'description': translate('commands.llm.provider_name_arg_description'),
                         'required': False
                     },
                     'model-name': {
                         'positional': True,
-                        'description': 'Name of the model to pull',
+                        'description': translate('commands.llm.model_name_arg_description'),
                         'required': True
                     }
                 }
             },
             'llm:model:use': {
                 'handler': self._cmd_model_use,
-                'description': 'Set the default model to use for the current session',
+                'description': translate('commands.llm.model_use_description'),
                 'is_async': False,
                 'args': {
                     'model-name': {
                         'positional': True,
                         'completer_type': 'suggestions',
                         'values': [model.name for model in self.settings.llm.models],
-                        'description': 'Name of the model to set as default',
+                        'description': translate('commands.llm.model_name_arg_description'),
                         'required': True
                     },
                     'force-confirmed':{
                         'positional': False,
                         'completer_type': 'boolean',
-                        'description': 'Force confirmation prompt even if the model is already set as default',
+                        'description': translate('commands.llm.force_confirmed_arg_description'),
                         'required': False,
                         'default': False,
                         'is_flag': True
@@ -92,14 +90,14 @@ class ModelCommands(AbstractCommands):
             },
             'llm:model:remove': {
                 'handler': self._cmd_model_remove,
-                'description': 'Remove a model from the list of available models',
+                'description': translate('commands.llm.model_remove_description'),
                 'is_async': False,
                 'args': {
                     'model-name': {
                         'positional': True,
                         'completer_type': 'suggestions',
                         'values': [model.name for model in self.settings.llm.models],
-                        'description': 'Name of the model to remove',
+                        'description': translate('commands.llm.model_name_arg_description'),
                         'required': True
                     }
                 }
