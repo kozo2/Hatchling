@@ -41,7 +41,6 @@ services:
       - HATCHLING_DEFAULT_LANGUAGE=${HATCHLING_DEFAULT_LANGUAGE:-en}
       - HATCHLING_SOURCE_DIR=${HATCHLING_SOURCE_DIR:-/opt/Hatchling}
       - LLM_PROVIDER=${LLM_PROVIDER:-ollama}
-      - CHATGPT_API_KEY=${CHATGPT_API_KEY}
       - OPENAI_MODEL=${OPENAI_MODEL:-gpt-4.1-nano}
       - OPENAI_API_URL=${OPENAI_API_URL:-https://api.openai.com/v1}
       - OLLAMA_HOST_API=${OLLAMA_HOST_API:-http://localhost:11434/api}
