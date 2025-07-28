@@ -166,7 +166,7 @@ class ToolChainingSubscriber(StreamSubscriber):
             StreamEventType.FINISH # To reset chaining state when final response is received
         ]
 
-    async def _chain_continuation_with_lock(self, tool_call: ToolCallParsedResult, tool_result) -> None:
+    async def _chain_continuation_with_lock(self, tool_call: ToolCallParsedResult, tool_result: ToolCallParsedResult ) -> None:
         """Evaluate whether to continue the tool calling chain with a specific call/result pair.
         
         This method implements the intelligent chaining logic using the provided FIFO pair,
@@ -182,17 +182,17 @@ class ToolChainingSubscriber(StreamSubscriber):
             await self._evaluate_tool_chain_continuation_with_pair(tool_call, tool_result)
             self.logger.debug(f"Released chain lock for tool call: {tool_call.tool_call_id}")
 
-    async def _evaluate_tool_chain_continuation_with_pair(self, tool_call: ToolCallParsedResult, tool_result) -> None:
+    async def _evaluate_tool_chain_continuation_with_pair(self, tool_call: ToolCallParsedResult, tool_result: ToolCallParsedResult) -> None:
         """Evaluate whether to continue the tool calling chain with a specific call/result pair.
         
         This method implements the intelligent chaining logic using the provided FIFO pair,
         ensuring only one tool chain continuation happens at a time.
-        
+
         Args:
             tool_call (ToolCallParsedResult): The tool call that was executed
-            tool_result: The result of the tool call execution (or error)
+            tool_result (ToolCallParsedResult): The result of the tool call execution (or error)
         """
-        try:            
+        try:
             # Publish TOOL_CHAIN_ITERATION event
             self.publisher.publish(
                 event_type=StreamEventType.TOOL_CHAIN_ITERATION,
@@ -244,14 +244,14 @@ class ToolChainingSubscriber(StreamSubscriber):
             if ProviderRegistry.get_current_provider(self.settings).provider_enum == ELLMProvider.OLLAMA:
                 # It seems Ollama only recognizes a dictionary with "role", "content", and "tool_name"
                 # as a tool result, so we need to convert the tool result to that format
-                last_tool_call = self.tool_result_collector.last_tool_call.to_ollama_dict()
-                last_tool_result = self.tool_result_collector.last_tool_result.to_ollama_dict()
+                last_tool_call = tool_call.to_ollama_dict()
+                last_tool_result = tool_result.to_ollama_dict()
 
             elif ProviderRegistry.get_current_provider(self.settings).provider_enum == ELLMProvider.OPENAI:
                 # Now for OpenAI, we need to convert the tool result to OpenAI format
                 # Open AI requires the last tool call
-                last_tool_call = self.tool_result_collector.last_tool_call.to_openai_dict()
-                last_tool_result = self.tool_result_collector.last_tool_result.to_openai_dict()
+                last_tool_call = tool_call.to_openai_dict()
+                last_tool_result = tool_result.to_openai_dict()
 
             self.logger.info(f"Tool result: {json_dumps(last_tool_result, indent=2)}")
 
