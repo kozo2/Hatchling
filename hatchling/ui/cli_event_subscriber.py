@@ -6,6 +6,9 @@ from typing import List, Dict, Any, Optional
 from dataclasses import dataclass, field
 import time
 from enum import IntFlag, auto
+
+from hatchling.config.settings import AppSettings
+
 class UIStateFlags(IntFlag):
     NONE = 0
     TOOL_CHAIN_ACTIVE = auto()
@@ -94,7 +97,7 @@ class CLIEventSubscriber(StreamSubscriber):
     Uses the Observer pattern to react to events and update UI state.
     """
 
-    def __init__(self):
+    def __init__(self, settings: Optional[AppSettings] = None):
         """Initialize the CLI event subscriber with default state."""
         self.logger = logging_manager.get_session("CLIEventSubscriber")
         
@@ -103,7 +106,8 @@ class CLIEventSubscriber(StreamSubscriber):
         self.current_tool: Optional[ToolStatus] = None
         self.server_status = ServerStatus()
         self.token_stats = TokenStats()
-        self.llm_status = LLMStatus()
+
+        self.settings = settings or AppSettings.get_instance()
         
         # UI Control State
         self.toolbar_view_mode = "default"  # default, tools, servers
@@ -470,15 +474,16 @@ class CLIEventSubscriber(StreamSubscriber):
         if self.right_prompt_view_mode == "tokens":
             stats = f"In: {self.token_stats.prompt_tokens} | Out: {self.token_stats.completion_tokens} | Total: {self.token_stats.total_current}"
             if tps is not None:
-                stats += f" | Rate: {tps:.1f}/s"
-            stats += f" | Session: {self.token_stats.total_tokens}"
+                stats += f"\n Rate: {tps:.1f}/s"
+            stats += f"\nSession: {self.token_stats.total_tokens}"
             return stats
         elif self.right_prompt_view_mode == "model":
-            return f"Provider: {self.llm_status.provider_name} | Model: {self.llm_status.model_name}"
+            return f"🤖 {self.settings.llm.provider_name} - {self.settings.llm.model}"
         else:  # default
-            stats = f"🤖 {self.llm_status.model_name} | 📊 In: {self.token_stats.prompt_tokens} | Out: {self.token_stats.completion_tokens}"
+            stats = f"🤖 {self.settings.llm.model} | 📊 Last Query: {self.token_stats.total_current}"
             if tps is not None:
-                stats += f" | Rate: {tps:.1f}/s"
+                stats += f"({tps:.1f}/s)"
+            stats += f" \n Session: {self.token_stats.total_tokens}"
             return stats
 
     def cycle_toolbar_view(self) -> None:
@@ -492,12 +497,6 @@ class CLIEventSubscriber(StreamSubscriber):
         modes = ["default", "tokens", "model"]
         current_index = modes.index(self.right_prompt_view_mode)
         self.right_prompt_view_mode = modes[(current_index + 1) % len(modes)]
-
-    def update_llm_status(self, provider_name: str, model_name: str, api_base: str = "Unknown") -> None:
-        """Update LLM status information."""
-        self.llm_status.provider_name = provider_name
-        self.llm_status.model_name = model_name
-        self.llm_status.api_base = api_base
 
     # Content Management Methods
     def get_accumulated_content(self) -> str:

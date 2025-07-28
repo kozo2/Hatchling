@@ -102,13 +102,6 @@ class CLIChat:
             
             # Register CLI subscriber with chat session (decoupled)
             self.chat_session.register_subscriber(self.cli_event_subscriber)
-            
-            # Update LLM status in event subscriber
-            self.cli_event_subscriber.update_llm_status(
-                self.settings_registry.settings.llm.provider_name,
-                self.settings_registry.settings.llm.model,
-                str(self.settings_registry.settings.api_base)
-            )
 
             # Initialize command handler
             self.cmd_handler = ChatCommandHandler(self.chat_session, self.settings_registry, self.command_style)
