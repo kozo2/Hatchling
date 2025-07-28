@@ -32,7 +32,7 @@ category_description = "Settings for Large Language Model configuration"
 [settings.llm.models]
 name = "LLM Models"
 description = "List of available LLM models. Format: [(provider, model_name), ...(provider, model_name)]"
-hint = "Example: [(ollama, llama3.2), (openai, gpt-4o-nano)]"
+hint = "Example: [(ollama, llama3.2), (openai, gpt-4.1-nano)]"
 
 # Ollama settings (new/expanded)
 [settings.ollama.ip]

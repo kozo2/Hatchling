@@ -158,7 +158,7 @@ hint = "Exemple : mistral-small3.1"
 [settings.llm.models]
 name = "Modèles"
 description = "Liste des modèles LLM disponibles. Format : [(fournisseur, nom_modèle), ...(fournisseur, nom_modèle)]"
-hint = "Exemple : [(ollama, llama3.2), (openai, gpt-4o-nano)]"
+hint = "Exemple : [(ollama, llama3.2), (openai, gpt-4.1-nano)]"
 
 # Path Settings
 [settings.paths]

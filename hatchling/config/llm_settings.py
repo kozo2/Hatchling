@@ -88,7 +88,7 @@ class LLMSettings(BaseModel):
         default_factory=lambda: [
             ModelInfo(name=model[1], provider=model[0], status=ModelStatus.AVAILABLE)
             for model in LLMSettings.extract_provider_model_list(
-                os.environ.get("LLM_MODELS", "") if os.environ.get("LLM_MODELS") else "[(ollama, llama3.2), (openai, gpt-4o-nano)]"
+                os.environ.get("LLM_MODELS", "") if os.environ.get("LLM_MODELS") else "[(ollama, llama3.2), (openai, gpt-4.1-nano)]"
             )
         ],
         description="List of LLMs the user can choose from.",
