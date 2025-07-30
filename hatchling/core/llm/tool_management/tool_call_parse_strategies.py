@@ -6,13 +6,14 @@ for both OpenAI and Ollama LLM providers, handling their different event formats
 
 import json
 import logging
+import uuid
 from typing import Dict, Any, Optional
-from uuid import uuid4
 
 from hatchling.core.llm.streaming_management.stream_subscribers import StreamEvent
 from .tool_call_parse_registry import ToolCallParseRegistry, ToolCallParseStrategy
 from .tool_call_parse_strategy import ToolCallParsedResult  # Import the dataclass
 from hatchling.config.llm_settings import ELLMProvider
+
 
 logger = logging.getLogger(__name__)
 
@@ -154,7 +155,7 @@ class OllamaToolCallParseStrategy(ToolCallParseStrategy):
             tool_call = tool_calls[0]
             
             # Extract standard fields
-            tool_id = tool_call.get("id", event.request_id)  # Use a UUID if no ID is provided
+            tool_id = tool_call.get("id", str(uuid.uuid4()))  # Use a UUID if no ID is provided
             function_name = tool_call.get("function", {}).get("name", "")
             arguments = tool_call.get("function", {}).get("arguments", {})
             
