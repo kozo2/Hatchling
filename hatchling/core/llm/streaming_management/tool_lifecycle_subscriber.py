@@ -124,10 +124,10 @@ class ToolLifecycleSubscriber(StreamSubscriber):
         
         # Create or update tool info from event data
         if tool_name not in self._tool_cache:
-            tool_info = event.data.get("mcp_tool_info", {})
+            tool_info = event.data.get("tool_info", {})
 
             if not tool_info:
-                self.logger.error(f"'Tool enabled event' missing 'mcp_tool_info' for tool '{tool_name}'")
+                self.logger.error(f"'Tool enabled event' missing 'tool_info' for tool '{tool_name}'")
                 return
             
             # Convert tool to provider-specific format

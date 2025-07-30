@@ -136,10 +136,10 @@ class TestEnhancedMCPManagerEventPublishing(unittest.TestCase):
         
         self.assertEqual(event.type, StreamEventType.MCP_TOOL_ENABLED)
         self.assertEqual(event.data["tool_name"], "test_tool")
-        self.assertEqual(event.data["mcp_tool_info"].description, "A test tool")
-        self.assertEqual(event.data["mcp_tool_info"].server_path, "/path/to/server.py")
-        self.assertEqual(event.data["mcp_tool_info"].status.value, "enabled")
-        self.assertEqual(event.data["mcp_tool_info"].reason.value, "server_up")
+        self.assertEqual(event.data["tool_info"].description, "A test tool")
+        self.assertEqual(event.data["tool_info"].server_path, "/path/to/server.py")
+        self.assertEqual(event.data["tool_info"].status.value, "enabled")
+        self.assertEqual(event.data["tool_info"].reason.value, "server_up")
 
     def test_tool_enable_disable_functionality(self):
         """Test tool enable/disable functionality with events."""

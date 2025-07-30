@@ -1,6 +1,6 @@
-"""MCP Tool Call Subscriber for handling TOOL_CALL events from LLM streams.
+"""MCP Tool Call Subscriber for handling LLM_TOOL_CALL_REQUEST events from LLM streams.
 
-This module provides a subscriber that listens for TOOL_CALL events from LLM providers
+This module provides a subscriber that listens for LLM_TOOL_CALL_REQUEST events from LLM providers
 and dispatches them to MCPToolExecution for processing.
 """
 
@@ -15,7 +15,7 @@ from .mcp_tool_execution import MCPToolExecution
 
 
 class MCPToolCallSubscriber(StreamSubscriber):
-    """Subscriber that handles TOOL_CALL events and dispatches them for execution."""
+    """Subscriber that handles LLM_TOOL_CALL_REQUEST events and dispatches them for execution."""
     
     def __init__(self, tool_execution: MCPToolExecution):
         """Initialize the MCP tool call subscriber.
@@ -24,7 +24,7 @@ class MCPToolCallSubscriber(StreamSubscriber):
             tool_execution (MCPToolExecution): The tool execution manager to dispatch calls to.
         """
         self.tool_execution = tool_execution
-        self.logger = logging.getLogger(f"MCPToolCallSubscriber")
+        self.logger = logging_manager.get_session(f"MCPToolCallSubscriber")
         
     def get_subscribed_events(self):
         """Get the list of event types this subscriber handles.
@@ -42,6 +42,7 @@ class MCPToolCallSubscriber(StreamSubscriber):
         """
         if event.type == StreamEventType.LLM_TOOL_CALL_REQUEST:
             try:
+                self.logger.debug(f"Received LLM_TOOL_CALL_REQUEST event: {event}")
                 parsed_tool_call = ToolCallParseRegistry.get_strategy(event.provider).parse_tool_call(event)
             except Exception as e:
                 self.logger.error(f"Error parsing tool call event: {e}")
@@ -55,10 +56,10 @@ class MCPToolCallSubscriber(StreamSubscriber):
             self.logger.warning(f"Received unexpected event type: {event.type}")
 
     def _handle_tool_call_event(self, parsed_tool_call: ToolCallParsedResult) -> None:
-        """Handle TOOL_CALL events by dispatching to tool execution.
+        """Handle LLM_TOOL_CALL_REQUEST events by dispatching to tool execution.
         
         Args:
-            event (StreamEvent): The TOOL_CALL event to handle.
+            event (StreamEvent): The LLM_TOOL_CALL_REQUEST event to handle.
         """
         try:
             # Dispatch the tool call for execution

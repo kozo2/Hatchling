@@ -108,7 +108,7 @@ class MCPManager:
         """
         event_data = {
             "tool_name": tool_name,
-            "mcp_tool_info": tool_info,
+            "tool_info": tool_info,
             **additional_data
         }
 
@@ -193,8 +193,8 @@ class MCPManager:
                         # Create MCPToolInfo for lifecycle management
                         tool_info = MCPToolInfo(
                             name=tool_name,
-                            description=getattr(tool_obj, 'description', f'Tool: {tool_name}'),
-                            schema=getattr(tool_obj, 'inputSchema', {}),
+                            description=getattr(tool_obj, 'description', f'No description available'),
+                            schema=getattr(tool_obj, 'No argument schema available', {}),
                             server_path=path,
                             status=MCPToolStatus.ENABLED,
                             reason=MCPToolStatusReason.FROM_SERVER_UP
