@@ -133,7 +133,8 @@ class ModelManagerAPI:
     async def pull_model(model_name: str, provider: ELLMProvider, settings: AppSettings = None) -> bool:
         """Pull/download a model.
 
-        For Ollama, this uses the official client to pull models.
+        For Ollama, this uses the official client to pull models, then we
+        add the model to the user's available models list.
         For other providers like OpenAI, we operate a check for availability against the
         official model list. If the model exists, there is no download operation,
         but we do add the model to the user's available models list.

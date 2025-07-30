@@ -19,6 +19,7 @@ from hatchling.core.llm.streaming_management.stream_data import StreamEventType,
 from hatchling.core.llm.streaming_management.stream_publisher import StreamPublisher
 from hatchling.core.llm.tool_management.tool_result_collector_subscriber import ToolResultCollectorSubscriber
 from hatchling.core.llm.tool_management import ToolCallParsedResult
+from hatchling.mcp_utils.mcp_tool_execution import ToolCallExecutionResult
 from hatchling.core.chat.message_history import MessageHistory
 from hatchling.core.logging.logging_manager import logging_manager
 from hatchling.mcp_utils.mcp_tool_execution import MCPToolExecution
@@ -65,9 +66,14 @@ class ToolChainingSubscriber(StreamSubscriber):
         
         # Chain tracking for event publishing
         self.tool_result_collector = ToolResultCollectorSubscriber()
+
+        self.tool_chain_id: str = None  # Unique ID for the tool chain
+        self.start_time: float = 0.0  # Start time of the tool chain
         self.started = False  # Flag to track if the subscriber has started
-        self.current_tool_chain_iteration = 1 # Initialize the current tool iteration
-    
+        self.current_tool_chain_iteration = 1  # Initialize the current tool iteration
+        self.is_expecting_mcp_tool_call = False # To acknowledge that the LLM has requested while we wait for the processing to the standard MCP_TOOL_CALL_DISPATCHED event
+        self.is_partial_response = False  # Flag to indicate whether the tool chain was interrupted because of a limit reached
+
     def on_event(self, event: StreamEvent) -> None:
         """Handle tool execution events to trigger chaining.
         
@@ -78,39 +84,53 @@ class ToolChainingSubscriber(StreamSubscriber):
         self.logger.debug(f"ToolChainingSubscriber received event: {event.type} with data: {event.data}")
         
         # First, accumulate tool results
-        # This holds info about the pending tool calls (just dispatched) and the results
+        # This holds info about the pending tool calls (dispatched) and the results
         self.tool_result_collector.on_event(event)
 
-        if event.type == StreamEventType.MCP_TOOL_CALL_DISPATCHED and len(self.tool_result_collector.tool_call_queue) == 1:
-            
-            self.started = True  # Mark that we have started processing tool calls
-            
-            # If we have a single dispatch in the queue, it means we are in the first tool call
-            # and we can publish the start of the tool chain
-            current_tool = None
-            if self.tool_result_collector.tool_call_queue:
-                _, _, current_tool = self.tool_result_collector.tool_call_queue[0]
-                
-            self.publisher.publish(
-                event_type=StreamEventType.TOOL_CHAIN_START,
-                data={
-                    "tool_chain_id":  str(uuid.uuid4()),  # Unique ID for the tool chain
-                    "initial_query": self.tool_execution.root_tool_query,
-                    "current_iteration": self.current_tool_chain_iteration,
-                    "max_iterations": self.settings.tool_calling.max_iterations,
-                    "current_tool": current_tool,
-                    "start_time": time.time(),
-                    "is_active": True
-                }
-            )
+        if event.type == StreamEventType.LLM_TOOL_CALL_REQUEST:
+            # The LLM has requested a tool call, a processed tool call
+            # will be dispatched by the MCPToolCallSubscriber, which will
+            # in turn trigger the MCP_TOOL_CALL_DISPATCHED event.
+            # For that reason, we reserve the chaining status already.
+            self.logger.debug("Received LLM_TOOL_CALL_REQUEST, reserving chaining status.")
+            self.is_expecting_mcp_tool_call = True  # Mark that we are in a chaining state
 
-        # Handle TOOL_CALL_RESULT - tool completed
-        if event.type == StreamEventType.MCP_TOOL_CALL_RESULT:
-            # First, let the tool result collector process the event
-            # This will buffer the result until its dispatch is at the head of the queue
+        if event.type == StreamEventType.MCP_TOOL_CALL_DISPATCHED:
+
+            if not self.started:
+                self.started = True  # Mark that we have started processing tool calls
+
+                self.start_time = time.time()  # Record the start time of the tool chain
+                self.tool_chain_id = str(uuid.uuid4())  # Generate a unique ID for the
+                
+                _, _, current_tool = self.tool_result_collector.tool_call_queue[0]
+                    
+                self.publisher.publish(
+                    event_type=StreamEventType.TOOL_CHAIN_START,
+                    data={
+                        "tool_chain_id":  self.tool_chain_id,  # Unique ID for the tool chain
+                        "initial_query": self.tool_execution.root_tool_query,
+                        "current_iteration": self.current_tool_chain_iteration,
+                        "max_iterations": self.settings.tool_calling.max_iterations,
+                        "current_tool": current_tool,
+                        "start_time": self.start_time
+                    }
+                )
+
+            self.is_expecting_mcp_tool_call = False  # Reset the flag as we have received the MCP_TOOL_CALL_DISPATCHED event
+
+        if event.type == StreamEventType.MCP_TOOL_CALL_RESULT or event.type == StreamEventType.MCP_TOOL_CALL_ERROR:
+            # We have received a tool result or an error from the MCPToolExecution
+            # Indeed, we are also processing the errors in the tool chaining to
+            # let the LLM know that the tool call failed, and probably retry, or
+            # at least react to the error.
             
             # Now check if we have a ready pair to process in FIFO order
             ready_pair = self.tool_result_collector.get_next_ready_pair()
+            self.logger.debug(
+                f"Next pair in FIFO order: {ready_pair} " +
+                f"Tool result collector has {len(self.tool_result_collector.tool_call_queue)} tool calls in queue, " +
+                f"and {len(self.tool_result_collector.tool_result_buffer)} results in buffer.")
             if ready_pair:
                 tool_call, tool_result = ready_pair
                 self.logger.debug(f"Processing ready pair for tool_call_id: {tool_call.tool_call_id}")
@@ -124,34 +144,28 @@ class ToolChainingSubscriber(StreamSubscriber):
                 self.logger.debug("Tool result received but no ready pair available yet (FIFO ordering)")
             
         # Handle FINISH events
-        if event.type == StreamEventType.FINISH:
-            # We will receive FINISH events when the LLM has completed its response
-            # It may be after an LLM_TOOL_CALL_REQUEST in the case of generating a response
-            # that lead to MCP_TOOL_CALL_DISPATCHED events, or it may be the final response
-            # In the first case, it is only the closure of tool request and we can check
-            # that we indeed have a tool call parsed in the collector
-            if self.tool_result_collector.request_ids and self.tool_result_collector.request_ids[-1] == event.request_id:
-                self.logger.debug(f"FINISH event received for request ID: {event.request_id} " +
-                                  "matching the last tool call request ID. Therefore this " +
-                                  "is a closure of the tool call request and there is nothing to do.")
-            else:
-                self.logger.debug(f"FINISH event received for request ID: {event.request_id} " +
-                                  f"but it does not match the last tool call request ID: {self.tool_result_collector.request_ids}. Checking whether "
-                                  "a tool result is expected...")
-                # Check if there are unprocessed tool calls in the FIFO queue
-                # If the queue has items but the buffer doesn't have matching results, we're waiting
-                unprocessed_calls = any(tool_call_id not in self.tool_result_collector.tool_result_buffer 
-                                      for tool_call_id, _, _ in self.tool_result_collector.tool_call_queue)
-                
-                if unprocessed_calls:
-                    self.logger.debug("FINISH event received but tool results are still pending in FIFO queue. " +
-                                      "Waiting for tool results to continue the chain.")
-                else:
-                    # No unprocessed tool calls, reset chaining state
-                    self.logger.debug("FINISH event received and no tool results are pending. " +
-                                        "Resetting chaining state and ready for new query.")
-                    self.reset_for_new_query()
-                return
+        if event.type == StreamEventType.FINISH and self.started:
+            # Is this the FINISH event while chaining (i.e., the queue is not empty)?
+            self.logger.debug("Received FINISH event checking tool call queue: " +
+                              f"{len(self.tool_result_collector.tool_call_queue)} tool calls in queue, and " +
+                                f" not expecting any more: {not self.is_expecting_mcp_tool_call}.")
+            if self.is_partial_response or \
+                (not self.tool_result_collector.has_pending_tool_calls and \
+                 not self.is_expecting_mcp_tool_call):
+                self.logger.debug("Received FINISH event and no more tool calls in the queue. " +
+                                  "Moreover, the LLM has not requested any more tool calls.")
+                self.publisher.publish(
+                    event_type=StreamEventType.TOOL_CHAIN_END,
+                    data={
+                        "tool_chain_id": self.tool_chain_id,
+                        "initial_query": self.tool_execution.root_tool_query,
+                        "success": True,
+                        "iteration": self.current_tool_chain_iteration,
+                        "max_iterations": self.settings.tool_calling.max_iterations,
+                        "elapsed_time": time.time() - self.start_time,
+                    }
+                )
+                self.reset()
 
     def get_subscribed_events(self) -> List[StreamEventType]:
         """Get the list of events this subscriber is interested in.
@@ -160,6 +174,7 @@ class ToolChainingSubscriber(StreamSubscriber):
             List[StreamEventType]: List of event types to subscribe to.
         """
         return [
+            StreamEventType.LLM_TOOL_CALL_REQUEST, # For initial tool call requests (something is coming)
             StreamEventType.MCP_TOOL_CALL_DISPATCHED, # For the tool result collector
             StreamEventType.MCP_TOOL_CALL_ERROR,  # For tool result collection
             StreamEventType.MCP_TOOL_CALL_RESULT, # For both tool result collection and chaining
@@ -182,7 +197,7 @@ class ToolChainingSubscriber(StreamSubscriber):
             await self._evaluate_tool_chain_continuation_with_pair(tool_call, tool_result)
             self.logger.debug(f"Released chain lock for tool call: {tool_call.tool_call_id}")
 
-    async def _evaluate_tool_chain_continuation_with_pair(self, tool_call: ToolCallParsedResult, tool_result: ToolCallParsedResult) -> None:
+    async def _evaluate_tool_chain_continuation_with_pair(self, tool_call: ToolCallParsedResult, tool_result: ToolCallExecutionResult) -> None:
         """Evaluate whether to continue the tool calling chain with a specific call/result pair.
         
         This method implements the intelligent chaining logic using the provided FIFO pair,
@@ -190,35 +205,37 @@ class ToolChainingSubscriber(StreamSubscriber):
 
         Args:
             tool_call (ToolCallParsedResult): The tool call that was executed
-            tool_result (ToolCallParsedResult): The result of the tool call execution (or error)
+            tool_result (ToolCallExecutionResult): The result of the tool call execution (or error)
         """
         try:
-            # Publish TOOL_CHAIN_ITERATION event
+            # Publish TOOL_CHAIN_ITERATION_START event
             self.publisher.publish(
-                event_type=StreamEventType.TOOL_CHAIN_ITERATION,
+                event_type=StreamEventType.TOOL_CHAIN_ITERATION_START,
                 data={
-                    "iteration": self.current_tool_chain_iteration
+                    "tool_chain_id": self.tool_chain_id,
+                    "iteration": self.current_tool_chain_iteration,
+                    "max_iterations": self.settings.tool_calling.max_iterations,
+                    "tool_name": tool_call.function_name
                 }
             )
-            
-            elapsed_time = time.time() - self.tool_execution.tool_call_start_time
-            
+
             # Check if we've hit limits
             reached_max_iterations = (self.tool_execution.current_tool_call_iteration >= 
                                     self.settings.tool_calling.max_iterations)
+            elapsed_time = time.time() - self.start_time
             reached_time_limit = elapsed_time >= self.settings.tool_calling.max_working_time
 
-            continuation_message = ""
-                
-            # Continue with sequential tool calling
-            self.logger.debug(f"Evaluating tool chain continuation - iteration {self.current_tool_chain_iteration}")            
+            provider = ProviderRegistry.get_current_provider(self.settings)
+            payload = {}
 
-            # Hit limits, generate partial response
+            # Check if we can proceed with regard to the chaining limits
             if reached_max_iterations or reached_time_limit:
+                self.is_partial_response = True  # Mark that we are providing a partial response due to limits reached
                 limit_reason = ("max iterations" if reached_max_iterations else "time limit")
-                self.logger.info(f"Tool calling chain stopped: reached {limit_reason}")
+                self.logger.debug(f"Tool calling chain stopped: reached {limit_reason}")
 
                 # Message to notify the LLM about the limits, and to provide partial results
+                # TODO: This should be configurable, e.g., via a setting or a prompt file.
                 continuation_message = (
                     f"We have reached the limit of {limit_reason} and cannot continue with more tool calls.\n"
                     "However, we have collected the tool results and should be able to provide a partial response.\n"
@@ -226,8 +243,35 @@ class ToolChainingSubscriber(StreamSubscriber):
                     "Adapt the level of detail in your response based on the complexity of the tool calling chain.\n"
                     "Prefer conciseness, clarity, and accuracy of the response.\n"
                 )
-                
-            else: # Chaining can continue, ask LLM if it needs more tools
+
+                self.publisher.publish(
+                    event_type=StreamEventType.TOOL_CHAIN_LIMIT_REACHED,
+                    data={
+                        "tool_chain_id": self.tool_chain_id,
+                        "limit_type": "max_iterations" if reached_max_iterations else "time_limit",
+                        "iteration": self.current_tool_chain_iteration,
+                        "elapsed_time": elapsed_time
+                    }
+                )
+
+                payload = provider.prepare_chat_payload(
+                    [{
+                        "role": "user",
+                        "content": self.tool_execution.root_tool_query
+                        }] +
+                    self.history.get_messages() + 
+                    [{
+                        "role": "user",
+                        "content": continuation_message
+                        }],
+                    self.settings.llm.model
+                )
+
+            else:
+                # Continue with sequential tool calling
+                self.logger.debug(f"Evaluating tool chain continuation - iteration {self.current_tool_chain_iteration}")            
+            
+                # TODO: This should be configurable, e.g., via a setting or a prompt file.
                 continuation_message = (
                     "Given the tool results, do you have enough information "
                     "to answer the original query of the user?\n"
@@ -236,65 +280,97 @@ class ToolChainingSubscriber(StreamSubscriber):
                     "Prefer conciseness, clarity, and accuracy of the response.\n"
                     "- If not, continue using tools or, if no tools meet your needs, you can write a response."
                 )
+                self.logger.debug(f"Tool chain continuation message: {continuation_message}")
 
-            self.logger.debug(f"Tool chain continuation message: {continuation_message}")
+                # TODO: We should handle this via strategies implemented similar to the tool call parsing strategies
+                # For now, we will assume the last tool call and result are in the format expected
+                if provider.provider_enum == ELLMProvider.OLLAMA:
+                    # It seems Ollama only recognizes a dictionary with "role", "content", and "tool_name"
+                    # as a tool result, so we need to convert the tool result to that format
+                    last_tool_call = tool_call.to_ollama_dict()
+                    last_tool_result = tool_result.to_ollama_dict()
 
-            # TODO: We should handle this via strategies implemented similar to the tool call parsing strategies
-            # For now, we will assume the last tool call and result are in the format expected
-            if ProviderRegistry.get_current_provider(self.settings).provider_enum == ELLMProvider.OLLAMA:
-                # It seems Ollama only recognizes a dictionary with "role", "content", and "tool_name"
-                # as a tool result, so we need to convert the tool result to that format
-                last_tool_call = tool_call.to_ollama_dict()
-                last_tool_result = tool_result.to_ollama_dict()
+                elif provider.provider_enum == ELLMProvider.OPENAI:
+                    # Now for OpenAI, we need to convert the tool result to OpenAI format
+                    # Open AI requires the last tool call
+                    last_tool_call = tool_call.to_openai_dict()
+                    last_tool_result = tool_result.to_openai_dict()
 
-            elif ProviderRegistry.get_current_provider(self.settings).provider_enum == ELLMProvider.OPENAI:
-                # Now for OpenAI, we need to convert the tool result to OpenAI format
-                # Open AI requires the last tool call
-                last_tool_call = tool_call.to_openai_dict()
-                last_tool_result = tool_result.to_openai_dict()
+                self.logger.info(f"Tool result: {json_dumps(last_tool_result, indent=2)}")
 
-            self.logger.info(f"Tool result: {json_dumps(last_tool_result, indent=2)}")
+                self.history.add_tool_call(last_tool_call)
+                self.history.add_tool_result(last_tool_result)
 
-            self.history.add_tool_call(last_tool_call)
-            self.history.add_tool_result(last_tool_result)
-
-            provider = ProviderRegistry.get_current_provider(self.settings)
-
-            # Prepare payload for next iteration
-            payload = provider.prepare_chat_payload(
-                self.history.get_messages() + [{
-                    "role": "user",
-                    "content": continuation_message
-                    }],
-                self.settings.llm.model
-            )
-            
-            # Add tools to payload
-            if not (reached_max_iterations or reached_time_limit):
+                # Prepare payload for next iteration
+                payload = provider.prepare_chat_payload(
+                    [{
+                        "role": "user",
+                        "content": self.tool_execution.root_tool_query
+                        }] +
+                    self.history.get_messages() + 
+                    [{
+                        "role": "user",
+                        "content": continuation_message
+                        }],
+                    self.settings.llm.model
+                )
+                
+                # Add tools to payload
                 payload = provider.add_tools_to_payload(payload)
 
-            # Increment the tool call iteration
-            self.tool_execution.current_tool_call_iteration += 1
-
-            # Stream the continuation response
+                # Increment the tool call iteration
+                self.tool_execution.current_tool_call_iteration += 1
+            
             await provider.stream_chat_response(payload)
-                
+
+            # Processing of this iteration is done, send the info that the LLM has finished
+            self.publisher.publish(
+                event_type=StreamEventType.TOOL_CHAIN_ITERATION_END,
+                data={
+                    "tool_chain_id": self.tool_chain_id,
+                    "iteration": self.current_tool_chain_iteration,
+                    "max_iterations": self.settings.tool_calling.max_iterations,
+                    "tool_name": tool_call.function_name,
+                    "elapsed_time": elapsed_time
+                }
+            )
+        
         except Exception as e:
             self.logger.error(f"Error in tool chain continuation: {e}")
+
+
             self.publisher.publish(
                 event_type=StreamEventType.TOOL_CHAIN_ERROR,
                 data={
-                    "error": str(e)
+                    "tool_chain_id": self.tool_chain_id,
+                    "error": str(e),
+                    "iteration": self.current_tool_chain_iteration,
                 },
-            )        
+            )
+
+            self.publisher.publish(
+                event_type=StreamEventType.TOOL_CHAIN_END,
+                data={
+                    "tool_chain_id": self.tool_chain_id,
+                    "initial_query": self.tool_execution.root_tool_query,
+                    "success": False,
+                    "iteration": self.current_tool_chain_iteration,
+                    "max_iterations": self.settings.tool_calling.max_iterations,
+                    "total_name": tool_call.function_name,
+                    "elapsed_time": time.time() - self.start_time,
+                }
+            )
+
+            # Reset the chaining subscriber for a new query
+            self.reset() 
     
-    def reset_for_new_query(self) -> None:
+    def reset(self) -> None:
         """Reset the chaining subscriber for a new query."""
-        self.publisher.publish(
-            event_type=StreamEventType.TOOL_CHAIN_END,
-            data={"sussess": True, "total_iterations": self.tool_execution.current_tool_call_iteration}
-        )
         # Reset the tool execution state
+        self.started = False
+        self.start_time = 0.0
+        self.is_expecting_mcp_tool_call = False
+        self.is_partial_response = False
         self.current_tool_chain_iteration = 1
         self.tool_result_collector.reset()
         #self.history.clear()

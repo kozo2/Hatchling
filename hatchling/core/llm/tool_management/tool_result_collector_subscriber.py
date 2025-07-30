@@ -56,14 +56,12 @@ class ToolResultCollectorSubscriber(StreamSubscriber):
         self.tool_call_queue = deque()  # Type: deque[Tuple[str, float, ToolCallParsedResult]]
         
         # Buffer for tool results by tool_call_id: tool_call_id -> ToolCallExecutionResult or error marker
-        self.tool_result_buffer: Dict[str, Union[ToolCallExecutionResult, Dict[str, Any]]] = {}
+        self.tool_result_buffer: Dict[str, ToolCallExecutionResult] = {}
         
         # Legacy fields - deprecated but kept for backward compatibility
         self.tool_results: List[ToolCallExecutionResult] = []
         self.tool_calls: List[ToolCallParsedResult] = []
         self.request_ids: List[str] = []  # Track LLM request IDs for tool calls
-        self.error_occurred = False
-        self.error_message: Optional[str] = None
 
         self.logger = logging_manager.get_session("ToolResultCollectorSubscriber")
     
@@ -87,39 +85,31 @@ class ToolResultCollectorSubscriber(StreamSubscriber):
                 # Add to FIFO queue with timestamp
                 self.tool_call_queue.append((toolCallParsedRes.tool_call_id, event.timestamp, toolCallParsedRes))
                 self.logger.debug(f"Added to FIFO queue. Queue length: {len(self.tool_call_queue)}")
-                
-                # Legacy compatibility - keep existing behavior
-                self.request_ids.append(event.request_id)
-                self.tool_calls.append(toolCallParsedRes)
 
             elif event.type == StreamEventType.MCP_TOOL_CALL_RESULT:
                 toolCallExecRes = ToolCallExecutionResult(**event.data)
                 self.logger.debug(f"Tool call result received: {toolCallExecRes}")
                 
+                # if toolCallExecRes ID already in the buffer, log a warning
+                if toolCallExecRes.tool_call_id in self.tool_result_buffer:
+                    self.logger.warning(f"Tool call result for ID {toolCallExecRes.tool_call_id} already exists in buffer. "
+                                        f"Overwriting previous result.")
+                # if toolCallExecRes ID is not already in the tool calls, log a warning
+                if toolCallExecRes.tool_call_id not in [call.tool_call_id for _, _, call in self.tool_call_queue]:
+                    self.logger.warning(f"Tool call result for ID {toolCallExecRes.tool_call_id} received without a matching tool call in the queue. "
+                                        f"This may indicate a mismatch in tool call dispatch and result handling.")
+
                 # Store in result buffer
                 self.tool_result_buffer[toolCallExecRes.tool_call_id] = toolCallExecRes
                 self.logger.debug(f"Added to result buffer. Buffer size: {len(self.tool_result_buffer)}")
 
-                self.tool_results.append(toolCallExecRes)
-
             elif event.type == StreamEventType.MCP_TOOL_CALL_ERROR:
                 # Handle tool execution error
-                self.error_occurred = True
-                self.error_message = event.data.get("error", "Unknown tool execution error")
-                
-                # Create an error result for consistency and store in buffer
-                error_result = {
-                    "role": "tool",
-                    "tool_call_id": event.data["tool_id"],
-                    "name": event.data["function_name"],
-                    "content": f"Error: {self.error_message}",
-                    "is_error": True
-                }
-                self.tool_result_buffer[event.data["tool_id"]] = error_result
-                self.logger.debug(f"Added error to result buffer for tool_call_id: {event.data['tool_id']}")
-                
-                # Legacy compatibility
-                self.tool_results.append(error_result)
+
+                error_result = ToolCallExecutionResult(**event.data)
+                self.logger.error(f"Tool call error received: {error_result}")
+                self.tool_result_buffer[event.data["tool_call_id"]] = error_result
+                self.logger.debug(f"Added error to result buffer for tool_call_id: {event.data['tool_call_id']}")
                 
         except Exception as e:
             # Don't let subscriber errors break the event system
@@ -177,8 +167,6 @@ class ToolResultCollectorSubscriber(StreamSubscriber):
         self.tool_results.clear()
         self.tool_calls.clear()
         self.request_ids.clear()
-        self.error_occurred = False
-        self.error_message = None
         
         self.logger.debug("Reset FIFO queue and result buffer")
     
@@ -207,3 +195,12 @@ class ToolResultCollectorSubscriber(StreamSubscriber):
             Optional[ToolCallExecutionResultLight]: The last tool call execution result or None if no results.
         """
         return self.tool_results[-1] if self.tool_results else None
+    
+    @property
+    def has_pending_tool_calls(self) -> bool:
+        """Check if there are any pending tool calls in the queue.
+        
+        Returns:
+            bool: True if there are pending tool calls, False otherwise.
+        """
+        return len(self.tool_call_queue) > 0
