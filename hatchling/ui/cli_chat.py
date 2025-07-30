@@ -72,10 +72,10 @@ class CLIChat:
             'text.default': '#ffffff',               # Default text - white
             
             # Toolbar styles
-            'toolbar.default': '#87ceeb',            # Sky blue for default toolbar
+            'toolbar.default': "#63818d",            # Sky blue for default toolbar
             'toolbar.tool': '#ffa500',               # Orange for tool execution
             'toolbar.error': '#ff6b6b',              # Red for errors
-            'toolbar.info': '#98fb98',               # Light green for info
+            'toolbar.info': "#49a949",               # Light green for info
             
             # Right prompt styles
             'right-prompt': '#d3d3d3',               # Light gray for right prompt
@@ -102,6 +102,7 @@ class CLIChat:
             
             # Register CLI subscriber with chat session (decoupled)
             self.chat_session.register_subscriber(self.cli_event_subscriber)
+            mcp_manager.publisher.subscribe(self.cli_event_subscriber)
 
             # Initialize command handler
             self.cmd_handler = ChatCommandHandler(self.chat_session, self.settings_registry, self.command_style)

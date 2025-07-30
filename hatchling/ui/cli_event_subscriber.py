@@ -6,13 +6,15 @@ from typing import List, Dict, Any, Optional
 from dataclasses import dataclass, field
 import time
 from enum import IntFlag, auto
+from pathlib import Path
 
 from hatchling.config.settings import AppSettings
+from hatchling.mcp_utils.mcp_tool_data import MCPToolInfo
 
 class UIStateFlags(IntFlag):
     NONE = 0
     TOOL_CHAIN_ACTIVE = auto()
-    TOOL_RUNNING = auto()
+    TOOL_CHAIN_EXPECTED = auto()
     CONTENT_STREAMING = auto()
     ERROR_DISPLAYED = auto()
     INFO_DISPLAYED = auto()
@@ -43,19 +45,6 @@ from hatchling.core.llm.streaming_management.stream_subscriber import StreamSubs
 from hatchling.core.llm.streaming_management.stream_data import StreamEvent, StreamEventType
 from hatchling.core.logging.logging_manager import logging_manager
 from prompt_toolkit import print_formatted_text as print_pt
-from prompt_toolkit.patch_stdout import patch_stdout
-
-
-@dataclass
-class ToolStatus:
-    """Status information for currently executing tools."""
-    
-    name: str
-    parameters: Dict[str, Any]
-    call_id: str
-    server_name: Optional[str] = None
-    progress: float = 0.0
-    start_time: float = field(default_factory=time.time)
 
 @dataclass
 class ServerStatus:
@@ -102,8 +91,6 @@ class CLIEventSubscriber(StreamSubscriber):
         self.logger = logging_manager.get_session("CLIEventSubscriber")
         
         # UI State
-        self.current_chain: Optional[ChainStatus] = None
-        self.current_tool: Optional[ToolStatus] = None
         self.server_status = ServerStatus()
         self.token_stats = TokenStats()
 
@@ -119,9 +106,6 @@ class CLIEventSubscriber(StreamSubscriber):
         self.message_timeout: float = 5.0  # seconds
         self.last_message_time: float = 0.0
         
-        # Content handling for output
-        self.content_buffer: str = ""
-        self.content_ready_for_display: bool = False
         # UI state flags manager
         self.ui_state = UIStateManager()
 
@@ -137,9 +121,10 @@ class CLIEventSubscriber(StreamSubscriber):
             if event.type == StreamEventType.TOOL_CHAIN_START:
                 self.logger.debug(f"Handling TOOL_CHAIN_START event: {event.data}")
                 self._handle_tool_chain_start(event)
-            elif event.type == StreamEventType.TOOL_CHAIN_ITERATION:
-                self.logger.debug(f"Handling TOOL_CHAIN_ITERATION event: {event.data}")
-                self._handle_tool_chain_iteration(event)
+            elif event.type == StreamEventType.TOOL_CHAIN_ITERATION_START:
+                self._handle_tool_chain_iteration_start(event)
+            elif event.type == StreamEventType.TOOL_CHAIN_ITERATION_END:
+                self._handle_tool_chain_iteration_end(event)
             elif event.type == StreamEventType.TOOL_CHAIN_END:
                 self.logger.debug(f"Handling TOOL_CHAIN_END event: {event.data}")
                 self._handle_tool_chain_end(event)
@@ -160,9 +145,6 @@ class CLIEventSubscriber(StreamSubscriber):
             elif event.type == StreamEventType.MCP_TOOL_CALL_RESULT:
                 self.logger.debug(f"Handling MCP_TOOL_CALL_RESULT event: {event.data}")
                 self._handle_mcp_tool_call_result(event)
-            elif event.type == StreamEventType.MCP_TOOL_CALL_PROGRESS:
-                self.logger.debug(f"Handling MCP_TOOL_CALL_PROGRESS event: {event.data}")
-                self._handle_mcp_tool_call_progress(event)
             elif event.type == StreamEventType.MCP_TOOL_CALL_ERROR:
                 self.logger.debug(f"Handling MCP_TOOL_CALL_ERROR event: {event.data}")
                 self._handle_mcp_tool_call_error(event)
@@ -207,7 +189,6 @@ class CLIEventSubscriber(StreamSubscriber):
         return [
             # Tool Chaining Events
             StreamEventType.TOOL_CHAIN_START,
-            StreamEventType.TOOL_CHAIN_ITERATION,
             StreamEventType.TOOL_CHAIN_END,
             StreamEventType.TOOL_CHAIN_LIMIT_REACHED,
             StreamEventType.TOOL_CHAIN_ERROR,
@@ -216,7 +197,6 @@ class CLIEventSubscriber(StreamSubscriber):
             StreamEventType.LLM_TOOL_CALL_REQUEST,
             StreamEventType.MCP_TOOL_CALL_DISPATCHED,
             StreamEventType.MCP_TOOL_CALL_RESULT,
-            StreamEventType.MCP_TOOL_CALL_PROGRESS,
             StreamEventType.MCP_TOOL_CALL_ERROR,
             
             # MCP Server Events
@@ -236,135 +216,167 @@ class CLIEventSubscriber(StreamSubscriber):
     def _handle_tool_chain_start(self, event: StreamEvent) -> None:
         """Handle tool chain start event."""
         data = event.data
-        self.current_chain = ChainStatus(**event.data)
         self.ui_state.set(UIStateFlags.TOOL_CHAIN_ACTIVE)
         self.ui_state.clear(UIStateFlags.USER_INPUT_READY)
         self.logger.debug(f"Tool chain started - TOOL_CHAIN_ACTIVE set, USER_INPUT_READY cleared")
-        self._set_info(f"Tool chain started: {self.current_chain.initial_query[:50]}...")
+        # Truncating initial query if it's too long
+        initial_query = data.get("initial_query", "No query")
+        if isinstance(initial_query, str) and len(initial_query) > 100:
+            initial_query = initial_query[:100] + "..."
+        self._set_info(
+            f"[{data.get('tool_chain_id', 'ID unknown')}]\n" +
+            f"Tool chaining started for initial query: {initial_query}\n" +
+            f" {data.get('max_iterations', 0)} iterations allowed.")
 
-    def _handle_tool_chain_iteration(self, event: StreamEvent) -> None:
+    def _handle_tool_chain_iteration_start(self, event: StreamEvent) -> None:
         """Handle tool chain iteration event."""
         data = event.data
-        if self.current_chain:
-            self.current_chain.current_iteration = data.get("iteration", 0)
-            tool_name = data.get("tool_name", "unknown")
-            self._set_info(f"Tool chain step {self.current_chain.current_iteration}/{self.current_chain.max_iterations}: {tool_name}")
-            self.ui_state.set(UIStateFlags.TOOL_CHAIN_ACTIVE)
-            self.ui_state.clear(UIStateFlags.USER_INPUT_READY)
+        self._set_info(
+            f"[{data.get('tool_chain_id', 'ID unknown')}]\n" +
+            f"Step {data.get('iteration', -1)}/{data.get('max_iterations', 0)}:\n" +
+            f"Feeding back result of {data.get('tool_name', 'unknown')} to LLM.")
+        self.ui_state.set(UIStateFlags.TOOL_CHAIN_ACTIVE)
+        self.ui_state.clear(UIStateFlags.USER_INPUT_READY)
+
+    def _handle_tool_chain_iteration_end(self, event: StreamEvent) -> None:
+        """Handle tool chain iteration event."""
+        data = event.data
+        self._set_info(
+            f"[{data.get('tool_chain_id', 'ID unknown')}]\n" +
+            f"Step {data.get('iteration', -1)}/{data.get('max_iterations', 0)}:\n" +
+            f"Result of {data.get('tool_name', 'unknown')} processed by the LLM.")
 
     def _handle_tool_chain_end(self, event: StreamEvent) -> None:
         """Handle tool chain end event."""
         data = event.data
-        success = data.get("success", False)
-        iterations = data.get("total_iterations", 0)
+        
+        success = data.get("success", True)
+        # Truncating initial query if it's too long
+        initial_query = data.get("initial_query", "No query")
+        if isinstance(initial_query, str) and len(initial_query) > 100:
+            initial_query = initial_query[:100] + "..."
+
         if success:
-            self._set_info(f"Tool chain completed successfully ({iterations} steps)")
+            self._set_info(
+                f"[{data.get('tool_chain_id', 'ID unknown')}]\n" +
+                f"Tool chaining completed successfully for initial query: {initial_query}\n" +
+                f"Total iterations: {data.get('total_iterations', 0)}, Total time: {data.get('elapsed_time', 0):.2f} seconds"
+            )
         else:
-            self._set_error(f"Tool chain failed after {iterations} steps")
+            self._set_error(
+                f"[{data.get('tool_chain_id', 'ID unknown')}]\n" +
+                f"Tool chaining failed for initial query: {initial_query}\n" +
+                f"Total iterations: {data.get('total_iterations', 0)}, Total time: {data.get('elapsed_time', 0):.2f} seconds"
+            )
+
         self.current_chain = None
-        self.current_tool = None
         self.ui_state.clear(UIStateFlags.TOOL_CHAIN_ACTIVE)
-        self.ui_state.set(UIStateFlags.USER_INPUT_READY)
-        self.logger.debug(f"Tool chain ended - TOOL_CHAIN_ACTIVE cleared, USER_INPUT_READY set")
+        self.logger.debug(f"Tool chain ended - TOOL_CHAIN_ACTIVE cleared")
 
     def _handle_tool_chain_limit_reached(self, event: StreamEvent) -> None:
         """Handle tool chain limit reached event."""
         data = event.data
-        limit_type = data.get("limit_type", "unknown")
-        iterations = data.get("iterations", 0)
-        self._set_error(f"Tool chain stopped: {limit_type} limit reached ({iterations} steps)")
+        self._set_info(
+            f"[{data.get('tool_chain_id', 'ID unknown')}]\n" +
+            f"Tool chaining stopped: {data.get('limit_type', 'unknown')} ({data.get('iterations', 0)} steps, {data.get('elapsed_time', 0):.2f} seconds elapsed)"
+        )
         self.ui_state.clear(UIStateFlags.TOOL_CHAIN_ACTIVE)
-        self.ui_state.set(UIStateFlags.USER_INPUT_READY)
-        self.logger.debug(f"Tool chain limit reached - TOOL_CHAIN_ACTIVE cleared, USER_INPUT_READY set")
+        self.logger.debug(f"Tool chain limit reached - TOOL_CHAIN_ACTIVE cleared")
 
     def _handle_tool_chain_error(self, event: StreamEvent) -> None:
         """Handle tool chain error event."""
         data = event.data
-        error = data.get("error", "Unknown error")
-        iteration = data.get("iteration", 0)
-        self._set_error(f"Tool chain error at step {iteration}: {error}")
-        self.current_chain = None
-        self.current_tool = None
+        self._set_error(
+            f"[{data.get('tool_chain_id', 'ID unknown')}]\n" +
+            f"Tool chaining failed at step {data.get('iteration', 0)}: {data.get('error', 'Unknown error')}"
+        )
         self.ui_state.clear(UIStateFlags.TOOL_CHAIN_ACTIVE)
-        self.ui_state.set(UIStateFlags.USER_INPUT_READY)
-        self.logger.debug(f"Tool chain error - TOOL_CHAIN_ACTIVE cleared, USER_INPUT_READY set")
+        self.logger.debug(f"Tool chain error - TOOL_CHAIN_ACTIVE cleared")
 
     # Tool Execution Event Handlers
     def _handle_llm_tool_call_request(self, event: StreamEvent) -> None:
         """Handle LLM tool call request event."""
         data = event.data
-        self.current_tool = ToolStatus(
-            name=data.get("tool_name", "unknown"),
-            parameters=data.get("parameters", {}),
-            call_id=data.get("call_id", "unknown")
+        # Set tool is running
+        self.ui_state.set(UIStateFlags.TOOL_CHAIN_EXPECTED)
+        function = data.get("function", {})
+        self._set_info(
+            f"[{function.get('id', 'ID unknown')}]\n" +
+            f"Tool call to {function.get('name', 'Name unknown')} requested with parameters:\n" +
+            f"{', '.join([f'{k}={v}' for k, v in function.get('arguments', {}).items()])}"
         )
-        # Only set not ready for user input if we're not in a tool chain
-        # (tool chains manage this state themselves)
-        # if not self.current_chain:
-        #     self.ready_for_user_input = False
+
 
     def _handle_mcp_tool_call_dispatched(self, event: StreamEvent) -> None:
         """Handle MCP tool call dispatched event."""
         data = event.data
-        if self.current_tool and self.current_tool.call_id == data.get("call_id"):
-            self.current_tool.server_name = data.get("server_name", "unknown")
+        self._set_info(
+            f"[{data.get('tool_call_id', 'unknown')}]\n" +
+            f"Tool {data.get('function_name', 'unknown')} dispatched with parameters:\n" +
+            f"{', '.join([f'{k}={v}' for k, v in data.get('arguments', {}).items()])}"
+        )
+        # Clear the expected state as the tool call has been dispatched
+        self.ui_state.clear(UIStateFlags.TOOL_CHAIN_EXPECTED)
 
     def _handle_mcp_tool_call_result(self, event: StreamEvent) -> None:
         """Handle MCP tool call result event."""
         data = event.data
-        if self.current_tool and self.current_tool.call_id == data.get("call_id"):
-            execution_time = data.get("execution_time", 0.0)
-            self._set_info(f"Tool {self.current_tool.name} completed ({execution_time:.2f}s)")
-            # if not self.current_chain:  # Only clear if not in a chain
-            #     self.current_tool = None
-            #     # Only set ready for user input if we're not in a tool chain
-            #     self.ready_for_user_input = True
-
-    def _handle_mcp_tool_call_progress(self, event: StreamEvent) -> None:
-        """Handle MCP tool call progress event."""
-        data = event.data
-        if self.current_tool and self.current_tool.call_id == data.get("call_id"):
-            self.current_tool.progress = data.get("progress", 0.0)
+        # Truncate result if too long
+        result = data.get("result", "No returned value")
+        if isinstance(result, str) and len(result) > 100:
+            result = result[:100] + "..."
+        self._set_info(
+            f"[{data.get('tool_call_id', 'unknown')}]\n" +
+            f"Tool {data.get('function_name', 'unknown')} result: {result}"
+        )
 
     def _handle_mcp_tool_call_error(self, event: StreamEvent) -> None:
         """Handle MCP tool call error event."""
         data = event.data
-        tool_name = data.get("tool_name", "unknown")
+        tool_name = data.get("function_name", "unknown")
         error = data.get("error", "Unknown error")
-        self._set_error(f"Tool {tool_name} failed: {error}")
+        self._set_error(
+            f"[{data.get('tool_call_id', 'ID unknown')}]\n" +
+            f"Execution of tool {tool_name} failed: {error}"
+        )
         self.current_tool = None
-        # Only set ready for user input if we're not in a tool chain
-        # if not self.current_chain:
-        #     self.ready_for_user_input = True
+        # Don't clear any UI state flags here, as the tool call error
+        # might be part of an ongoing tool chain. Hence we give the
+        # LLM a chance to fix its mistake by retrying the tool call.
+        # TODO: However, put up a warning
 
     # MCP Server Event Handlers
     def _handle_mcp_server_up(self, event: StreamEvent) -> None:
         """Handle MCP server up event."""
         data = event.data
-        self.server_status.servers_up = data.get("server_count", 0)
-        self.server_status.tools_total = data.get("tool_count", 0)
-        server_name = data.get("server_name", "unknown")
-        self._set_info(f"MCP server connected: {server_name}")
+        self.server_status.servers_up += 1
+        self.server_status.tools_total += data.get("tool_count", 0)
+        server_path = data.get("server_path", "unknown")
+        self._set_info(f"MCP server connected: {Path(server_path).name}")
 
     def _handle_mcp_server_down(self, event: StreamEvent) -> None:
         """Handle MCP server down event."""
         data = event.data
-        self.server_status.servers_up = data.get("server_count", 0)
-        self.server_status.tools_total = data.get("tool_count", 0)
-        server_name = data.get("server_name", "unknown")
-        self._set_error(f"MCP server disconnected: {server_name}")
+        self.server_status.servers_up -= 1
+        self.server_status.tools_total -= data.get("tool_count", 0)
+        server_path = data.get("server_path", "unknown")
+        self._set_info(f"MCP server disconnected: {Path(server_path).name}")
 
     def _handle_mcp_tool_enabled(self, event: StreamEvent) -> None:
         """Handle MCP tool enabled event."""
         data = event.data
-        self.server_status.tools_enabled = data.get("enabled_count", 0)
-        self.server_status.tools_total = data.get("total_count", 0)
+        self.server_status.tools_enabled += 1
+        tool_info : MCPToolInfo = data.get("tool_info", {})
+        self._set_info(f"Tool enabled: {tool_info.name} ({Path(tool_info.server_path).name})\n" +
+                       f"\tDescription: {tool_info.description}\n" +
+                       f"\tParameters: {', '.join([f'{k}={v}' for k, v in tool_info.schema.items()])}")
 
     def _handle_mcp_tool_disabled(self, event: StreamEvent) -> None:
         """Handle MCP tool disabled event."""
         data = event.data
-        self.server_status.tools_enabled = data.get("enabled_count", 0)
-        self.server_status.tools_total = data.get("total_count", 0)
+        self.server_status.tools_enabled -= 1
+        tool_info: MCPToolInfo = data.get("tool_info", {})
+        self._set_info(f"Tool disabled: {tool_info.name} ({Path(tool_info.server_path).name})")
 
     # LLM Event Handlers
     def _handle_usage(self, event: StreamEvent) -> None:
@@ -387,12 +399,10 @@ class CLIEventSubscriber(StreamSubscriber):
             event (StreamEvent): The event to handle.
         """
         self.ui_state.clear(UIStateFlags.USER_INPUT_READY)
-        if not self.ui_state.is_set(UIStateFlags.CONTENT_STREAMING):
-            self.ui_state.set(UIStateFlags.CONTENT_STREAMING)
-            self.content_buffer = ""
-        with patch_stdout():
-            content = event.data.get("content", "")
-            print_pt(content, end="", flush=True)
+        self.ui_state.set(UIStateFlags.CONTENT_STREAMING)
+        
+        content = event.data.get("content", "")
+        print_pt(content, end="", flush=True)
 
     def _handle_finish(self, event: StreamEvent) -> None:
         """Handle finish event.
@@ -406,7 +416,7 @@ class CLIEventSubscriber(StreamSubscriber):
         # means that this finish event is the end of a content stream
         if self.ui_state.is_set(UIStateFlags.CONTENT_STREAMING) and not \
               self.ui_state.is_set(UIStateFlags.TOOL_CHAIN_ACTIVE) and \
-              not self.ui_state.is_set(UIStateFlags.TOOL_RUNNING):
+              not self.ui_state.is_set(UIStateFlags.TOOL_CHAIN_EXPECTED):
                 self.ui_state.clear(UIStateFlags.CONTENT_STREAMING)
                 self.ui_state.set(UIStateFlags.USER_INPUT_READY)
                 self.logger.debug("All content apparently finished, USER_INPUT_READY set")
@@ -416,6 +426,9 @@ class CLIEventSubscriber(StreamSubscriber):
         data = event.data
         error = data.get("error", "Unknown error")
         self._set_error(f"LLM Error: {error}")
+        self.ui_state.clear(UIStateFlags.TOOL_CHAIN_ACTIVE)
+        self.ui_state.clear(UIStateFlags.TOOL_CHAIN_EXPECTED)
+        self.ui_state.set(UIStateFlags.USER_INPUT_READY)
 
     # UI State Management
     def _set_error(self, message: str) -> None:
@@ -448,19 +461,7 @@ class CLIEventSubscriber(StreamSubscriber):
             return f"❌ {self.current_error}"
         if self.current_info:
             return f"ℹ️ {self.current_info}"
-        
-        # Show tool execution status
-        if self.current_tool:
-            params_str = ", ".join([f"{k}='{v}'" for k, v in list(self.current_tool.parameters.items())[:2]])
-            if len(self.current_tool.parameters) > 2:
-                params_str += "..."
-            
-            if self.current_chain:
-                return f"🔧 Running: {self.current_tool.name}({params_str}) [Step {self.current_chain.current_iteration}/{self.current_chain.max_iterations}]"
-            else:
-                progress = f" ({self.current_tool.progress:.0%})" if self.current_tool.progress > 0 else ""
-                return f"🔧 Running: {self.current_tool.name}({params_str}){progress}"
-        
+    
         # Show server/tool status when idle
         return f"🌐 Servers: {self.server_status.servers_up} up | 🛠️ Tools: {self.server_status.tools_enabled} enabled / {self.server_status.tools_total} total"
 
@@ -471,19 +472,22 @@ class CLIEventSubscriber(StreamSubscriber):
         if self.token_stats.start_time and self.token_stats.end_time and self.token_stats.completion_tokens > 0:
             duration = self.token_stats.end_time - self.token_stats.start_time
             tps = self.token_stats.completion_tokens / duration if duration > 0 else 0
+        
+        stats = ""
+        if self.right_prompt_view_mode == "model":
+            return f"🤖 {self.settings.llm.provider_name}\n{self.settings.llm.model}"
+        
         if self.right_prompt_view_mode == "tokens":
-            stats = f"In: {self.token_stats.prompt_tokens} | Out: {self.token_stats.completion_tokens} | Total: {self.token_stats.total_current}"
+            stats = f"📊 In: {self.token_stats.prompt_tokens}\nOut: {self.token_stats.completion_tokens}\nLast Query: {self.token_stats.total_current}"
             if tps is not None:
                 stats += f"\n Rate: {tps:.1f}/s"
-            stats += f"\nSession: {self.token_stats.total_tokens}"
+            stats += f"\nTotal: {self.token_stats.total_tokens}"
             return stats
-        elif self.right_prompt_view_mode == "model":
-            return f"🤖 {self.settings.llm.provider_name} - {self.settings.llm.model}"
         else:  # default
-            stats = f"🤖 {self.settings.llm.model} | 📊 Last Query: {self.token_stats.total_current}"
+            stats = f"🤖 {self.settings.llm.model}\n📊 Last Query: {self.token_stats.total_current}"
             if tps is not None:
                 stats += f"({tps:.1f}/s)"
-            stats += f" \n Session: {self.token_stats.total_tokens}"
+            stats += f"\nTotal: {self.token_stats.total_tokens}"
             return stats
 
     def cycle_toolbar_view(self) -> None:
@@ -498,34 +502,15 @@ class CLIEventSubscriber(StreamSubscriber):
         current_index = modes.index(self.right_prompt_view_mode)
         self.right_prompt_view_mode = modes[(current_index + 1) % len(modes)]
 
-    # Content Management Methods
-    def get_accumulated_content(self) -> str:
-        """Get the accumulated content for display.
-        
-        Returns:
-            str: The accumulated content from streaming.
-        """
-        return self.content_buffer
-
-    def clear_content_buffer(self) -> None:
-        """Clear the content buffer after display."""
-        self.content_buffer = ""
-        self.content_ready_for_display = False
-
-    def is_content_ready(self) -> bool:
-        """Check if content is ready for display (streaming finished).
-        
-        Returns:
-            bool: True if content is ready for display.
-        """
-        return self.content_ready_for_display
-
     def is_ready_for_user_input(self) -> bool:
         """Check if the system is ready for user input using state flags."""
         # Not ready if tool chain or tool running
-        not_ready_mask = UIStateFlags.TOOL_CHAIN_ACTIVE | UIStateFlags.TOOL_RUNNING | UIStateFlags.CONTENT_STREAMING
+        not_ready_mask = UIStateFlags.TOOL_CHAIN_ACTIVE | UIStateFlags.TOOL_CHAIN_EXPECTED | UIStateFlags.CONTENT_STREAMING
         if self.ui_state.is_set(not_ready_mask):
-            self.logger.debug(f"Not ready: {not_ready_mask} flag set")
+            self.logger.debug(f"Not ready: {not_ready_mask} flag set:\n"
+                              f" TOOL_CHAIN_ACTIVE={self.ui_state.is_set(UIStateFlags.TOOL_CHAIN_ACTIVE)}, "
+                              f" TOOL_CHAIN_EXPECTED={self.ui_state.is_set(UIStateFlags.TOOL_CHAIN_EXPECTED)}, "
+                              f" CONTENT_STREAMING={self.ui_state.is_set(UIStateFlags.CONTENT_STREAMING)}")
             return False
         return self.ui_state.is_set(UIStateFlags.USER_INPUT_READY)
 
