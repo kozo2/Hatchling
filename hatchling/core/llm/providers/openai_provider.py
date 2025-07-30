@@ -261,8 +261,6 @@ class OpenAIProvider(LLMProvider):
                         "completion_tokens": chunk.usage.completion_tokens,
                         "prompt_tokens": chunk.usage.prompt_tokens,
                         "total_tokens": chunk.usage.total_tokens,
-                        "completion_tokens_details": chunk.usage.completion_tokens_details.__dict__ if chunk.usage.completion_tokens_details else None,
-                        "prompt_tokens_details": chunk.usage.prompt_tokens_details.__dict__ if chunk.usage.prompt_tokens_details else None
                     }
                 })
                 return
@@ -288,8 +286,8 @@ class OpenAIProvider(LLMProvider):
             if chunk.model:
                 metadata["model"] = chunk.model
             
-            if metadata:
-                self._stream_publisher.publish(StreamEventType.METADATA, metadata)
+            # if metadata:
+            #     self._stream_publisher.publish(StreamEventType.METADATA, metadata)
             
             # Handle different types of delta content
             if delta.role:
@@ -302,10 +300,10 @@ class OpenAIProvider(LLMProvider):
                     "content": delta.content
                 })
                 
-            if delta.refusal:
-                self._stream_publisher.publish(StreamEventType.REFUSAL, {
-                    "refusal": delta.refusal
-                })
+            # if delta.refusal:
+            #     self._stream_publisher.publish(StreamEventType.REFUSAL, {
+            #         "refusal": delta.refusal
+            #     })
                 
             # Handle tool calls
             if delta.tool_calls:

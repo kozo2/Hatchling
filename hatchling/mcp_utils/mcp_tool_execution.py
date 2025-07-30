@@ -116,7 +116,7 @@ class MCPToolExecution:
         self._stream_publisher.publish(StreamEventType.MCP_TOOL_CALL_DISPATCHED, parsed_tool_call.to_dict())
 
         # Publish tool call progress event
-        self._stream_publisher.publish(StreamEventType.MCP_TOOL_CALL_PROGRESS, parsed_tool_call.to_dict())
+        # self._stream_publisher.publish(StreamEventType.MCP_TOOL_CALL_PROGRESS, parsed_tool_call.to_dict())
 
         try:
             # Process the tool call using MCPManager
