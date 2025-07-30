@@ -10,6 +10,7 @@ import time
 import asyncio
 from typing import List, Dict, Tuple, Any, Optional
 from dataclasses import dataclass
+from mcp.types import CallToolResult
 
 from hatchling.mcp_utils.manager import mcp_manager
 from hatchling.core.logging.logging_manager import logging_manager
@@ -144,7 +145,10 @@ class MCPToolExecution:
             self.logger.error(f"Error executing tool: {e}")
             result_obj = ToolCallExecutionResult(
                 **parsed_tool_call.to_dict(),
-                result=None,
+                result=CallToolResult(
+                    content=[{"type": "text", "text": f"{e}"}],
+                    isError=True,
+                ),
                 error=str(e)
             )
             self._stream_publisher.publish(StreamEventType.MCP_TOOL_CALL_ERROR, result_obj.to_dict())
