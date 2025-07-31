@@ -45,7 +45,7 @@ class ToolChainingSubscriber(StreamSubscriber):
     the LLM if it has enough information or needs to use more tools.
     """
 
-    def __init__(self, settings: AppSettings = None, tool_execution: MCPToolExecution = None):
+    def __init__(self, settings: AppSettings = None, tool_execution: MCPToolExecution = None, history_id: str = None):
         """Initialize the tool chaining subscriber.
         
         Args:
@@ -57,7 +57,7 @@ class ToolChainingSubscriber(StreamSubscriber):
         self._chain_lock = asyncio.Lock()
 
         self.settings = settings or AppSettings.get_instance()
-        self.history = MessageHistory()
+        self.history_id = history_id or str(uuid.uuid4())
         self.tool_execution = tool_execution
         self.logger = logging_manager.get_session("ToolChainingSubscriber")
         

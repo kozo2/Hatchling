@@ -1,8 +1,9 @@
 import logging
+import uuid
 from typing import List, Dict, Any
 
 from hatchling.core.logging.logging_manager import logging_manager
-from hatchling.core.chat.message_history import MessageHistory
+from hatchling.core.chat.message_history_registry import MessageHistoryRegistry
 from hatchling.core.llm.tool_management.tool_chaining_subscriber import ToolChainingSubscriber
 from hatchling.core.llm.providers import ProviderRegistry
 
@@ -27,10 +28,11 @@ class ChatSession:
         # Initialize MCPToolExecution for execution of tool calls from LLM providers
         self.tool_execution = MCPToolExecution()
         # Initialize message components
-        self.history = MessageHistory()
+        self.session_id = str(uuid.uuid4())
+        self.history = MessageHistoryRegistry.get_or_create_history(self.session_id)
 
         # Create tool chaining subscriber for automatic tool calling chains
-        self._tool_chaining_subscriber = ToolChainingSubscriber(self.settings, self.tool_execution)
+        self._tool_chaining_subscriber = ToolChainingSubscriber(self.settings, self.tool_execution, self.session_id)
         # Create and subscribe the MCP tool call subscriber for LLM tool calls
         self._tool_call_subscriber = MCPToolCallSubscriber(self.tool_execution)
         
@@ -48,7 +50,14 @@ class ChatSession:
             _provider.publisher.subscribe(self._tool_call_subscriber)
             _provider.publisher.subscribe(self._tool_chaining_subscriber)
             
+            # Subscribe message history to provider's publisher for event-driven updates
+            _provider.publisher.subscribe(self.history)
+
+        # Subscribe the tool chaining to the tool executer    
         self.tool_execution.stream_publisher.subscribe(self._tool_chaining_subscriber)
+        
+        # Subscribe message history to tool execution events
+        self.tool_execution.stream_publisher.subscribe(self.history)
     
     def register_subscriber(self, subscriber) -> None:
         """Register a subscriber to all relevant publishers.
@@ -84,11 +93,10 @@ class ChatSession:
         
         # Reset tool calling counters and collectors for a new user message
         self.tool_execution.reset_for_new_query(user_message)
-        # self._tool_chaining_subscriber.reset_for_new_query()
 
         # Prepare payload using provider abstraction
         payload = provider.prepare_chat_payload(
-            self.history.get_messages(), 
+            self.history.get_provider_history(), 
             self.settings.llm.model
         )
         
