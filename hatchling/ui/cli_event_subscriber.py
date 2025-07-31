@@ -40,7 +40,6 @@ class UIStateManager:
     def set_only(self, flag: UIStateFlags):
         self.flags = flag
 
-from hatchling.core.llm.tool_management.tool_chaining_subscriber import ChainStatus
 from hatchling.core.llm.streaming_management.stream_subscriber import StreamSubscriber
 from hatchling.core.llm.streaming_management.stream_data import StreamEvent, StreamEventType
 from hatchling.core.logging.logging_manager import logging_manager
