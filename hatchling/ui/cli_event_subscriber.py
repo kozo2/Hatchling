@@ -10,6 +10,7 @@ from pathlib import Path
 
 from hatchling.config.settings import AppSettings
 from hatchling.mcp_utils.mcp_tool_data import MCPToolInfo
+from hatchling.core.llm.tool_management.tool_call_parse_registry import ToolCallParseRegistry
 
 class UIStateFlags(IntFlag):
     NONE = 0
@@ -298,11 +299,11 @@ class CLIEventSubscriber(StreamSubscriber):
         data = event.data
         # Set tool is running
         self.ui_state.set(UIStateFlags.TOOL_CHAIN_EXPECTED)
-        function = data.get("function", {})
+        parsed_tool_call = ToolCallParseRegistry.get_strategy(event.provider).parse_tool_call(event)
         self._set_info(
-            f"[{function.get('id', 'ID unknown')}]\n" +
-            f"Tool call to {function.get('name', 'Name unknown')} requested with parameters:\n" +
-            f"{', '.join([f'{k}={v}' for k, v in function.get('arguments', {}).items()])}"
+            f"[{parsed_tool_call.tool_call_id}]\n" +
+            f"Tool call to {parsed_tool_call.function_name} requested with parameters:\n" +
+            f"{', '.join([f'{k}={v}' for k, v in parsed_tool_call.arguments.items()])}"
         )
 
 
