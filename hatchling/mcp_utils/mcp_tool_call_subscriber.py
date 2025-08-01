@@ -4,10 +4,8 @@ This module provides a subscriber that listens for LLM_TOOL_CALL_REQUEST events 
 and dispatches them to MCPToolExecution for processing.
 """
 
-import logging
 from collections import deque
 from json import dumps as json_dumps
-from typing import Dict, Any
 
 from hatchling.core.llm.streaming_management import StreamSubscriber, StreamEvent, StreamEventType
 from hatchling.core.llm.tool_management import ToolCallParseRegistry, ToolCallParsedResult

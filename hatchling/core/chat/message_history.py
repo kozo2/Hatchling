@@ -134,6 +134,8 @@ class MessageHistory(StreamSubscriber):
         self.canonical_history.append(canonical_entry)
         
         # Add to provider-specific history based on current provider
+        # TODO: We should handle this via strategies implemented similar to the tool call parsing strategies
+        # For now, we will assume the last tool call and result are in the format expected
         if self._current_provider == ELLMProvider.OPENAI:
             provider_entry = {"role": "assistant", "tool_calls": [tool_call.to_openai_dict()]}
         elif self._current_provider == ELLMProvider.OLLAMA:

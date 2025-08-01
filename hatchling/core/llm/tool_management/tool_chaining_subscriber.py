@@ -8,9 +8,8 @@ answer the original query, enabling multi-step tool usage workflows.
 import asyncio
 import time
 import uuid
-from json import dumps as json_dumps
 from dataclasses import dataclass, field
-from typing import Dict, Any, List, Optional
+from typing import List, Optional
 
 from hatchling.config.settings import AppSettings
 from hatchling.core.llm.providers import ProviderRegistry
@@ -20,10 +19,9 @@ from hatchling.core.llm.streaming_management.stream_publisher import StreamPubli
 from hatchling.core.llm.tool_management.tool_result_collector_subscriber import ToolResultCollectorSubscriber
 from hatchling.core.llm.tool_management import ToolCallParsedResult
 from hatchling.mcp_utils.mcp_tool_execution import ToolCallExecutionResult
-from hatchling.core.chat.message_history import MessageHistory
+from hatchling.core.chat.message_history_registry import MessageHistoryRegistry
 from hatchling.core.logging.logging_manager import logging_manager
 from hatchling.mcp_utils.mcp_tool_execution import MCPToolExecution
-from hatchling.config.llm_settings import ELLMProvider
 
 
 @dataclass
@@ -70,7 +68,7 @@ class ToolChainingSubscriber(StreamSubscriber):
         self.tool_chain_id: str = None  # Unique ID for the tool chain
         self.start_time: float = 0.0  # Start time of the tool chain
         self.started = False  # Flag to track if the subscriber has started
-        self.current_tool_chain_iteration = 1  # Initialize the current tool iteration
+        self.current_tool_chain_iteration = 0 
         self.is_expecting_mcp_tool_call = False # To acknowledge that the LLM has requested while we wait for the processing to the standard MCP_TOOL_CALL_DISPATCHED event
         self.is_partial_response = False  # Flag to indicate whether the tool chain was interrupted because of a limit reached
 
@@ -98,6 +96,8 @@ class ToolChainingSubscriber(StreamSubscriber):
         if event.type == StreamEventType.MCP_TOOL_CALL_DISPATCHED:
 
             if not self.started:
+                self.logger.debug("Received MCP_TOOL_CALL_DISPATCHED event for the first time, starting tool chaining.")
+
                 self.started = True  # Mark that we have started processing tool calls
 
                 self.start_time = time.time()  # Record the start time of the tool chain
@@ -133,11 +133,10 @@ class ToolChainingSubscriber(StreamSubscriber):
                 f"and {len(self.tool_result_collector.tool_result_buffer)} results in buffer.")
             if ready_pair:
                 tool_call, tool_result = ready_pair
-                self.logger.debug(f"Processing ready pair for tool_call_id: {tool_call.tool_call_id}")
-                
+
                 # Process this pair - trigger the next tool chain continuation
-                self.logger.debug(f"Tool result received for tool call: {tool_call.tool_call_id} " +
-                                    f"with result: {tool_result.to_dict()}")
+                self.logger.info(f"Tool result ({tool_call.tool_call_id}):\n" +
+                                    f"{tool_result.to_dict()}")
                 #asyncio.create_task(self._evaluate_tool_chain_continuation_with_pair(tool_call, tool_result))
                 asyncio.create_task(self._chain_continuation_with_lock(tool_call, tool_result))
             else:
@@ -218,9 +217,10 @@ class ToolChainingSubscriber(StreamSubscriber):
                     "tool_name": tool_call.function_name
                 }
             )
+            self.current_tool_chain_iteration += 1
 
             # Check if we've hit limits
-            reached_max_iterations = (self.tool_execution.current_tool_call_iteration >= 
+            reached_max_iterations = (self.current_tool_chain_iteration >= 
                                     self.settings.tool_calling.max_iterations)
             elapsed_time = time.time() - self.start_time
             reached_time_limit = elapsed_time >= self.settings.tool_calling.max_working_time
@@ -236,13 +236,12 @@ class ToolChainingSubscriber(StreamSubscriber):
 
                 # Message to notify the LLM about the limits, and to provide partial results
                 # TODO: This should be configurable, e.g., via a setting or a prompt file.
-                continuation_message = (
-                    f"We have reached the limit of {limit_reason} and cannot continue with more tool calls.\n"
-                    "However, we have collected the tool results and should be able to provide a partial response.\n"
-                    "Write a response based on the collected tool results.\n\n"
-                    "Adapt the level of detail in your response based on the complexity of the tool calling chain.\n"
-                    "Prefer conciseness, clarity, and accuracy of the response.\n"
-                )
+                continuation_message = \
+                    f"We have reached the limit of {limit_reason} and cannot continue with more tool calls.\n" + \
+                    "However, tools have been called as part of the tool chaining pipeline.\n" + \
+                    "Write a partial response adapted to the complexity of the partial tool chain.\n" + \
+                    "Tell the user which tools to call next, if any.\n" + \
+                    "Prefer conciseness, clarity, and accuracy of the response."
 
                 self.publisher.publish(
                     event_type=StreamEventType.TOOL_CHAIN_LIMIT_REACHED,
@@ -254,16 +253,11 @@ class ToolChainingSubscriber(StreamSubscriber):
                     }
                 )
 
-                payload = provider.prepare_chat_payload(
-                    [{
-                        "role": "user",
-                        "content": self.tool_execution.root_tool_query
-                        }] +
-                    self.history.get_messages() + 
-                    [{
-                        "role": "user",
+                payload = provider.prepare_chat_payload([{
+                        "role": "system",
                         "content": continuation_message
-                        }],
+                    }] +
+                    MessageHistoryRegistry.get_or_create_history(self.history_id).get_provider_history(),
                     self.settings.llm.model
                 )
 
@@ -272,46 +266,20 @@ class ToolChainingSubscriber(StreamSubscriber):
                 self.logger.debug(f"Evaluating tool chain continuation - iteration {self.current_tool_chain_iteration}")            
             
                 # TODO: This should be configurable, e.g., via a setting or a prompt file.
-                continuation_message = (
-                    "Given the tool results, do you have enough information "
-                    "to answer the original query of the user?\n"
-                    "- If yes, write a response based on the collected tool results. "
-                    "Adapt the level of detail in your response based on the complexity of the tool calling chain."
-                    "Prefer conciseness, clarity, and accuracy of the response.\n"
-                    "- If not, continue using tools or, if no tools meet your needs, you can write a response."
-                )
+                continuation_message = \
+                    "Focus on tool calling to create tool calling chains that enables you to answer the user's prompt effectively.\n" + \
+                    "Maximize use of relevant tools to continue the chain.\n" + \
+                    "Learn from the tool results, in particular errors, and adapt your tool calling strategy.\n" + \
+                    "When all the tool chains has answered the user's prompt, provide a final response adapted to the complexity of the tool calling chain.\n"
                 self.logger.debug(f"Tool chain continuation message: {continuation_message}")
 
-                # TODO: We should handle this via strategies implemented similar to the tool call parsing strategies
-                # For now, we will assume the last tool call and result are in the format expected
-                if provider.provider_enum == ELLMProvider.OLLAMA:
-                    # It seems Ollama only recognizes a dictionary with "role", "content", and "tool_name"
-                    # as a tool result, so we need to convert the tool result to that format
-                    last_tool_call = tool_call.to_ollama_dict()
-                    last_tool_result = tool_result.to_ollama_dict()
-
-                elif provider.provider_enum == ELLMProvider.OPENAI:
-                    # Now for OpenAI, we need to convert the tool result to OpenAI format
-                    # Open AI requires the last tool call
-                    last_tool_call = tool_call.to_openai_dict()
-                    last_tool_result = tool_result.to_openai_dict()
-
-                self.logger.info(f"Tool result: {json_dumps(last_tool_result, indent=2)}")
-
-                self.history.add_tool_call(last_tool_call)
-                self.history.add_tool_result(last_tool_result)
-
                 # Prepare payload for next iteration
-                payload = provider.prepare_chat_payload(
-                    [{
-                        "role": "user",
-                        "content": self.tool_execution.root_tool_query
-                        }] +
-                    self.history.get_messages() + 
-                    [{
-                        "role": "user",
+                self.logger.debug(f"Supplying messages:{MessageHistoryRegistry.get_or_create_history(self.history_id).get_provider_history()}")
+                payload = provider.prepare_chat_payload([{
+                        "role": "system",
                         "content": continuation_message
-                        }],
+                    }] +
+                    MessageHistoryRegistry.get_or_create_history(self.history_id).get_provider_history(),
                     self.settings.llm.model
                 )
                 
@@ -371,7 +339,7 @@ class ToolChainingSubscriber(StreamSubscriber):
         self.start_time = 0.0
         self.is_expecting_mcp_tool_call = False
         self.is_partial_response = False
-        self.current_tool_chain_iteration = 1
+        self.current_tool_chain_iteration = 0
         self.tool_result_collector.reset()
         #self.history.clear()
 
