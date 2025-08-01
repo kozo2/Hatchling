@@ -44,6 +44,10 @@ class OpenAIProvider(LLMProvider):
         self._http_client: Optional[AsyncClient] = None  # for AsyncOpenAI compatibility
         self._client: Optional[AsyncOpenAI] = None
 
+        # Tool call streaming state
+        self._tool_call_accumulator = {}
+        self._tool_call_streaming = False
+
         self.initialize()  # Initialize the client immediately
         
         if not self._settings.openai.api_key:
@@ -249,7 +253,10 @@ class OpenAIProvider(LLMProvider):
 
     def _parse_and_publish_chunk(self, chunk: Any) -> None:
         """Parse a ChatCompletionChunk and publish appropriate events.
-        
+
+        This method accumulates tool call fragments and only emits the LLM_TOOL_CALL_REQUEST event
+        when the tool call is fully streamed (i.e., when delta.tool_calls is None).
+
         Args:
             chunk (Any): Raw chunk from OpenAI API. The type is typically ChatCompletionChunk.
         """
@@ -264,15 +271,15 @@ class OpenAIProvider(LLMProvider):
                     }
                 })
                 return
-            
+
             # Handle chunks with no choices (skip empty chunks)
             if not chunk.choices:
                 return
-            
+
             # Process the first choice (typically index 0)
             choice = chunk.choices[0]
             delta = choice.delta
-            
+
             # Publish metadata if available
             metadata = {}
             if chunk.system_fingerprint:
@@ -285,46 +292,67 @@ class OpenAIProvider(LLMProvider):
                 metadata["created"] = chunk.created
             if chunk.model:
                 metadata["model"] = chunk.model
-            
+
             # if metadata:
             #     self._stream_publisher.publish(StreamEventType.METADATA, metadata)
-            
+
             # Handle different types of delta content
             if delta.role:
                 self._stream_publisher.publish(StreamEventType.ROLE, {
                     "role": delta.role
                 })
-            
+
             if delta.content:
                 self._stream_publisher.publish(StreamEventType.CONTENT, {
                     "content": delta.content
                 })
-                
+
             # if delta.refusal:
             #     self._stream_publisher.publish(StreamEventType.REFUSAL, {
             #         "refusal": delta.refusal
             #     })
-                
+
             # Handle tool calls
+            # Use instance variables to accumulate tool call fragments by index
+            # If we receive tool_calls, accumulate them
             if delta.tool_calls:
                 for tool_call in delta.tool_calls:
-                    tool_call_data = {
-                        "index": tool_call.index,
-                        "type": tool_call.type,
-                    }
-                    
+                    idx = tool_call.index
+                    if idx not in self._tool_call_accumulator:
+                        self._tool_call_accumulator[idx] = {
+                            "index": idx,
+                            "type": tool_call.type,
+                            "id": getattr(tool_call, "id", None),
+                            "function": {
+                                "name": "",
+                                "arguments": ""
+                            }
+                        }
+                    # Update id if present
                     if tool_call.id:
-                        tool_call_data["id"] = tool_call.id
-                        
+                        self._tool_call_accumulator[idx]["id"] = tool_call.id
+                    # Update function name/arguments if present
                     if tool_call.function:
-                        tool_call_data["function"] = {}
                         if tool_call.function.name:
-                            tool_call_data["function"]["name"] = tool_call.function.name
+                            self._tool_call_accumulator[idx]["function"]["name"] = tool_call.function.name
                         if tool_call.function.arguments:
-                            tool_call_data["function"]["arguments"] = tool_call.function.arguments
-                    
-                    self._stream_publisher.publish(StreamEventType.LLM_TOOL_CALL_REQUEST, tool_call_data)
-            
+                            # Append arguments (they come in fragments)
+                            self._tool_call_accumulator[idx]["function"]["arguments"] += tool_call.function.arguments
+
+                # Set a flag to indicate we are in a tool call stream
+                self._tool_call_streaming = True
+
+            # If tool_calls is None and we were streaming, emit the event and reset
+            else:
+                if self._tool_call_streaming:
+                    for tool_call_data in self._tool_call_accumulator.values():
+                        self._stream_publisher.publish(StreamEventType.LLM_TOOL_CALL_REQUEST, {
+                            "tool_call": tool_call_data
+                        })
+                    # Reset accumulator and flag
+                    self._tool_call_accumulator = {}
+                    self._tool_call_streaming = False
+
             # Handle deprecated function_call
             if delta.function_call:
                 function_call_data = {}
@@ -332,7 +360,7 @@ class OpenAIProvider(LLMProvider):
                     function_call_data["name"] = delta.function_call.name
                 if delta.function_call.arguments:
                     function_call_data["arguments"] = delta.function_call.arguments
-                
+
                 self._stream_publisher.publish(StreamEventType.LLM_TOOL_CALL_REQUEST, {
                     "function_call": function_call_data,
                     "deprecated": True
