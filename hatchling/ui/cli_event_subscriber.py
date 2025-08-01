@@ -259,13 +259,13 @@ class CLIEventSubscriber(StreamSubscriber):
             self._set_info(
                 f"[{data.get('tool_chain_id', 'ID unknown')}]\n" +
                 f"Tool chaining completed successfully for initial query: {initial_query}\n" +
-                f"Total iterations: {data.get('total_iterations', 0)}, Total time: {data.get('elapsed_time', 0):.2f} seconds"
+                f"Iteration: {data.get('iteration', 0)}/{data.get('max_iterations', 0)}, Total time: {data.get('elapsed_time', 0):.2f} seconds"
             )
         else:
             self._set_error(
                 f"[{data.get('tool_chain_id', 'ID unknown')}]\n" +
                 f"Tool chaining failed for initial query: {initial_query}\n" +
-                f"Total iterations: {data.get('total_iterations', 0)}, Total time: {data.get('elapsed_time', 0):.2f} seconds"
+                f"Iteration: {data.get('iteration', 0)}/{data.get('max_iterations', 0)}, Total time: {data.get('elapsed_time', 0):.2f} seconds"
             )
 
         self.current_chain = None
@@ -413,9 +413,10 @@ class CLIEventSubscriber(StreamSubscriber):
             self.token_stats.end_time = event.timestamp
         # Only if all other activities but content streaming are done
         # means that this finish event is the end of a content stream
-        if self.ui_state.is_set(UIStateFlags.CONTENT_STREAMING) and not \
-              self.ui_state.is_set(UIStateFlags.TOOL_CHAIN_ACTIVE) and \
-              not self.ui_state.is_set(UIStateFlags.TOOL_CHAIN_EXPECTED):
+        if self.ui_state.is_set(UIStateFlags.CONTENT_STREAMING):
+            print() # new line
+            if not self.ui_state.is_set(UIStateFlags.TOOL_CHAIN_ACTIVE) and \
+               not self.ui_state.is_set(UIStateFlags.TOOL_CHAIN_EXPECTED):
                 self.ui_state.clear(UIStateFlags.CONTENT_STREAMING)
                 self.ui_state.set(UIStateFlags.USER_INPUT_READY)
                 self.logger.debug("All content apparently finished, USER_INPUT_READY set")
