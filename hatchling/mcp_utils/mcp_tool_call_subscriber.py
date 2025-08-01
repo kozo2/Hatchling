@@ -5,6 +5,7 @@ and dispatches them to MCPToolExecution for processing.
 """
 
 import logging
+from collections import deque
 from json import dumps as json_dumps
 from typing import Dict, Any
 
@@ -15,7 +16,11 @@ from .mcp_tool_execution import MCPToolExecution
 
 
 class MCPToolCallSubscriber(StreamSubscriber):
-    """Subscriber that handles LLM_TOOL_CALL_REQUEST events and dispatches them for execution."""
+    """Subscriber that handles LLM_TOOL_CALL_REQUEST events and dispatches them for execution.
+
+    This subscriber only processes one tool call per request ID, using a rolling buffer
+    to avoid memory growth and ensure out-of-order tool calls are ignored.
+    """
     
     def __init__(self, tool_execution: MCPToolExecution):
         """Initialize the MCP tool call subscriber.
@@ -25,6 +30,7 @@ class MCPToolCallSubscriber(StreamSubscriber):
         """
         self.tool_execution = tool_execution
         self.logger = logging_manager.get_session(f"MCPToolCallSubscriber")
+        self._recent_request_ids = deque(maxlen=2)  # Rolling buffer for request IDs
         
     def get_subscribed_events(self):
         """Get the list of event types this subscriber handles.
@@ -36,11 +42,19 @@ class MCPToolCallSubscriber(StreamSubscriber):
     
     def on_event(self, event: StreamEvent) -> None:
         """Handle incoming events.
+
+        Only the first tool call for each request ID is processed. Subsequent tool calls
+        for the same request ID are ignored. The buffer ensures only the last two request IDs
+        are tracked, preventing memory growth.
         
         Args:
             event (StreamEvent): The event to handle.
         """
         if event.type == StreamEventType.LLM_TOOL_CALL_REQUEST:
+            if event.request_id in self._recent_request_ids:
+                self.logger.info(f"Skipping duplicate tool call for request_id: {event.request_id}")
+                return
+            
             try:
                 self.logger.debug(f"Received LLM_TOOL_CALL_REQUEST event: {event}")
                 parsed_tool_call = ToolCallParseRegistry.get_strategy(event.provider).parse_tool_call(event)
@@ -51,6 +65,7 @@ class MCPToolCallSubscriber(StreamSubscriber):
             if parsed_tool_call:
                 self.logger.info(f"\nParsed tool call: {json_dumps(parsed_tool_call.to_dict(), indent=2)}\n")
                 self.tool_execution.stream_publisher.set_request_id(event.request_id)
+                self._recent_request_ids.append(event.request_id)  # Add to rolling buffer
                 self._handle_tool_call_event(parsed_tool_call)
         else:
             self.logger.warning(f"Received unexpected event type: {event.type}")
