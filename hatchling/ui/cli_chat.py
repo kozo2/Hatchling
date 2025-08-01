@@ -1,8 +1,4 @@
-import aiohttp
-import logging
 import asyncio
-from pathlib import Path
-from typing import Optional
 
 from prompt_toolkit import PromptSession, print_formatted_text as print_pt
 from prompt_toolkit.history import FileHistory, InMemoryHistory
