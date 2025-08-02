@@ -9,7 +9,7 @@ from enum import IntFlag, auto
 from pathlib import Path
 
 from hatchling.config.settings import AppSettings
-from hatchling.mcp_utils.mcp_tool_data import MCPToolInfo
+from hatchling.mcp_utils.mcp_tool_data import MCPToolInfo, MCPToolStatusReason
 from hatchling.core.llm.tool_management.tool_call_parse_registry import ToolCallParseRegistry
 
 class UIStateFlags(IntFlag):
@@ -376,6 +376,8 @@ class CLIEventSubscriber(StreamSubscriber):
         data = event.data
         self.server_status.tools_enabled -= 1
         tool_info: MCPToolInfo = data.get("tool_info", {})
+        if tool_info.reason == MCPToolStatusReason.FROM_SERVER_DOWN:
+            self.server_status.tools_total -= 1 #If the server got disconnected, we decrement the tool count
         self._set_info(f"Tool disabled: {tool_info.name} ({Path(tool_info.server_path).name})")
 
     # LLM Event Handlers
