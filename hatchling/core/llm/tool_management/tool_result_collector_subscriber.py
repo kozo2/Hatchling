@@ -57,11 +57,6 @@ class ToolResultCollectorSubscriber(StreamSubscriber):
         
         # Buffer for tool results by tool_call_id: tool_call_id -> ToolCallExecutionResult or error marker
         self.tool_result_buffer: Dict[str, ToolCallExecutionResult] = {}
-        
-        # Legacy fields - deprecated but kept for backward compatibility
-        self.tool_results: List[ToolCallExecutionResult] = []
-        self.tool_calls: List[ToolCallParsedResult] = []
-        self.request_ids: List[str] = []  # Track LLM request IDs for tool calls
 
         self.logger = logging_manager.get_session("ToolResultCollectorSubscriber")
     
@@ -163,39 +158,8 @@ class ToolResultCollectorSubscriber(StreamSubscriber):
         self.tool_call_queue.clear()
         self.tool_result_buffer.clear()
         
-        # Clear legacy structures for backward compatibility
-        self.tool_results.clear()
-        self.tool_calls.clear()
-        self.request_ids.clear()
-        
         self.logger.debug("Reset FIFO queue and result buffer")
-    
-    @property
-    def last_tool_call(self) -> Optional[ToolCallParsedResult]:
-        """Get the last tool call parsed result.
-        
-        Returns:
-            Optional[ToolCallParsedResult]: The last tool call parsed result or None if no calls.
-        """
-        return self.tool_calls[-1] if self.tool_calls else None
-    
-    def get_tool_results(self) -> List[Dict[str, Any]]:
-        """Get all collected tool results.
-        
-        Returns:
-            List[Dict[str, Any]]: List of tool result dictionaries.
-        """
-        return [tool_result.to_dict() for tool_result in self.tool_results]
-    
-    @property
-    def last_tool_result(self) -> Optional[ToolCallExecutionResult]:
-        """Get the last tool call execution result.
-        
-        Returns:
-            Optional[ToolCallExecutionResultLight]: The last tool call execution result or None if no results.
-        """
-        return self.tool_results[-1] if self.tool_results else None
-    
+   
     @property
     def has_pending_tool_calls(self) -> bool:
         """Check if there are any pending tool calls in the queue.
