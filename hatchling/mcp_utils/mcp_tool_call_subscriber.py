@@ -50,7 +50,8 @@ class MCPToolCallSubscriber(StreamSubscriber):
         """
         if event.type == StreamEventType.LLM_TOOL_CALL_REQUEST:
             if event.request_id in self._recent_request_ids:
-                self.logger.info(f"Skipping duplicate tool call for request_id: {event.request_id}")
+                self.logger.warning(f"LLM requested several tool calls from a unique prompt ({event.request_id}) " +\
+                                    f"We currently only process the first one.\nSkipping tool call {event.data}")
                 return
             
             try:

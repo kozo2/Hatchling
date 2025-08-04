@@ -12,15 +12,18 @@ from hatchling.config.settings import AppSettings
 from hatchling.mcp_utils.mcp_tool_data import MCPToolInfo, MCPToolStatusReason
 from hatchling.core.llm.tool_management.tool_call_parse_registry import ToolCallParseRegistry
 
+# TODO: The flag utility should be abstracted for the whole application
+# in order to easily define FSM-like systems
 class UIStateFlags(IntFlag):
     NONE = 0
     TOOL_CHAIN_ACTIVE = auto()
-    TOOL_CHAIN_EXPECTED = auto()
     CONTENT_STREAMING = auto()
     ERROR_DISPLAYED = auto()
     INFO_DISPLAYED = auto()
     USER_INPUT_READY = auto()
 
+# TODO: The flag utility should be abstracted for the whole application
+# in order to easily define FSM-like systems
 class UIStateManager:
     """Utility for managing UI state flags."""
     def __init__(self):
@@ -273,6 +276,8 @@ class CLIEventSubscriber(StreamSubscriber):
         self.ui_state.clear(UIStateFlags.TOOL_CHAIN_ACTIVE)
         self.logger.debug(f"Tool chain ended - TOOL_CHAIN_ACTIVE cleared")
 
+        self._handle_finish(event)
+
     def _handle_tool_chain_limit_reached(self, event: StreamEvent) -> None:
         """Handle tool chain limit reached event."""
         data = event.data
@@ -280,7 +285,6 @@ class CLIEventSubscriber(StreamSubscriber):
             f"[{data.get('tool_chain_id', 'ID unknown')}]\n" +
             f"Tool chaining stopped: {data.get('limit_type', 'unknown')} ({data.get('iterations', 0)} steps, {data.get('elapsed_time', 0):.2f} seconds elapsed)"
         )
-        self.ui_state.clear(UIStateFlags.TOOL_CHAIN_ACTIVE)
         self.logger.debug(f"Tool chain limit reached - TOOL_CHAIN_ACTIVE cleared")
 
     def _handle_tool_chain_error(self, event: StreamEvent) -> None:
@@ -298,7 +302,6 @@ class CLIEventSubscriber(StreamSubscriber):
         """Handle LLM tool call request event."""
         data = event.data
         # Set tool is running
-        self.ui_state.set(UIStateFlags.TOOL_CHAIN_EXPECTED)
         parsed_tool_call = ToolCallParseRegistry.get_strategy(event.provider).parse_tool_call(event)
         self._set_info(
             f"[{parsed_tool_call.tool_call_id}]\n" +
@@ -315,8 +318,6 @@ class CLIEventSubscriber(StreamSubscriber):
             f"Tool {data.get('function_name', 'unknown')} dispatched with parameters:\n" +
             f"{', '.join([f'{k}={v}' for k, v in data.get('arguments', {}).items()])}"
         )
-        # Clear the expected state as the tool call has been dispatched
-        self.ui_state.clear(UIStateFlags.TOOL_CHAIN_EXPECTED)
 
     def _handle_mcp_tool_call_result(self, event: StreamEvent) -> None:
         """Handle MCP tool call result event."""
@@ -344,6 +345,8 @@ class CLIEventSubscriber(StreamSubscriber):
         # might be part of an ongoing tool chain. Hence we give the
         # LLM a chance to fix its mistake by retrying the tool call.
         # TODO: However, put up a warning
+        #  TBD: Warning might be redundant with previous ones upstream
+        #       in the code flow. 
 
     # MCP Server Event Handlers
     def _handle_mcp_server_up(self, event: StreamEvent) -> None:
@@ -418,8 +421,7 @@ class CLIEventSubscriber(StreamSubscriber):
         # means that this finish event is the end of a content stream
         if self.ui_state.is_set(UIStateFlags.CONTENT_STREAMING):
             print() # new line
-            if not self.ui_state.is_set(UIStateFlags.TOOL_CHAIN_ACTIVE) and \
-               not self.ui_state.is_set(UIStateFlags.TOOL_CHAIN_EXPECTED):
+            if not self.ui_state.is_set(UIStateFlags.TOOL_CHAIN_ACTIVE):
                 self.ui_state.clear(UIStateFlags.CONTENT_STREAMING)
                 self.ui_state.set(UIStateFlags.USER_INPUT_READY)
                 self.logger.debug("All content apparently finished, USER_INPUT_READY set")
@@ -430,7 +432,6 @@ class CLIEventSubscriber(StreamSubscriber):
         error = data.get("error", "Unknown error")
         self._set_error(f"LLM Error: {error}")
         self.ui_state.clear(UIStateFlags.TOOL_CHAIN_ACTIVE)
-        self.ui_state.clear(UIStateFlags.TOOL_CHAIN_EXPECTED)
         self.ui_state.set(UIStateFlags.USER_INPUT_READY)
 
     # UI State Management
@@ -508,11 +509,10 @@ class CLIEventSubscriber(StreamSubscriber):
     def is_ready_for_user_input(self) -> bool:
         """Check if the system is ready for user input using state flags."""
         # Not ready if tool chain or tool running
-        not_ready_mask = UIStateFlags.TOOL_CHAIN_ACTIVE | UIStateFlags.TOOL_CHAIN_EXPECTED | UIStateFlags.CONTENT_STREAMING
+        not_ready_mask = UIStateFlags.TOOL_CHAIN_ACTIVE | UIStateFlags.CONTENT_STREAMING
         if self.ui_state.is_set(not_ready_mask):
             self.logger.debug(f"Not ready: {not_ready_mask} flag set:\n"
                               f" TOOL_CHAIN_ACTIVE={self.ui_state.is_set(UIStateFlags.TOOL_CHAIN_ACTIVE)}, "
-                              f" TOOL_CHAIN_EXPECTED={self.ui_state.is_set(UIStateFlags.TOOL_CHAIN_EXPECTED)}, "
                               f" CONTENT_STREAMING={self.ui_state.is_set(UIStateFlags.CONTENT_STREAMING)}")
             return False
         return self.ui_state.is_set(UIStateFlags.USER_INPUT_READY)

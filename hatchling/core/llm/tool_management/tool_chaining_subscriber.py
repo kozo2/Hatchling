@@ -23,7 +23,6 @@ from hatchling.core.chat.message_history_registry import MessageHistoryRegistry
 from hatchling.core.logging.logging_manager import logging_manager
 from hatchling.mcp_utils.mcp_tool_execution import MCPToolExecution
 
-
 @dataclass
 class ChainStatus:
     """Status information for tool chaining."""
@@ -69,8 +68,7 @@ class ToolChainingSubscriber(StreamSubscriber):
         self.start_time: float = 0.0  # Start time of the tool chain
         self.started = False  # Flag to track if the subscriber has started
         self.current_tool_chain_iteration = 0 
-        self.is_expecting_mcp_tool_call = False # To acknowledge that the LLM has requested while we wait for the processing to the standard MCP_TOOL_CALL_DISPATCHED event
-        self.is_partial_response = False  # Flag to indicate whether the tool chain was interrupted because of a limit reached
+        self.chain_link_count = 0
 
     def on_event(self, event: StreamEvent) -> None:
         """Handle tool execution events to trigger chaining.
@@ -84,14 +82,6 @@ class ToolChainingSubscriber(StreamSubscriber):
         # First, accumulate tool results
         # This holds info about the pending tool calls (dispatched) and the results
         self.tool_result_collector.on_event(event)
-
-        if event.type == StreamEventType.LLM_TOOL_CALL_REQUEST:
-            # The LLM has requested a tool call, a processed tool call
-            # will be dispatched by the MCPToolCallSubscriber, which will
-            # in turn trigger the MCP_TOOL_CALL_DISPATCHED event.
-            # For that reason, we reserve the chaining status already.
-            self.logger.debug("Received LLM_TOOL_CALL_REQUEST, reserving chaining status.")
-            self.is_expecting_mcp_tool_call = True  # Mark that we are in a chaining state
 
         if event.type == StreamEventType.MCP_TOOL_CALL_DISPATCHED:
 
@@ -117,14 +107,16 @@ class ToolChainingSubscriber(StreamSubscriber):
                     }
                 )
 
-            self.is_expecting_mcp_tool_call = False  # Reset the flag as we have received the MCP_TOOL_CALL_DISPATCHED event
-
         if event.type == StreamEventType.MCP_TOOL_CALL_RESULT or event.type == StreamEventType.MCP_TOOL_CALL_ERROR:
             # We have received a tool result or an error from the MCPToolExecution
-            # Indeed, we are also processing the errors in the tool chaining to
-            # let the LLM know that the tool call failed, and probably retry, or
-            # at least react to the error.
-            
+            # We are also processing the errors in the tool chaining to let the
+            # LLMs know that the tool call failed, and probably retry, or at least 
+            # react to the error.
+
+            # Acknowledge one round of tool chaining is about to start.
+            # This is essential to detect when the tool chain really ends.
+            self.chain_link_count += 1
+
             # Now check if we have a ready pair to process in FIFO order
             ready_pair = self.tool_result_collector.get_next_ready_pair()
             self.logger.debug(
@@ -137,22 +129,27 @@ class ToolChainingSubscriber(StreamSubscriber):
                 # Process this pair - trigger the next tool chain continuation
                 self.logger.info(f"Tool result ({tool_call.tool_call_id}):\n" +
                                     f"{tool_result.to_dict()}")
-                #asyncio.create_task(self._evaluate_tool_chain_continuation_with_pair(tool_call, tool_result))
                 asyncio.create_task(self._chain_continuation_with_lock(tool_call, tool_result))
             else:
-                self.logger.debug("Tool result received but no ready pair available yet (FIFO ordering)")
-            
-        # Handle FINISH events
-        if event.type == StreamEventType.FINISH and self.started:
+                self.logger.warning("Tool result received but no ready pair available yet (FIFO ordering)")
+                self.chain_link_count -= 1
+
+    def check_iteration_end(self):
+        """
+        Performs necessary checks and closure computation in case the tool chaining should be
+        considered finished
+        """
+
+        # If the tool chain is active (i.e. started), and no more tool chaining is ongoing (chain_link_count is 0)
+        # it means we can issue the TOOL_CHAIN_END event.
+        if self.started:
             # Is this the FINISH event while chaining (i.e., the queue is not empty)?
             self.logger.debug("Received FINISH event checking tool call queue: " +
-                              f"{len(self.tool_result_collector.tool_call_queue)} tool calls in queue, and " +
-                                f" not expecting any more: {not self.is_expecting_mcp_tool_call}.")
-            if self.is_partial_response or \
-                (not self.tool_result_collector.has_pending_tool_calls and \
-                 not self.is_expecting_mcp_tool_call):
-                self.logger.debug("Received FINISH event and no more tool calls in the queue. " +
-                                  "Moreover, the LLM has not requested any more tool calls.")
+                              f"process count = {self.chain_link_count }, " +
+                              f"has pending tool calls: {self.tool_result_collector.has_pending_tool_calls}"#, " +
+                              )
+            if self.chain_link_count == 0:
+                self.logger.debug("Received FINISH event, proceeding with the end of the tool chain.")
                 self.publisher.publish(
                     event_type=StreamEventType.TOOL_CHAIN_END,
                     data={
@@ -173,11 +170,9 @@ class ToolChainingSubscriber(StreamSubscriber):
             List[StreamEventType]: List of event types to subscribe to.
         """
         return [
-            StreamEventType.LLM_TOOL_CALL_REQUEST, # For initial tool call requests (something is coming)
             StreamEventType.MCP_TOOL_CALL_DISPATCHED, # For the tool result collector
             StreamEventType.MCP_TOOL_CALL_ERROR,  # For tool result collection
             StreamEventType.MCP_TOOL_CALL_RESULT, # For both tool result collection and chaining
-            StreamEventType.FINISH # To reset chaining state when final response is received
         ]
 
     async def _chain_continuation_with_lock(self, tool_call: ToolCallParsedResult, tool_result: ToolCallParsedResult ) -> None:
@@ -208,6 +203,7 @@ class ToolChainingSubscriber(StreamSubscriber):
         """
         try:
             # Publish TOOL_CHAIN_ITERATION_START event
+            self.current_tool_chain_iteration += 1
             self.publisher.publish(
                 event_type=StreamEventType.TOOL_CHAIN_ITERATION_START,
                 data={
@@ -217,11 +213,9 @@ class ToolChainingSubscriber(StreamSubscriber):
                     "tool_name": tool_call.function_name
                 }
             )
-            self.current_tool_chain_iteration += 1
 
             # Check if we've hit limits
-            reached_max_iterations = (self.current_tool_chain_iteration >= 
-                                    self.settings.tool_calling.max_iterations)
+            reached_max_iterations = self.current_tool_chain_iteration > self.settings.tool_calling.max_iterations
             elapsed_time = time.time() - self.start_time
             reached_time_limit = elapsed_time >= self.settings.tool_calling.max_working_time
 
@@ -230,17 +224,16 @@ class ToolChainingSubscriber(StreamSubscriber):
 
             # Check if we can proceed with regard to the chaining limits
             if reached_max_iterations or reached_time_limit:
-                self.is_partial_response = True  # Mark that we are providing a partial response due to limits reached
                 limit_reason = ("max iterations" if reached_max_iterations else "time limit")
-                self.logger.debug(f"Tool calling chain stopped: reached {limit_reason}")
+                self.logger.warning(f"Stopping tool call chain: reached {limit_reason}")
 
                 # Message to notify the LLM about the limits, and to provide partial results
                 # TODO: This should be configurable, e.g., via a setting or a prompt file.
                 continuation_message = \
-                    f"We have reached the limit of {limit_reason} and cannot continue with more tool calls.\n" + \
+                    f"We have reached the limit of \"{limit_reason}\" and cannot continue with more tool calls.\n" + \
                     "However, tools have been called as part of the tool chaining pipeline.\n" + \
                     "Write a partial response adapted to the complexity of the partial tool chain.\n" + \
-                    "Tell the user which tools to call next, if any.\n" + \
+                    "Tell the user which tools you would have called next, if any.\n" + \
                     "Prefer conciseness, clarity, and accuracy of the response."
 
                 self.publisher.publish(
@@ -261,6 +254,11 @@ class ToolChainingSubscriber(StreamSubscriber):
                     self.settings.llm.model
                 )
 
+                # We force the chain link count to 1 so that it will be 0 when decremented 
+                # after the LLM has finished answering without tool calls. (See below after 
+                # the `else`` statement)
+                self.chain_link_count = 1
+
             else:
                 # Continue with sequential tool calling
                 self.logger.debug(f"Evaluating tool chain continuation - iteration {self.current_tool_chain_iteration}")            
@@ -269,12 +267,9 @@ class ToolChainingSubscriber(StreamSubscriber):
                 continuation_message = \
                     "Focus on tool calling to create tool calling chains that enables you to answer the user's prompt effectively.\n" + \
                     "Maximize use of relevant tools to continue the chain.\n" + \
-                    "Learn from the tool results, in particular errors, and adapt your tool calling strategy.\n" + \
-                    "When all the tool chains has answered the user's prompt, provide a final response adapted to the complexity of the tool calling chain.\n"
-                self.logger.debug(f"Tool chain continuation message: {continuation_message}")
+                    "Learn from the tool results, in particular errors, and adapt your tool calling strategy."
 
                 # Prepare payload for next iteration
-                self.logger.debug(f"Supplying messages:{MessageHistoryRegistry.get_or_create_history(self.history_id).get_provider_history()}")
                 payload = provider.prepare_chat_payload([{
                         "role": "system",
                         "content": continuation_message
@@ -288,7 +283,8 @@ class ToolChainingSubscriber(StreamSubscriber):
 
                 # Increment the tool call iteration
                 self.tool_execution.current_tool_call_iteration += 1
-            
+
+            self.logger.debug(f"Tool chain continuation with payload: {payload}")
             await provider.stream_chat_response(payload)
 
             # Processing of this iteration is done, send the info that the LLM has finished
@@ -302,6 +298,15 @@ class ToolChainingSubscriber(StreamSubscriber):
                     "elapsed_time": elapsed_time
                 }
             )
+
+            # The event published above is a notification to external entities listening
+            # to the tool chain that an iteration has finished.
+            # For internal state management of the tool chain, however, we close track it
+            # by decrementing the chain link count.
+            self.chain_link_count -= 1
+
+            # Finally, we perform the checks to see if everything has finished.
+            self.check_iteration_end()
         
         except Exception as e:
             self.logger.error(f"Error in tool chain continuation: {e}")
@@ -337,9 +342,6 @@ class ToolChainingSubscriber(StreamSubscriber):
         # Reset the tool execution state
         self.started = False
         self.start_time = 0.0
-        self.is_expecting_mcp_tool_call = False
-        self.is_partial_response = False
+        self.chain_link_count = 0
         self.current_tool_chain_iteration = 0
         self.tool_result_collector.reset()
-        #self.history.clear()
-
