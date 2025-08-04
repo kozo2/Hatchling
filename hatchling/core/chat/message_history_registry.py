@@ -20,21 +20,13 @@ class MessageHistoryRegistry:
     
     This class provides a centralized mapping between UIDs and their
     corresponding MessageHistory instances. It enables global access to
-    histories while providing extensible history management with full
-    async/coroutine safety.
+    histories while history management.
     
     The registry follows these principles:
     - Single source of truth for UID-to-history mappings
     - Dynamic registration and lookup with async safety
     - Clear error handling for missing UIDs
     - Extensibility for future history management features
-    - Async/coroutine-safe mutations using asyncio.Lock
-    
-    Concurrency Model:
-    - All mutation operations (register, unregister, clear) are protected by asyncio.Lock
-    - Read operations (get_history, is_registered, get_registered_uids) are lock-free
-      for performance, unless strong consistency during concurrent mutations is required
-    - Each MessageHistory instance manages its own internal mutation safety
     """
 
     # Class-level storage for singleton behavior
@@ -87,11 +79,7 @@ class MessageHistoryRegistry:
         history = MessageHistory()
         cls._histories[uid] = history
         logger.debug(f"Created and registered new history for UID '{uid}'")
-        return history
-
-    # get_or_create_history is now fully synchronous (see above)
-
-    
+        return history    
 
     @classmethod
     def unregister_history(cls, uid: str) -> Optional[MessageHistory]:
