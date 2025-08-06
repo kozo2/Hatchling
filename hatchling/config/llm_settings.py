@@ -54,7 +54,7 @@ class LLMSettings(BaseModel):
 
     # Provider selection
     provider_enum: ELLMProvider = Field(
-        default_factory=lambda: os.environ.get("LLM_PROVIDER", ELLMProvider.OLLAMA),
+        default_factory=lambda: LLMSettings.to_provider_enum(os.environ.get("LLM_PROVIDER", "ollama")),
         description="LLM provider to use ('ollama' or 'openai').",
         json_schema_extra={"access_level": SettingAccessLevel.NORMAL},
     )
