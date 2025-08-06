@@ -106,16 +106,16 @@ class ToolChainingSubscriber(StreamSubscriber):
                         "start_time": self.start_time
                     }
                 )
+            
+            # Acknowledge one round of tool chaining is about to start.
+            # This is essential to detect when the tool chain really ends.
+            self.chain_link_count += 1
 
         if event.type == StreamEventType.MCP_TOOL_CALL_RESULT or event.type == StreamEventType.MCP_TOOL_CALL_ERROR:
             # We have received a tool result or an error from the MCPToolExecution
             # We are also processing the errors in the tool chaining to let the
             # LLMs know that the tool call failed, and probably retry, or at least 
             # react to the error.
-
-            # Acknowledge one round of tool chaining is about to start.
-            # This is essential to detect when the tool chain really ends.
-            self.chain_link_count += 1
 
             # Now check if we have a ready pair to process in FIFO order
             ready_pair = self.tool_result_collector.get_next_ready_pair()
