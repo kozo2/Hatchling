@@ -96,7 +96,7 @@ class ChatSession:
 
         # Prepare payload using provider abstraction
         payload = provider.prepare_chat_payload(
-            self.history.get_provider_history(), 
+            self.history.get_provider_history(provider.provider_enum), 
             self.settings.llm.model
         )
         

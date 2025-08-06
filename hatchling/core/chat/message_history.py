@@ -280,9 +280,11 @@ class MessageHistory(StreamSubscriber):
             List[Dict[str, Any]]: List of messages formatted for the specified provider.
         """
         if provider is None or provider == self._current_provider:
+            self.logger.debug(f"Returning current provider ({self._current_provider.value}) history")
             return self.provider_history
         
         # Generate history for different provider without changing current state
+        self.logger.debug(f"Generating history for provider: {provider.value}")
         temp_history = []
         
         for entry in self.canonical_history:

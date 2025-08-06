@@ -250,7 +250,7 @@ class ToolChainingSubscriber(StreamSubscriber):
                         "role": "system",
                         "content": continuation_message
                     }] +
-                    MessageHistoryRegistry.get_or_create_history(self.history_id).get_provider_history(),
+                    MessageHistoryRegistry.get_or_create_history(self.history_id).get_provider_history(provider.provider_enum),
                     self.settings.llm.model
                 )
 
