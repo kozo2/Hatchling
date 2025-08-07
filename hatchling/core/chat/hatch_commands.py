@@ -588,11 +588,10 @@ class HatchCommands(AbstractCommands):
                 # When changing the current environment, we must handle
                 # disconnecting from the previous environment's tools if any,
                 # and connecting to the new environment's tools.
-                if self.chat_session.tool_executor.tools_enabled:
+                if mcp_manager.is_connected:
                     
                     # Disconnection
                     await mcp_manager.disconnect_all()
-                    self.chat_session.tool_executor.tools_enabled = False
                     self.logger.info("Disconnected from previous environment's tools.")
 
                     # Get the new environment's entry points for the MCP servers
@@ -600,7 +599,7 @@ class HatchCommands(AbstractCommands):
 
                     if mcp_servers_url:
                         # Reconnect to the new environment's tools
-                        connected = await self.chat_session.initialize_mcp(mcp_servers_url)
+                        connected = await mcp_manager.connect_to_servers(mcp_servers_url)
                         if not connected:
                             self.logger.error("Failed to connect to new environment's MCP servers. Tools not enabled.")
                         else:

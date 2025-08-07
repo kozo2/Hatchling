@@ -81,6 +81,15 @@ class MCPManager:
         """
         return self._stream_publisher
     
+    @property
+    def is_connected(self) -> bool:
+        """Check if the manager has any active connections to MCP servers.
+        
+        Returns:
+            bool: True if connected to at least one MCP server, False otherwise.
+        """
+        return bool(self.mcp_clients)
+    
     def _publish_server_event(self, event_type: StreamEventType, server_path: str, **additional_data) -> None:
         """Publish a server lifecycle event.
         
