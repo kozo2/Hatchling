@@ -35,14 +35,14 @@ class TestPersistentSettingsRegression(unittest.TestCase):
         registry = SettingsRegistry()
 
         # Change a setting and save
-        original_model = registry.get_setting('llm', 'model')['current_value']
-        registry.set_setting('llm', 'model', 'regression-test-model')
+        original_model = registry.get_setting('llm', 'ollama_api_url')['current_value']
+        registry.set_setting('llm', 'ollama_api_url', 'regression-test-model', True)
         self.assertTrue(registry.save_persistent_settings(), "Should save persistent settings successfully")
 
         # Reset and reload
-        registry.set_setting('llm', 'model', original_model)
+        registry.set_setting('llm', 'ollama_api_url', original_model, True)
         self.assertTrue(registry.load_persistent_settings(), "Should load settings from file after save")
-        self.assertEqual(registry.get_setting('llm', 'model')['current_value'], 'regression-test-model', "Model should persist after reload")
+        self.assertEqual(registry.get_setting('llm', 'ollama_api_url')['current_value'], 'regression-test-model', "Model should persist after reload")
 
     def test_cache_and_settings_dir_env_vars(self):
         """Test that cache and settings directories are settable via environment variables and are read-only after init."""
@@ -61,7 +61,7 @@ class TestPersistentSettingsRegression(unittest.TestCase):
         """Test that the persistent settings file contains the expected data."""
         os.environ['HATCHLING_SETTINGS_DIR'] = str(Path(self.temp_dir.name) / "settings")
         registry = SettingsRegistry()
-        registry.set_setting('llm', 'model', 'file-content-test')
+        registry.set_setting('llm', 'ollama_api_url', 'file-content-test', True)
         registry.save_persistent_settings()
         settings_file = registry.get_persistent_settings_file_path()
         self.assertTrue(settings_file.exists(), "Settings file should exist after save")

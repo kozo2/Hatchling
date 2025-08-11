@@ -413,7 +413,7 @@ class HatchCommands(AbstractCommands):
             bool: True to continue the chat session.
         """
         try:
-            environments = self.env_manager.list_environments()
+            environments = mcp_manager.hatch_env_manager.list_environments()
             
             if not environments:
                 print("No Hatch environments found.")
@@ -472,7 +472,7 @@ class HatchCommands(AbstractCommands):
             no_hatch_mcp_server = parsed_args.get('no-hatch-mcp-server', False)
             hatch_mcp_server_tag = parsed_args.get('hatch_mcp_server_tag')
             
-            if self.env_manager.create_environment(
+            if mcp_manager.hatch_env_manager.create_environment(
                 name, 
                 description, 
                 python_version=python_version, 
@@ -529,7 +529,7 @@ class HatchCommands(AbstractCommands):
         try:
             name = parsed_args['name']
 
-            if self.env_manager.remove_environment(name):
+            if mcp_manager.hatch_env_manager.remove_environment(name):
                 self.logger.info(f"Environment removed: {name}")
             else:
                 self.logger.error(f"Failed to remove environment: {name}")
@@ -549,7 +549,7 @@ class HatchCommands(AbstractCommands):
             bool: True to continue the chat session.
         """
         try:
-            current_env = self.env_manager.get_current_environment()
+            current_env = mcp_manager.hatch_env_manager.get_current_environment()
             if current_env:
                 self.logger.info(f"Current environment: {current_env}")
             else:
@@ -582,25 +582,24 @@ class HatchCommands(AbstractCommands):
         try:
             name = parsed_args['name']
 
-            if self.env_manager.set_current_environment(name):
+            if mcp_manager.hatch_env_manager.set_current_environment(name):
                 self.logger.info(f"Current environment set to: {name}")
 
                 # When changing the current environment, we must handle
                 # disconnecting from the previous environment's tools if any,
                 # and connecting to the new environment's tools.
-                if self.chat_session.tool_executor.tools_enabled:
+                if mcp_manager.is_connected:
                     
                     # Disconnection
                     await mcp_manager.disconnect_all()
-                    self.chat_session.tool_executor.tools_enabled = False
                     self.logger.info("Disconnected from previous environment's tools.")
 
                     # Get the new environment's entry points for the MCP servers
-                    mcp_servers_url = self.env_manager.get_servers_entry_points(name)
+                    mcp_servers_url = mcp_manager.hatch_env_manager.get_servers_entry_points(name)
 
                     if mcp_servers_url:
                         # Reconnect to the new environment's tools
-                        connected = await self.chat_session.initialize_mcp(mcp_servers_url)
+                        connected = await mcp_manager.connect_to_servers(mcp_servers_url)
                         if not connected:
                             self.logger.error("Failed to connect to new environment's MCP servers. Tools not enabled.")
                         else:
@@ -646,7 +645,7 @@ class HatchCommands(AbstractCommands):
             refresh_registry = parsed_args.get('refresh-registry', False)
             auto_approve = parsed_args.get('auto-approve', False)
 
-            if self.env_manager.add_package_to_environment(package, env, version, force_download, refresh_registry, auto_approve):
+            if mcp_manager.hatch_env_manager.add_package_to_environment(package, env, version, force_download, refresh_registry, auto_approve):
                 self.logger.info(f"Successfully added package: {package}")
             else:
                 self.logger.error(f"Failed to add package: {package}")
@@ -680,7 +679,7 @@ class HatchCommands(AbstractCommands):
             package_name = parsed_args['package_name']
             env = parsed_args.get('env')
 
-            if self.env_manager.remove_package(package_name, env):
+            if mcp_manager.hatch_env_manager.remove_package(package_name, env):
                 self.logger.info(f"Successfully removed package: {package_name}")
             else:
                 self.logger.error(f"Failed to remove package: {package_name}")
@@ -707,7 +706,7 @@ class HatchCommands(AbstractCommands):
         env = parsed_args.get('env')
         
         try:
-            packages = self.env_manager.list_packages(env)
+            packages = mcp_manager.hatch_env_manager.list_packages(env)
             if not packages:
                 env_name = env if env else "current environment"
                 self.logger.info(f"No packages found in {env_name}.")
@@ -786,7 +785,7 @@ class HatchCommands(AbstractCommands):
             package_path = Path(parsed_args['package_dir']).resolve()
             
             # Use the validator from environment manager
-            is_valid, validation_results = self.env_manager.package_validator.validate_package(package_path)
+            is_valid, validation_results = mcp_manager.hatch_env_manager.package_validator.validate_package(package_path)
             
             if is_valid:
                 self.logger.info(f"Package validation SUCCESSFUL: {package_path}")
@@ -837,7 +836,7 @@ class HatchCommands(AbstractCommands):
         hatch_mcp_server_tag = parsed_args.get('hatch_mcp_server_tag')
 
         try:
-            if self.env_manager.create_python_environment_only(
+            if mcp_manager.hatch_env_manager.create_python_environment_only(
                 hatch_env, 
                 python_version, 
                 force,
@@ -851,7 +850,7 @@ class HatchCommands(AbstractCommands):
                     self.logger.info(f"Python version: {python_version}")
                     
                 # Show Python environment info
-                python_info = self.env_manager.get_python_environment_info(hatch_env)
+                python_info = mcp_manager.hatch_env_manager.get_python_environment_info(hatch_env)
                 if python_info:
                     self.logger.info(f"  Python executable: {python_info['python_executable']}")
                     self.logger.info(f"  Python version: {python_info.get('python_version', 'Unknown')}")
@@ -897,7 +896,7 @@ class HatchCommands(AbstractCommands):
             
             if detailed:
                 # Get detailed diagnostics
-                python_info = self.env_manager.get_python_environment_diagnostics(hatch_env)
+                python_info = mcp_manager.hatch_env_manager.get_python_environment_diagnostics(hatch_env)
                 if python_info:
                     self.logger.info(f"Detailed Python environment diagnostics for {env_name}:")
                     for key, value in python_info.items():
@@ -911,7 +910,7 @@ class HatchCommands(AbstractCommands):
                     self.logger.info(f"No detailed Python environment diagnostics found for {env_name}.")
             else:
                 # Get basic info
-                python_info = self.env_manager.get_python_environment_info(hatch_env)
+                python_info = mcp_manager.hatch_env_manager.get_python_environment_info(hatch_env)
                 if python_info:
                     self.logger.info(f"Python environment information for {env_name}:")
                     for key, value in python_info.items():
@@ -956,7 +955,7 @@ class HatchCommands(AbstractCommands):
                 self.logger.warning(f"This will remove the Python environment for {env_name}. Use --force to skip confirmation.")
                 return True
             
-            if self.env_manager.remove_python_environment_only(hatch_env):
+            if mcp_manager.hatch_env_manager.remove_python_environment_only(hatch_env):
                 self.logger.info(f"Python environment removed for Hatch environment: {env_name}")
             else:
                 self.logger.error(f"Failed to remove Python environment for Hatch environment: {env_name}")
@@ -987,7 +986,7 @@ class HatchCommands(AbstractCommands):
         try:
             env_name = hatch_env if hatch_env else "current environment"
             
-            if self.env_manager.launch_python_shell(hatch_env, cmd):
+            if mcp_manager.hatch_env_manager.launch_python_shell(hatch_env, cmd):
                 if cmd:
                     self.logger.info(f"Executing command '{cmd}' in Python environment for {env_name}")
                 else:
@@ -1025,9 +1024,9 @@ class HatchCommands(AbstractCommands):
         tag = parsed_args.get('tag')
 
         try:
-            env_name = hatch_env if hatch_env else self.env_manager.get_current_environment()
+            env_name = hatch_env if hatch_env else mcp_manager.hatch_env_manager.get_current_environment()
             
-            if self.env_manager.install_mcp_server(hatch_env, tag):
+            if mcp_manager.hatch_env_manager.install_mcp_server(hatch_env, tag):
                 self.logger.info(f"hatch_mcp_server wrapper installed successfully in environment: {env_name}")
                 if tag:
                     self.logger.info(f"Using tag/branch: {tag}")

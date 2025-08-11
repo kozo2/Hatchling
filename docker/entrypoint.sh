@@ -24,6 +24,7 @@ if [ "$(id -u)" = "0" ]; then
     # Creating hatchling directories
     mkdir -p /home/${USER_NAME}/.hatch
     mkdir -p /home/${USER_NAME}/.local
+    mkdir -p /home/${USER_NAME}/.config
 
     # Creating user-specific conda/mamba directories
     mkdir -p /home/${USER_NAME}/.mamba/pkgs
@@ -33,10 +34,7 @@ if [ "$(id -u)" = "0" ]; then
     touch /home/${USER_NAME}/.conda/environments.txt
 
     # Fix ownership of mounted volumes
-    chown -R ${USER_NAME}:${USER_NAME} /home/${USER_NAME}/.hatch 2>/dev/null || true
-    chown -R ${USER_NAME}:${USER_NAME} /home/${USER_NAME}/.local 2>/dev/null || true
-    chown -R ${USER_NAME}:${USER_NAME} /home/${USER_NAME}/.mamba 2>/dev/null || true
-    chown -R ${USER_NAME}:${USER_NAME} /home/${USER_NAME}/.conda 2>/dev/null || true
+    chown -R ${USER_NAME}:${USER_NAME} /home/${USER_NAME}
 
     # Give the user ownership of the entire Miniforge installation
     echo "Fixing ownership of Miniforge installation..."

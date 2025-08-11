@@ -1,23 +1,19 @@
-import aiohttp
-import logging
 import asyncio
-from pathlib import Path
-from typing import Optional
 
 from prompt_toolkit import PromptSession, print_formatted_text as print_pt
 from prompt_toolkit.history import FileHistory, InMemoryHistory
 from prompt_toolkit.patch_stdout import patch_stdout
 from prompt_toolkit.formatted_text import FormattedText
 from prompt_toolkit.styles import Style
+from prompt_toolkit.key_binding import KeyBindings
 
 from hatchling.core.logging.logging_manager import logging_manager
-from hatchling.core.llm.model_manager import ModelManager
+from hatchling.core.llm.providers.registry import ProviderRegistry
 from hatchling.core.llm.chat_session import ChatSession
 from hatchling.core.chat.chat_command_handler import ChatCommandHandler
 from hatchling.config.settings_registry import SettingsRegistry
 from hatchling.mcp_utils.manager import mcp_manager
-
-from hatch import HatchEnvironmentManager
+from hatchling.ui.cli_event_subscriber import CLIEventSubscriber
 
 class CLIChat:
     """Command-line interface for chat functionality."""
@@ -30,13 +26,12 @@ class CLIChat:
         """
         # Store settings first
         self.settings_registry = settings_registry
-        mcp_manager.set_settings_registry(settings_registry)
         
         # Get a logger - styling is already configured at the application level
         self.logger = logging_manager.get_session("CLIChat")
         
         # Initialize prompt toolkit session with history
-        history_dir = Path.home() / '.hatch' / 'histories'
+        history_dir = self.settings_registry.settings.paths.hatchling_cache_dir / 'histories'
         history_dir.mkdir(exist_ok=True, parents=True)
         
         # Setup persistent history with 500 entries limit
@@ -71,151 +66,188 @@ class CLIChat:
             'command.value.string': '#dda0dd',       # String values - plum
             'command.value.generic': '#f0f0f0',      # Generic values - light gray
             'text.default': '#ffffff',               # Default text - white
+            
+            # Toolbar styles
+            'toolbar.default': "#63818d",            # Sky blue for default toolbar
+            'toolbar.tool': '#ffa500',               # Orange for tool execution
+            'toolbar.error': '#ff6b6b',              # Red for errors
+            'toolbar.info': "#49a949",               # Light green for info
+            
+            # Right prompt styles
+            'right-prompt': '#d3d3d3',               # Light gray for right prompt
         })
-        
-        self.env_manager = HatchEnvironmentManager(
-            environments_dir = self.settings_registry.settings.paths.envs_dir,
-            cache_ttl = 86400,  # 1 day default
-        )
             
-        # Create the model manager
-        self.model_manager = ModelManager(self.settings_registry.settings, self.logger)
-        
-        # Chat session will be initialized during startup
-        self.chat_session = None
-        self.cmd_handler = None
-    
-    async def initialize(self) -> bool:
-        """Initialize the chat environment.
-        
-        Returns:
-            bool: True if initialization was successful.
-        """
-        # Check if Ollama service is available
-        available, message = await self.model_manager.check_ollama_service()
-        if not available:
-            self.logger.error(message)
-            self.logger.error(f"Please ensure the Ollama service is running at {self.settings_registry.settings.llm.api_url} before running this script.")
-            return False
-        
-        self.logger.info(message)
-        
-        # Check if MCP server is available
-        self.logger.info("Checking MCP server availability...")
-        
-        # Set environment manager in MCP manager for Python executable resolution
-        mcp_manager.set_hatch_environment_manager(self.env_manager)
-        
-        # Get the name of the current environment
-        name = self.env_manager.get_current_environment()
-        # Retrieve the environment's entry points for the MCP servers
-        mcp_servers_url = self.env_manager.get_servers_entry_points(name)
-        mcp_available = await mcp_manager.initialize(mcp_servers_url)
-        if mcp_available:
-            self.logger.info("MCP server is available! Tool calling is ready to use.")
-            self.logger.info("You can enable tools during the chat session by typing 'enable_tools'")
-            # Disconnect after availability check - servers will be reconnected when tools are enabled
-            await mcp_manager.disconnect_all()
-        else:
-            self.logger.warning("MCP server is not available. Continuing without MCP tools...")
-            
-        # Initialize chat session
-        self.chat_session = ChatSession(self.settings_registry.settings)
-        # Initialize command handler
-        self.cmd_handler = ChatCommandHandler(self.chat_session, self.settings_registry, self.env_manager, self.logger, self.command_style)
-        
-        return True
-    
-    async def check_and_pull_model(self, session: aiohttp.ClientSession) -> bool:
-        """Check if the model is available and pull it if necessary.
-        
-        Args:
-            session (aiohttp.ClientSession): The session to use for API calls.
-            
-        Returns:
-            bool: True if model is available (either already or after pulling).
-        """
+        # Provider will be initialized during startup
+        # Initialize the provider
         try:
-            # Check if model is available
-            is_model_available = await self.model_manager.check_availability(session, self.settings_registry.settings.llm.model)
-            
-            if is_model_available:
-                self.logger.info(f"Model {self.settings_registry.settings.llm.model} is already pulled.")
-                return True
-            else:
-                await self.model_manager.pull_model(session, self.settings_registry.settings.llm.model)
-                return True
+            ProviderRegistry.get_provider(self.settings_registry.settings.llm.provider_enum)
+        
         except Exception as e:
-            self.logger.error(f"Error checking/pulling model: {e}")
-            return False
+            msg = f"Failed to initialize {self.settings_registry.settings.llm.provider_enum} LLM provider: {e}"
+            msg += "\nEnsure the LLM provider name is correct in your settings."
+            msg += "\nYou can list providers compatible with Hatchling using `model:provider:list` command."
+            msg += "\nEnsure you have switched to a supported provider before trying to use the chat interface."
+            self.logger.warning(msg)
+        
+        finally:
+            # Initialize chat session
+            self.chat_session = ChatSession()
+            
+            # Initialize CLI event subscriber for UI state management
+            self.cli_event_subscriber = CLIEventSubscriber()
+            
+            # Register CLI subscriber with chat session (decoupled)
+            self.chat_session.register_subscriber(self.cli_event_subscriber)
+            mcp_manager.publisher.subscribe(self.cli_event_subscriber)
+
+            # Initialize command handler
+            self.cmd_handler = ChatCommandHandler(self.chat_session, self.settings_registry, self.command_style)
+            
+            # Setup key bindings
+            self.key_bindings = self._create_key_bindings()
+    
+    def _create_key_bindings(self) -> KeyBindings:
+        """Create key bindings for UI control.
+        
+        Returns:
+            KeyBindings: Configured key bindings for the CLI.
+        """
+        kb = KeyBindings()
+        
+        @kb.add('f2')
+        def _(event):
+            """Cycle toolbar view mode."""
+            self.cli_event_subscriber.cycle_toolbar_view()
+            # Force UI refresh by triggering a redraw
+            event.app.invalidate()
+        
+        @kb.add('f3')
+        def _(event):
+            """Cycle right prompt view mode."""
+            self.cli_event_subscriber.cycle_right_prompt_view()
+            # Force UI refresh by triggering a redraw
+            event.app.invalidate()
+        
+        @kb.add('f4')
+        def _(event):
+            """Clear current error/info messages."""
+            self.cli_event_subscriber.current_error = None
+            self.cli_event_subscriber.current_info = None
+            event.app.invalidate()
+        
+        @kb.add('f10')
+        def _(event):
+            """Panic: forcibly reset UI state and allow user input."""
+            self.logger.warning("F10 PANIC: Forcibly resetting UI state to allow user input.")
+            self.cli_event_subscriber.set_processing_user_message(False)
+            event.app.invalidate()
+        
+        @kb.add('f12')
+        def _(event):
+            """Show help for key bindings."""
+            help_text = (
+                "📋 Key Bindings:\n"
+                "F2  - Cycle toolbar views\n"
+                "F3  - Cycle right prompt views\n"
+                "F4  - Clear messages\n"
+                "F12 - Show this help\n"
+            )
+            print_pt(FormattedText([('class:toolbar.info', help_text)]))
+        
+        return kb
+    
+    def _get_bottom_toolbar(self) -> FormattedText:
+        """Get bottom toolbar text with styling.
+        
+        Returns:
+            FormattedText: Formatted toolbar text.
+        """
+        toolbar_text = self.cli_event_subscriber.get_toolbar_text()
+        
+        # Style based on content
+        if toolbar_text.startswith('❌'):
+            return FormattedText([('class:toolbar.error', toolbar_text)])
+        elif toolbar_text.startswith('ℹ️'):
+            return FormattedText([('class:toolbar.info', toolbar_text)])
+        elif toolbar_text.startswith('🔧'):
+            return FormattedText([('class:toolbar.tool', toolbar_text)])
+        else:
+            return FormattedText([('class:toolbar.default', toolbar_text)])
+    
+    def _get_right_prompt(self) -> FormattedText:
+        """Get right prompt text with styling.
+        
+        Returns:
+            FormattedText: Formatted right prompt text.
+        """
+        right_prompt_text = self.cli_event_subscriber.get_right_prompt_text()
+        return FormattedText([('class:right-prompt', right_prompt_text)])
     
     async def start_interactive_session(self) -> None:
         """Run an interactive chat session with message history."""
-        if not self.chat_session or not self.cmd_handler:
-            self.logger.error("Chat session not initialized. Call initialize() first.")
-            return
-
-        self.logger.info(f"Starting interactive chat with {self.settings_registry.settings.llm.model}")
-        print_pt(FormattedText([('cyan bold', '\n=== Hatchling Chat Interface ===\n')]))
-        self.cmd_handler.print_commands_help()
         
-        async with aiohttp.ClientSession() as session:
-            # Check and pull the model if needed
-            if not await self.check_and_pull_model(session):
-                self.logger.error("Failed to ensure model availability")
-                return
-              # Start the interactive chat loop
-            while True: 
+        #async with aiohttp.ClientSession() as session:
+        while True: 
+            try:
+                # Create formatted prompt
+                prompt_message = [
+                    # status_style,
+                    ('green', 'You: ')
+                ]
+                # Use patch_stdout to prevent output interference
+                with patch_stdout():
+                    user_message = await self.prompt_session.prompt_async(
+                        FormattedText(prompt_message),
+                        completer=self.cmd_handler.command_completer,
+                        lexer=self.cmd_handler.command_lexer,
+                        style=self.command_style,
+                        key_bindings=self.key_bindings,
+                        bottom_toolbar=self._get_bottom_toolbar,
+                        rprompt=self._get_right_prompt
+                    )
+                
+                # Process as command if applicable
+                is_command, should_continue = await self.cmd_handler.process_command(user_message)
+                if is_command:
+                    if not should_continue:
+                        break
+                    continue
+                
+                # Handle normal message
+                if not user_message.strip():
+                    # Skip empty input
+                    continue
+
+                # Mark that we're starting to process user message
+                self.cli_event_subscriber.set_processing_user_message(True)
+
+                # Clear previous content from event subscriber
+                #self.cli_event_subscriber.clear_content_buffer()
+                
                 try:
-                    # Get user input with prompt_toolkit with a styled prompt
-                    if self.chat_session.tool_executor.tools_enabled:
-                        status_style = ('fg:#5fafff  bold', '[Tools enabled]') #aqua pearl
-                    else:
-                        status_style = ('fg:#005f5f', '[Tools disabled]') #very dark cyan
+                    # Send the message (this will trigger streaming events)
+                    await self.chat_session.send_message(user_message)
                     
-                    # Create formatted prompt
-                    prompt_message = [
-                        status_style,
-                        ('', ' You: ')
-                    ]
-                    # Use patch_stdout to prevent output interference
-                    with patch_stdout():
-                        user_message = await self.prompt_session.prompt_async(
-                            FormattedText(prompt_message),
-                            completer=self.cmd_handler.command_completer,
-                            lexer=self.cmd_handler.command_lexer,
-                            style=self.command_style
-                        )
-                    
-                    # Process as command if applicable
-                    is_command, should_continue = await self.cmd_handler.process_command(user_message)
-                    if is_command:
-                        if not should_continue:
-                            break
-                        continue
-                    
-                    # Handle normal message
-                    if not user_message.strip():
-                        # Skip empty input
-                        continue
-                      # Send the query
-                    print_pt(FormattedText([('green', '\nAssistant: ')]), end='', flush=True)
-                    await self.chat_session.send_message(user_message, session)
-                    print_pt('')  # Add an extra newline for readability
-                except KeyboardInterrupt:
-                    print_pt(FormattedText([('red', '\nInterrupted. Ending chat session...')]))
-                    break
-                except Exception as e:
-                    self.logger.error(f"Error: {e}")
-                    print_pt(FormattedText([('red', f'\nError: {e}')]))
+                    # Wait for all processing to complete (tool chains, etc.)
+                    await self._monitor_right_to_prompt()
+
+                except Exception as send_error:
+                    # Make sure to reset state on error
+                    self.cli_event_subscriber.set_processing_user_message(False)
+                    raise send_error
+                
+                print_pt('')  # Add an extra newline for readability
+
+            except KeyboardInterrupt:
+                print_pt(FormattedText([('red', '\nInterrupted. Ending chat session...')]))
+                break
+            except Exception as e:
+                self.logger.error(f"Error: {e}")
+                print_pt(FormattedText([('red', f'\nError: {e}')]))
     
     async def initialize_and_run(self) -> None:
         """Initialize the environment and run the interactive chat session."""
         try:
-            # Initialize the chat environment
-            if not await self.initialize():
-                return
-            
             # Start the interactive session
             await self.start_interactive_session()
             
@@ -226,5 +258,17 @@ class CLIChat:
         
         finally:
             # Clean up any remaining MCP server processes only if tools were enabled
-            if self.chat_session and self.chat_session.tool_executor.tools_enabled:
+            if self.chat_session and len(mcp_manager.get_enabled_tools()) > 0:
                 await mcp_manager.disconnect_all()
+
+    async def _monitor_right_to_prompt(self) -> None:
+        """
+        Blocks until the all conditions are satisfied to finish a prompt loop
+        and go back to async prompt input.
+        """
+        # Give a small delay to allow events to propagate
+        await asyncio.sleep(0.1)
+        
+        while not self.cli_event_subscriber.is_ready_for_user_input():
+            self.logger.debug("Waiting for user input readiness...")
+            await asyncio.sleep(0.25)  # Check every 250ms

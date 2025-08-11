@@ -11,15 +11,15 @@ from pathlib import Path
 import tomli_w as toml_write
 import tomli as toml_read
 import yaml
-from typing import Dict, List, Tuple, Any, Optional, Union
+from typing import Dict, List, Tuple, Any, Optional, Union, get_origin, get_args
 from difflib import SequenceMatcher
 
 from pydantic import ValidationError
 
 from hatchling.config.settings import AppSettings, SettingAccessLevel
+from hatchling.config.llm_settings import ModelInfo, ELLMProvider, ModelStatus
 from hatchling.core.logging.logging_manager import logging_manager
 from hatchling.config.i18n import get_translation_loader, translate
-
 
 class SettingsRegistry:
     """Central registry for all settings categories and fields.
@@ -59,8 +59,6 @@ class SettingsRegistry:
             List[Dict[str, Any]]: List of setting information dictionaries.
         """
         all_settings = self._get_all_settings_metadata()
-
-        self.logger.debug(f"Listing settings: {json.dumps(self.make_serializable(all_settings), indent=2)}")
         
         if not filter_regex:
             return all_settings
@@ -214,6 +212,8 @@ class SettingsRegistry:
             return str(obj)
         elif isinstance(obj, enum.Enum):
             return obj.value
+        elif isinstance(obj, ModelInfo):
+            return [obj.provider.value, obj.name]
         return obj
 
     def export_settings(self, format: str = "toml", include_read_only: bool = False) -> str:
@@ -404,8 +404,29 @@ class SettingsRegistry:
         # if value is "None" (as a string), convert it to None
         if isinstance(value, str) and value.lower() == "none":
             value = None
+
+        # Convert to Enum if needed
+        field_info = type(category_model).model_fields[name]
+        field_type = field_info.annotation
+        import enum
+        if isinstance(field_type, type) and issubclass(field_type, enum.Enum) and value is not None:
+            if not isinstance(value, field_type):
+                self.logger.info(f"Converting value '{value}' to enum {field_type.__name__}")
+                value = field_type(value)
+
+        if get_origin(field_type) is list and get_args(field_type) and get_args(field_type)[0] is ModelInfo:
+            self.logger.info(f"Converting list of models for setting '{name}' in category '{category}'")
+            value = [
+                ModelInfo(
+                    name=item[1] if isinstance(item, (list, tuple)) and len(item) > 1 else None,
+                    provider=ELLMProvider(item[0]) if isinstance(item, (list, tuple)) and len(item) > 0 else ELLMProvider.OLLAMA,
+                    status=ModelStatus.AVAILABLE
+                )
+                for item in value if isinstance(item, (list, tuple)) and len(item) >= 2
+            ]
+
         category_dict[name] = value
-        
+
         # This will raise ValidationError if the value is invalid
         new_category_model = type(category_model)(**category_dict)
         

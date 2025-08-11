@@ -2,23 +2,43 @@ import json
 from typing import List, Dict, Tuple, Any
 import logging
 import aiohttp
+import warnings
 from hatchling.core.logging.logging_manager import logging_manager
 from hatchling.config.settings import AppSettings
 from hatchling.core.chat.message_history import MessageHistory
 
 class APIManager:
-    """Manages API communication with the LLM."""
+    """
+    Responsible for managing Ollama API communication.
+
+    .. deprecated:: 2025.07.21
+        This class is deprecated and will be removed in a future release.
+        Use the new MCP-Ollama integration interface instead.
+    """
     
-    def __init__(self, settings: AppSettings):
+    def __init__(self, settings: AppSettings = None):
         """Initialize the API manager.
         
         Args:
-            settings: The application settings
+            settings (AppSettings, optional): The application settings.
+                                            If None, uses the singleton instance.
         """
-        self.settings = settings
-        self.logger = logging_manager.get_session("APIManager",
-                                      formatter=logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s'))
+        warnings.warn(
+            "OllamaMCPAdapter is deprecated and will be removed in a future release. "
+            "Use the new LLMProvider integration interface instead.",
+            DeprecationWarning,
+            stacklevel=2
+        )
 
+        self.settings = settings or AppSettings.get_instance()
+        provider = self.settings.llm.provider_name()
+        model = self.settings.llm.model
+        self.logger = logging_manager.get_session(
+            f"APIManager-{provider}-{model}",
+            formatter=logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+        )
+        self.model_name = model
+    
     def prepare_request_payload(self, messages: List[Dict[str, Any]]) -> Dict[str, Any]:
         """Prepare the request payload for the LLM API.
         
@@ -29,7 +49,7 @@ class APIManager:
             The prepared payload.
         """
         payload = {
-            "model": self.settings.llm.model,
+            "model": self.model_name,
             "messages": messages,
             "stream": True  # Always stream
         }
@@ -37,16 +57,26 @@ class APIManager:
         return payload
     
     def add_tools_to_payload(self, payload: Dict[str, Any], tools: List[Dict[str, Any]]) -> Dict[str, Any]:
-        """Add tools to the payload if provided.
-        
-        Args:
-            payload: The original payload.
-            tools: List of tools to add
-            
-        Returns:
-            The payload with tools added.
-        """
-        if tools:
+        """Add tools/functions to the payload depending on provider."""
+        if not tools:
+            return payload
+        if self.settings.llm.get_active_provider() == "openai":
+            # Use the new OpenAI tools format (not the deprecated functions format)
+            openai_tools = []
+            for tool in tools:
+                if tool.get("type") == "function":
+                    # Tool is already in the correct format
+                    openai_tools.append(tool)
+                else:
+                    # Convert to new tools format
+                    openai_tools.append({
+                        "type": "function",
+                        "function": tool
+                    })
+            payload["tools"] = openai_tools
+            payload["tool_choice"] = "auto"
+            self.logger.debug(f"Added {len(openai_tools)} tools to OpenAI payload: {openai_tools}")
+        else:
             payload["tools"] = tools
             payload["tool_choice"] = "auto"
             self.logger.debug(f"Added {len(tools)} tools to payload: {tools}")
@@ -184,3 +214,136 @@ class APIManager:
             history.update_message_history(full_response, message_tool_calls, tool_results)
         
         return full_response, message_tool_calls, tool_results
+
+    async def _stream_openai_response(self,
+                                      session: aiohttp.ClientSession,
+                                      payload: Dict[str, Any],
+                                      history: MessageHistory,
+                                      tool_executor,
+                                      print_output: bool = True,
+                                      prefix: str = None,
+                                      update_history: bool = True) -> Tuple[str, List, List]:
+        """Stream a response from the OpenAI API, supporting function calling."""
+
+        full_response = ""
+        message_tool_calls = []
+        tool_results = []
+        function_call_accumulator = None
+        function_call_name = None
+        function_call_args = ""
+        function_call_id = None
+
+        headers = {"Authorization": f"Bearer {self.settings.llm.openai_api_key}"}
+
+        if prefix and print_output:
+            print(prefix)
+
+        async with session.post(f"{self.settings.llm.openai_api_url}/chat/completions",
+                                json=payload,
+                                headers=headers) as response:
+            if response.status != 200:
+                error_text = await response.text()
+                self.logger.error(f"Error: {response.status}, {error_text}")
+                raise Exception(f"Error: {response.status}, {error_text}")
+
+            async for line in response.content:
+                if not line:
+                    continue
+
+                line_text = line.decode("utf-8").strip()
+                if not line_text:
+                    continue
+
+                for chunk in line_text.split("\n\n"):
+                    if not chunk:
+                        continue
+                    if chunk.startswith("data:"):
+                        chunk = chunk[len("data:"):].strip()
+                    if chunk == "[DONE]":
+                        if print_output:
+                            print()
+                        break
+
+                    try:
+                        data = json.loads(chunk)
+                    except json.JSONDecodeError:
+                        continue
+
+                    choices = data.get("choices", [])
+                    if not choices:
+                        continue
+                    delta = choices[0].get("delta", {})
+
+                    # Handle tool calls (new format)
+                    if "tool_calls" in delta:
+                        tool_calls = delta["tool_calls"]
+                        if tool_calls and len(tool_calls) > 0:
+                            tool_call = tool_calls[0]  # Take the first tool call
+                            if "function" in tool_call:
+                                fc = tool_call["function"]
+                                if function_call_accumulator is None:
+                                    function_call_accumulator = ""
+                                    function_call_name = fc.get("name")
+                                    function_call_id = tool_call.get("id") or "tool_call"
+                                if "arguments" in fc:
+                                    function_call_accumulator += fc["arguments"]
+                                continue
+
+                    # Handle normal content
+                    content_piece = delta.get("content")
+                    if content_piece:
+                        if print_output:
+                            print(content_piece, end="", flush=True)
+                        full_response += content_piece
+
+            # If a function call was accumulated, execute it
+            if function_call_accumulator and function_call_name:
+                try:
+                    args = json.loads(function_call_accumulator)
+                except Exception:
+                    args = {}
+                # Execute the tool
+                tool_result = await tool_executor.execute_tool(function_call_id, function_call_name, args)
+                if tool_result:
+                    # Add tool result in the format expected by update_message_history
+                    tool_results.append({
+                        "tool_call_id": function_call_id,
+                        "name": function_call_name,
+                        "content": tool_result["content"]
+                    })
+                    message_tool_calls.append({
+                        "id": function_call_id,
+                        "type": "function",  # Required by OpenAI
+                        "function": {"name": function_call_name, "arguments": function_call_accumulator}
+                    })
+                    # Note: Tool result will be added to history by update_message_history
+
+        if update_history and history:
+            history.update_message_history(full_response, message_tool_calls, tool_results)
+
+        return full_response, message_tool_calls, tool_results
+
+    async def stream_response(self,
+                              session: aiohttp.ClientSession,
+                              payload: Dict[str, Any],
+                              history: MessageHistory,
+                              tool_executor,
+                              print_output: bool = True,
+                              prefix: str = None,
+                              update_history: bool = True) -> Tuple[str, List, List]:
+        """Stream a response using the configured provider."""
+
+        if self.settings.llm.get_active_provider() == "openai":
+            return await self._stream_openai_response(
+                session, payload, history, tool_executor,
+                print_output=print_output,
+                prefix=prefix,
+                update_history=update_history,
+            )
+
+        return await self._stream_ollama_response(
+            session, payload, history, tool_executor,
+            print_output=print_output,
+            prefix=prefix,
+            update_history=update_history,
+        )
