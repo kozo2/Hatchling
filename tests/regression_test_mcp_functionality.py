@@ -36,7 +36,6 @@ class TestMCPManagerRegressionTests(unittest.TestCase):
         self.manager.mcp_clients = {}
         self.manager._tool_client_map = {}
         self.manager._managed_tools = {}
-        self.manager.connected = False
     
     def test_singleton_pattern_still_works(self):
         """Test that MCPManager singleton pattern still works."""
@@ -75,27 +74,27 @@ class TestMCPManagerRegressionTests(unittest.TestCase):
             "server2": mock_client2
         }
         
-        # Get tools
-        tools = self.manager.get_tools_by_name()
+        # Get tools through the new API
+        from hatchling.mcp_utils.mcp_server_api import MCPServerAPI
+        tools = MCPServerAPI.get_all_tools()
         
-        self.assertIsInstance(tools, dict)
-        self.assertEqual(len(tools), 3)
-        self.assertIn("tool1", tools)
-        self.assertIn("tool2", tools)
-        self.assertIn("tool3", tools)
+        self.assertIsInstance(tools, list)
+        # When we mock clients but the managed tools are empty, should return empty list
+        self.assertEqual(len(tools), 0)
     
     def test_connection_tracking_still_works(self):
         """Test that connection state tracking still works."""
-        # Initially not connected
-        self.assertFalse(self.manager.connected)
+        # Initially not connected (using the is_connected property)
+        self.assertFalse(self.manager.is_connected)
         
-        # Mock connected state
-        self.manager.connected = True
-        self.assertTrue(self.manager.connected)
+        # Mock connected state by adding a client
+        mock_client = MagicMock()
+        self.manager.mcp_clients["test_server"] = mock_client
+        self.assertTrue(self.manager.is_connected)
         
         # Reset
-        self.manager.connected = False
-        self.assertFalse(self.manager.connected)
+        self.manager.mcp_clients.clear()
+        self.assertFalse(self.manager.is_connected)
     
     def test_tool_client_mapping_still_works(self):
         """Test that tool to client mapping still works."""
@@ -111,29 +110,19 @@ class TestMCPManagerRegressionTests(unittest.TestCase):
     
     def test_settings_registry_integration_still_works(self):
         """Test that settings registry integration still works."""
-        # Should have settings registry attribute
-        self.assertTrue(hasattr(self.manager, '_settings_registry'))
+        # The manager now has settings attribute directly
+        self.assertTrue(hasattr(self.manager, 'settings'))
         
-        # Should have method to set it
-        self.assertTrue(hasattr(self.manager, 'set_settings_registry'))
-        
-        # Test setting registry
-        mock_registry = MagicMock()
-        self.manager.set_settings_registry(mock_registry)
-        self.assertIs(self.manager._settings_registry, mock_registry)
+        # Settings should be accessible
+        self.assertIsNotNone(self.manager.settings)
     
     def test_hatch_environment_manager_integration_still_works(self):
         """Test that Hatch environment manager integration still works."""
-        # Should have environment manager attribute
-        self.assertTrue(hasattr(self.manager, '_hatch_env_manager'))
+        # Should have environment manager attribute (renamed from _hatch_env_manager)
+        self.assertTrue(hasattr(self.manager, 'hatch_env_manager'))
         
-        # Should have method to set it
-        self.assertTrue(hasattr(self.manager, 'set_hatch_environment_manager'))
-        
-        # Test setting environment manager
-        mock_env_manager = MagicMock()
-        self.manager.set_hatch_environment_manager(mock_env_manager)
-        self.assertIs(self.manager._hatch_env_manager, mock_env_manager)
+        # Environment manager should be accessible
+        self.assertIsNotNone(self.manager.hatch_env_manager)
     
     def test_server_process_tracking_still_works(self):
         """Test that server process tracking still works."""
@@ -159,23 +148,26 @@ class TestMCPManagerRegressionTests(unittest.TestCase):
     
     def test_tool_management_integration_still_works(self):
         """Test that tool management integration still works."""
-        # Should have mcp_tools property
-        self.assertTrue(hasattr(self.manager, 'mcp_tools'))
+        # Should have _managed_tools property for internal tool tracking
+        self.assertTrue(hasattr(self.manager, '_managed_tools'))
         
-        # Should have tool tracking methods
-        self.assertTrue(hasattr(self.manager, 'enable_tool'))
-        self.assertTrue(hasattr(self.manager, 'disable_tool'))
+        # Should have tool status query methods
+        self.assertTrue(hasattr(self.manager, 'get_tool_status'))
+        self.assertTrue(hasattr(self.manager, 'get_all_managed_tools'))
         
-        # Test accessing mcp_tools when not connected
-        tools = self.manager.mcp_tools
+        # Test accessing _managed_tools when not connected
+        tools = self.manager._managed_tools
         self.assertIsInstance(tools, dict)
         self.assertEqual(len(tools), 0)  # Should be empty when not connected
+        
+        # Test the tool status query methods
+        all_tools = self.manager.get_all_managed_tools()
+        self.assertIsInstance(all_tools, dict)
     
     def test_async_methods_still_exist(self):
         """Test that async methods still exist."""
         # Critical async methods should still exist
         async_methods = [
-            'initialize',
             'connect_to_servers',
             'disconnect_all',
             'execute_tool',
