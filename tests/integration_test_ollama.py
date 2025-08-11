@@ -1,7 +1,18 @@
-"""Integration tests for OllamaProvider - Phase 3.
+"""Integration tests for OllamaProvider.
 
-These tests validate the OllamaProvider against a real Ollama instance.
-Tests skip gracefully if Ollama is not available or configured.
+This module contains integration tests that validate the OllamaProvider against a real Ollama instance.
+Tests skip gracefully if Ollama is not available or not configured properly.
+
+The tests cover:
+- Provider registration and initialization
+- Health checks against real Ollama API
+- Chat payload preparation and streaming
+- Tool integration with MCP system
+- Error handling and resource cleanup
+
+Requirements:
+- Ollama server running on localhost:11434
+- Internet connectivity for model downloads if needed
 """
 
 import sys
@@ -13,6 +24,9 @@ import time
 
 # Add the parent directory to the path for imports
 sys.path.insert(0, str(Path(__file__).parent.parent))
+
+# Import test decorators
+from tests.test_decorators import slow_test, integration_test, requires_external_service
 from hatchling.config.settings import OllamaSettings
 from hatchling.config.llm_settings import ELLMProvider
 from hatchling.core.llm.tool_management.adapters import MCPToolAdapterRegistry
@@ -51,13 +65,30 @@ class TestStreamToolCallSubscriber(StreamSubscriber):
             logger.warning(f"Unexpected event type: {event.type}")
     
     def get_subscribed_events(self):
+        """Return list of events this subscriber is interested in.
+        
+        Returns:
+            list: List of StreamEventType values this subscriber handles
+        """
         return [StreamEventType.LLM_TOOL_CALL_REQUEST, StreamEventType.CONTENT, StreamEventType.USAGE]
 
+
+@integration_test
+@requires_external_service("ollama")
 class TestOllamaProviderSync(unittest.TestCase):
-    """Synchronous tests for OllamaProvider that don't require async operations."""
+    """Synchronous tests for OllamaProvider that don't require async operations.
+    
+    These tests require:
+    - Ollama server running on localhost:11434
+    - At least one model available in Ollama
+    """
 
     def setUp(self):
-        """Set up test fixtures."""
+        """Set up test fixtures for each test method.
+        
+        Initializes the Ollama provider and checks basic availability.
+        Skips tests if Ollama is not accessible.
+        """
         self.provider = None
         self.ollama_available = True
         
@@ -82,16 +113,27 @@ class TestOllamaProviderSync(unittest.TestCase):
         ProviderRegistry._instances.clear()  # Clear provider instances to reset state
     
     def test_provider_registration(self):
-        """Test that OllamaProvider is properly registered."""
-        self.assertIn(ELLMProvider.OLLAMA, ProviderRegistry.list_providers())
+        """Test that OllamaProvider is properly registered in the provider registry.
+        
+        Validates that the Ollama provider is available and correctly mapped in the registry.
+        """
+        self.assertIn(ELLMProvider.OLLAMA, ProviderRegistry.list_providers(),
+                     "Ollama provider should be registered in provider registry")
         provider_class = ProviderRegistry.get_provider_class(ELLMProvider.OLLAMA)
-        self.assertEqual(provider_class, OllamaProvider)
+        self.assertEqual(provider_class, OllamaProvider,
+                        "Provider registry should return OllamaProvider class for OLLAMA enum")
 
     def test_provider_initialization(self):
-        """Test provider initialization with real connection."""
+        """Test provider initialization with real connection.
+        
+        Validates that the provider can be properly initialized and establishes
+        a working connection to the Ollama server.
+        """
         try:
-            self.assertIsInstance(self.provider, OllamaProvider)
-            self.assertIsNotNone(self.provider._client)
+            self.assertIsInstance(self.provider, OllamaProvider,
+                                "Provider should be instance of OllamaProvider")
+            self.assertIsNotNone(self.provider._client,
+                               "Provider client should be initialized")
         except Exception as e:
             self.skipTest(f"Provider initialization failed: {e}")
 
@@ -155,7 +197,7 @@ class TestOllamaProviderSync(unittest.TestCase):
             )
             event_data = {
                 "tool_name": tool_name,
-                "mcp_tool_info": tool_info
+                "tool_info": tool_info  # Changed from mcp_tool_info to tool_info
             }
             event = StreamEvent(
                 type=StreamEventType.MCP_TOOL_ENABLED,
@@ -192,8 +234,17 @@ class TestOllamaProviderSync(unittest.TestCase):
         self.assertEqual(len(tls.get_all_tools()), 0)
 
 
+@integration_test
+@requires_external_service("ollama")
+@slow_test
 class TestOllamaProviderIntegration(unittest.IsolatedAsyncioTestCase):
-    """Integration tests for OllamaProvider with real Ollama instance using async test case."""
+    """Integration tests for OllamaProvider with real Ollama instance using async test case.
+    
+    These tests require:
+    - Ollama server running on localhost:11434  
+    - At least one model available in Ollama
+    - Longer execution time for streaming tests
+    """
         
     async def asyncSetUp(self):
         """Set up test fixtures asynchronously."""
@@ -256,7 +307,7 @@ class TestOllamaProviderIntegration(unittest.IsolatedAsyncioTestCase):
         )
         event_data = {
             "tool_name": tool_info.name,
-            "mcp_tool_info": tool_info
+            "tool_info": tool_info  # Changed from mcp_tool_info to tool_info
         }
         event = StreamEvent(
             type=StreamEventType.MCP_TOOL_ENABLED,
@@ -325,7 +376,7 @@ class TestOllamaProviderIntegration(unittest.IsolatedAsyncioTestCase):
         """Test a simple chat interaction with Ollama and ToolLifecycleSubscriber integration."""
 
         # Create test subscribers
-        content_printer = ContentPrinterSubscriber(include_role=True)
+        content_printer = ContentPrinterSubscriber()  # Remove include_role parameter
         usage_stats = UsageStatsSubscriber()
         error_handler = ErrorHandlerSubscriber()
 
