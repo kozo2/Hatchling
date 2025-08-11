@@ -47,10 +47,10 @@ class TestToolExecutionRegression(unittest.TestCase):
         # Verify the class exists and has expected attributes
         self.assertIsInstance(self.tool_execution, MCPToolExecution)
         self.assertTrue(hasattr(self.tool_execution, 'settings'))
-        self.assertTrue(hasattr(self.tool_execution, 'tools_enabled'))
         self.assertTrue(hasattr(self.tool_execution, 'current_tool_call_iteration'))
         self.assertTrue(hasattr(self.tool_execution, 'tool_call_start_time'))
         self.assertTrue(hasattr(self.tool_execution, 'root_tool_query'))
+        self.assertTrue(hasattr(self.tool_execution, 'stream_publisher'))
     
     def test_mcp_manager_integration_still_works(self):
         """Test that MCP manager integration still works as expected."""
@@ -66,15 +66,15 @@ class TestToolExecutionRegression(unittest.TestCase):
         """Test that tool execution workflow still works."""
         # Should have the core tool execution methods
         self.assertTrue(hasattr(self.tool_execution, 'execute_tool'))
-        self.assertTrue(hasattr(self.tool_execution, 'process_tool_call'))
+        self.assertTrue(hasattr(self.tool_execution, 'execute_tool_sync'))
         
-        # Both should be async methods
+        # Execute_tool should be async, execute_tool_sync should be sync
         self.assertTrue(asyncio.iscoroutinefunction(self.tool_execution.execute_tool))
-        self.assertTrue(asyncio.iscoroutinefunction(self.tool_execution.process_tool_call))
+        self.assertFalse(asyncio.iscoroutinefunction(self.tool_execution.execute_tool_sync))
         
-        # Should support tool call handling
-        self.assertTrue(hasattr(self.tool_execution, 'handle_streaming_tool_calls'))
-        self.assertTrue(asyncio.iscoroutinefunction(self.tool_execution.handle_streaming_tool_calls))
+        # Should support tool calling chain handling
+        self.assertTrue(hasattr(self.tool_execution, 'handle_tool_calling_chain'))
+        self.assertTrue(asyncio.iscoroutinefunction(self.tool_execution.handle_tool_calling_chain))
     
     def test_reset_for_new_query_method_still_works(self):
         """Test that reset_for_new_query method still works."""
@@ -124,53 +124,51 @@ class TestToolExecutionRegression(unittest.TestCase):
             self.assertEqual(result["tool_call_id"], "regression_test_123")
             self.assertEqual(result["name"], "regression_test_function")
     
-    def test_process_tool_call_method_still_exists_and_async(self):
-        """Test that process_tool_call method still exists and is async."""
-        self.assertTrue(hasattr(self.tool_execution, 'process_tool_call'))
-        method = getattr(self.tool_execution, 'process_tool_call')
+    def test_execute_tool_sync_method_still_exists(self):
+        """Test that execute_tool_sync method exists and is synchronous."""
+        self.assertTrue(hasattr(self.tool_execution, 'execute_tool_sync'))
+        method = getattr(self.tool_execution, 'execute_tool_sync')
         self.assertTrue(callable(method))
-        self.assertTrue(asyncio.iscoroutinefunction(method))
+        self.assertFalse(asyncio.iscoroutinefunction(method))
     
-    async def test_process_tool_call_argument_parsing_still_works(self):
-        """Test that process_tool_call still parses arguments correctly."""
-        # Mock tools_enabled and execute_tool
-        self.tool_execution.tools_enabled = True
+    async def test_execute_tool_argument_handling_still_works(self):
+        """Test that execute_tool handles arguments correctly through ToolCallParsedResult."""
+        from hatchling.core.llm.tool_management import ToolCallParsedResult
         
-        with patch.object(self.tool_execution, 'execute_tool', return_value={"result": "test"}) as mock_execute:
-            # Test with string arguments (JSON)
-            tool_call_str_args = {
-                "function": {
-                    "name": "test_function",
-                    "arguments": '{"param1": "value1", "param2": 42}'
-                }
-            }
+        # Create a ToolCallParsedResult with test data
+        tool_call = ToolCallParsedResult(
+            tool_call_id="test_id",
+            function_name="test_function",
+            arguments={"param1": "value1", "param2": 42}
+        )
+        
+        # Mock mcp_manager.execute_tool to avoid external dependencies
+        with patch('hatchling.mcp_utils.mcp_tool_execution.mcp_manager') as mock_mcp_manager:
+            mock_result = MagicMock()
+            mock_result.isError = False
+            mock_mcp_manager.execute_tool.return_value = mock_result
             
-            await self.tool_execution.process_tool_call(tool_call_str_args, "test_id")
+            # Test that execute_tool accepts the ToolCallParsedResult
+            await self.tool_execution.execute_tool(tool_call)
             
-            # Verify execute_tool was called with parsed arguments
-            mock_execute.assert_called_once_with("test_id", "test_function", {"param1": "value1", "param2": 42})
-            
-            mock_execute.reset_mock()
-            
-            # Test with dict arguments
-            tool_call_dict_args = {
-                "function": {
-                    "name": "test_function",
-                    "arguments": {"param1": "value1", "param2": 42}
-                }
-            }
-            
-            await self.tool_execution.process_tool_call(tool_call_dict_args, "test_id2")
-            
-            # Verify execute_tool was called with dict arguments
-            mock_execute.assert_called_once_with("test_id2", "test_function", {"param1": "value1", "param2": 42})
+            # Verify mcp_manager.execute_tool was called with correct parameters
+            mock_mcp_manager.execute_tool.assert_called_once_with(
+                tool_name="test_function",
+                arguments={"param1": "value1", "param2": 42}
+            )
     
-    def test_handle_streaming_tool_calls_method_still_exists_and_async(self):
-        """Test that handle_streaming_tool_calls method still exists and is async."""
-        self.assertTrue(hasattr(self.tool_execution, 'handle_streaming_tool_calls'))
-        method = getattr(self.tool_execution, 'handle_streaming_tool_calls')
-        self.assertTrue(callable(method))
-        self.assertTrue(asyncio.iscoroutinefunction(method))
+    def test_stream_publisher_integration_still_works(self):
+        """Test that stream publisher integration still works."""
+        # The new interface should have stream_publisher property
+        self.assertTrue(hasattr(self.tool_execution, 'stream_publisher'))
+        
+        # Should be able to access the publisher
+        publisher = self.tool_execution.stream_publisher
+        self.assertIsNotNone(publisher)
+        
+        # Should have the necessary methods for event publishing
+        self.assertTrue(hasattr(publisher, 'publish'))
+        self.assertTrue(hasattr(publisher, 'subscribe'))
     
     def test_handle_tool_calling_chain_method_still_exists_and_async(self):
         """Test that handle_tool_calling_chain method still exists and is async."""
@@ -190,16 +188,20 @@ class TestToolExecutionRegression(unittest.TestCase):
         
         self.assertEqual(self.tool_execution.current_tool_call_iteration, original_iteration + 1)
     
-    def test_tools_enabled_flag_still_exists(self):
-        """Test that tools_enabled flag still exists and works."""
-        self.assertTrue(hasattr(self.tool_execution, 'tools_enabled'))
+    def test_event_publishing_capabilities_still_work(self):
+        """Test that event publishing capabilities still work."""
+        # Should have internal event publishing method
+        self.assertTrue(hasattr(self.tool_execution, '_stream_publisher'))
         
-        # Test setting and getting the flag
-        self.tool_execution.tools_enabled = True
-        self.assertTrue(self.tool_execution.tools_enabled)
+        # Test that events can be published (basic functionality test)
+        publisher = self.tool_execution.stream_publisher
         
-        self.tool_execution.tools_enabled = False
-        self.assertFalse(self.tool_execution.tools_enabled)
+        # Should not raise an exception when publishing events
+        try:
+            from hatchling.core.llm.streaming_management import StreamEventType
+            publisher.publish(StreamEventType.MCP_TOOL_CALL_DISPATCHED, {"test": "data"})
+        except Exception as e:
+            self.fail(f"Event publishing should not raise exception: {e}")
     
     def test_settings_integration_still_works(self):
         """Test that settings integration still works."""
