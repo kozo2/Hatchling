@@ -1,0 +1,28 @@
+{
+  "mcp_tool_response_success": {
+    "content": [
+      {
+        "type": "text",
+        "text": "Operation completed successfully"
+      }
+    ],
+    "isError": false
+  },
+  "mcp_tool_response_error": {
+    "content": [
+      {
+        "type": "text", 
+        "text": "Tool execution failed: Invalid arguments"
+      }
+    ],
+    "isError": true
+  },
+  "ollama_health_check": {
+    "status": "ok",
+    "models": ["llama3.2:latest", "codellama:latest"]
+  },
+  "openai_health_check": {
+    "status": "ok",
+    "models": ["gpt-4", "gpt-3.5-turbo"]
+  }
+}
