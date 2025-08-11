@@ -27,9 +27,7 @@ sys.path.insert(0, str(Path(__file__).parent.parent))
 
 # Import test decorators
 from tests.test_decorators import slow_test, integration_test, requires_external_service
-from hatchling.config.settings import OllamaSettings
 from hatchling.config.llm_settings import ELLMProvider
-from hatchling.core.llm.tool_management.adapters import MCPToolAdapterRegistry
 from hatchling.core.llm.providers.registry import ProviderRegistry
 from hatchling.core.llm.providers.ollama_provider import OllamaProvider
 from hatchling.core.llm.streaming_management import (

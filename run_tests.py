@@ -291,18 +291,36 @@ def run_integration_tests():
         logger.error(f"Command System integration tests failed: {e}")
         success = False
     
-    # Tool Call Flow Integration tests  
-    logger.info("Running Tool Call Flow integration tests...")
+    # OpenAI Provider Integration tests (requires API key)
+    logger.info("Running OpenAI Provider integration tests...")
     try:
-        from tests.integration_test_tool_call_flow import run_tool_call_flow_integration_tests
-        if not run_tool_call_flow_integration_tests():
-            logger.error("Tool Call Flow integration tests failed")
+        from tests.integration_test_openai import run_openai_integration_tests
+        if not run_openai_integration_tests():
+            logger.error("OpenAI Provider integration tests failed")
             success = False
+        else:
+            logger.info("OpenAI Provider integration tests completed successfully")
     except ImportError as e:
-        logger.error(f"Could not import Tool Call Flow integration tests: {e}")
+        logger.error(f"Could not import OpenAI Provider integration tests: {e}")
         success = False
     except Exception as e:
-        logger.error(f"Tool Call Flow integration tests failed: {e}")
+        logger.error(f"OpenAI Provider integration tests failed: {e}")
+        success = False
+    
+    # Ollama Provider Integration tests (requires Ollama service)
+    logger.info("Running Ollama Provider integration tests...")
+    try:
+        from tests.integration_test_ollama import run_ollama_integration_tests
+        if not run_ollama_integration_tests():
+            logger.error("Ollama Provider integration tests failed")
+            success = False
+        else:
+            logger.info("Ollama Provider integration tests completed successfully")
+    except ImportError as e:
+        logger.error(f"Could not import Ollama Provider integration tests: {e}")
+        success = False
+    except Exception as e:
+        logger.error(f"Ollama Provider integration tests failed: {e}")
         success = False
     
     return success
