@@ -8,6 +8,7 @@ import sys
 import logging
 import unittest
 from pathlib import Path
+from enum import Enum
 
 # Add the parent directory to the path for imports
 sys.path.insert(0, str(Path(__file__).parent.parent))
@@ -16,6 +17,13 @@ from tests.test_decorators import feature_test
 from tests.test_data_utils import test_data
 
 logger = logging.getLogger("feature_test_provider_registry")
+
+
+class TestProviderEnum(Enum):
+    """Test provider enum for registry testing."""
+    TEST_PROVIDER = "test_provider"
+    PROVIDER_A = "provider_a"
+    PROVIDER_B = "provider_b"
 
 
 def create_test_provider_class(name="test"):
@@ -63,8 +71,21 @@ class TestProviderRegistry(unittest.TestCase):
     def setUp(self):
         """Set up test fixtures before each test method."""
         from hatchling.core.llm.providers.registry import ProviderRegistry
+        # Store the original registry state to restore after test
+        self.original_providers = ProviderRegistry._providers.copy()
+        self.original_instances = ProviderRegistry._instances.copy()
+        
         # Clear registry before each test to ensure isolation
         ProviderRegistry.clear_registry()
+
+    def tearDown(self):
+        """Clean up test fixtures after each test method."""
+        from hatchling.core.llm.providers.registry import ProviderRegistry
+        # Restore the original registry state to avoid state leakage
+        ProviderRegistry._providers.clear()
+        ProviderRegistry._instances.clear()
+        ProviderRegistry._providers.update(self.original_providers)
+        ProviderRegistry._instances.update(self.original_instances)
 
     @feature_test
     def test_provider_registration(self):
@@ -72,11 +93,11 @@ class TestProviderRegistry(unittest.TestCase):
         from hatchling.core.llm.providers.registry import ProviderRegistry
         
         TestProvider = create_test_provider_class("test")
-        ProviderRegistry.register("test_provider")(TestProvider)
+        ProviderRegistry.register(TestProviderEnum.TEST_PROVIDER)(TestProvider)
 
-        self.assertTrue(ProviderRegistry.is_registered("test_provider"),
+        self.assertTrue(ProviderRegistry.is_registered(TestProviderEnum.TEST_PROVIDER),
                        "Provider should be registered after decoration")
-        self.assertIn("test_provider", ProviderRegistry.list_providers(),
+        self.assertIn(TestProviderEnum.TEST_PROVIDER, ProviderRegistry.list_providers(),
                      "Provider should appear in provider list")
 
     @feature_test
@@ -86,10 +107,10 @@ class TestProviderRegistry(unittest.TestCase):
         from hatchling.core.llm.providers.base import LLMProvider
         
         TestProvider = create_test_provider_class("test")
-        ProviderRegistry.register("test_provider")(TestProvider)
+        ProviderRegistry.register(TestProviderEnum.TEST_PROVIDER)(TestProvider)
 
         test_settings = test_data.get_test_settings()
-        provider = ProviderRegistry.create_provider("test_provider", test_settings)
+        provider = ProviderRegistry.create_provider(TestProviderEnum.TEST_PROVIDER, test_settings)
         
         self.assertIsInstance(provider, LLMProvider,
                              "Created provider should be instance of LLMProvider")
@@ -101,9 +122,12 @@ class TestProviderRegistry(unittest.TestCase):
         """Test registry error handling for invalid cases."""
         from hatchling.core.llm.providers.registry import ProviderRegistry
 
-        # Test unknown provider
+        # Test unknown provider using a enum that's not registered
+        class UnknownEnum(Enum):
+            UNKNOWN = "unknown"
+            
         with self.assertRaises(ValueError) as cm:
-            ProviderRegistry.create_provider("nonexistent_provider", {})
+            ProviderRegistry.create_provider(UnknownEnum.UNKNOWN, {})
         self.assertIn("Unknown provider", str(cm.exception),
                      "Should raise ValueError for unknown provider")
 
@@ -115,16 +139,20 @@ class TestProviderRegistry(unittest.TestCase):
         # Test empty registry
         self.assertEqual(len(ProviderRegistry.list_providers()), 0,
                         "Empty registry should return empty list")
-        self.assertFalse(ProviderRegistry.is_registered("nonexistent"),
+        
+        class NonExistentEnum(Enum):
+            NONEXISTENT = "nonexistent"
+            
+        self.assertFalse(ProviderRegistry.is_registered(NonExistentEnum.NONEXISTENT),
                         "Should return False for unregistered provider")
 
         # Register a provider and test utilities
         TestProvider = create_test_provider_class("test")
-        ProviderRegistry.register("test_provider")(TestProvider)
+        ProviderRegistry.register(TestProviderEnum.TEST_PROVIDER)(TestProvider)
 
         self.assertEqual(len(ProviderRegistry.list_providers()), 1,
                         "Registry should contain one provider after registration")
-        self.assertTrue(ProviderRegistry.is_registered("test_provider"),
+        self.assertTrue(ProviderRegistry.is_registered(TestProviderEnum.TEST_PROVIDER),
                        "Should find registered provider")
 
     @feature_test
@@ -135,15 +163,15 @@ class TestProviderRegistry(unittest.TestCase):
         ProviderA = create_test_provider_class("provider_a")
         ProviderB = create_test_provider_class("provider_b")
         
-        ProviderRegistry.register("provider_a")(ProviderA)
-        ProviderRegistry.register("provider_b")(ProviderB)
+        ProviderRegistry.register(TestProviderEnum.PROVIDER_A)(ProviderA)
+        ProviderRegistry.register(TestProviderEnum.PROVIDER_B)(ProviderB)
 
         providers = ProviderRegistry.list_providers()
         self.assertEqual(len(providers), 2,
                         "Should register multiple providers")
-        self.assertIn("provider_a", providers,
+        self.assertIn(TestProviderEnum.PROVIDER_A, providers,
                      "Should contain first provider")
-        self.assertIn("provider_b", providers,
+        self.assertIn(TestProviderEnum.PROVIDER_B, providers,
                      "Should contain second provider")
 
 
