@@ -1,14 +1,28 @@
 import json
 import asyncio
 import logging
+import warnings
 from typing import Dict, List, Any
 from hatchling.core.logging.logging_manager import logging_manager
 
+
 class OllamaMCPAdapter:
-    """Adapter to integrate Ollama's tool calling format with MCP tools."""
+    """
+    Adapter to integrate Ollama's tool calling format with MCP tools.
+
+    .. deprecated:: 2025.07.21
+        This class is deprecated and will be removed in a future release.
+        Use the new MCP-Ollama integration interface instead.
+    """
     
     def __init__(self):
         """Initialize the adapter."""
+        warnings.warn(
+            "OllamaMCPAdapter is deprecated and will be removed in a future release. "
+            "Use the new MCP-Ollama integration interface instead.",
+            DeprecationWarning,
+            stacklevel=2
+        )
         # Schema caching for better performance and parameter name consistency
         self._mcp_to_ollama_schemas = {}  # Cache for MCP schemas converted to Ollama format
         

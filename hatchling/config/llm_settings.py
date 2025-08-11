@@ -1,81 +1,119 @@
 """Settings for LLM (Large Language Model) configuration."""
 
 import os
-from typing import Optional
+import re
+from typing import Optional, List, Tuple, Dict, Any
 from pydantic import BaseModel, Field
+from dataclasses import dataclass
+from enum import Enum
 
 from .settings_access_level import SettingAccessLevel
+from hatchling.core.logging.logging_manager import logging_manager
+
+class ELLMProvider(Enum):
+    OLLAMA = "ollama"
+    OPENAI = "openai"
+
+class ModelStatus(Enum):
+    """Status of a model."""
+    AVAILABLE = "available"
+    NOT_AVAILABLE = "not_available"
+    DOWNLOADING = "downloading"
+    ERROR = "error"
+
+
+@dataclass
+class ModelInfo:
+    """Information about an LLM model."""
+    name: str
+    provider: ELLMProvider
+    status: ModelStatus
+    size: Optional[int] = None
+    modified_at: Optional[str] = None
+    digest: Optional[str] = None
+    details: Optional[Dict[str, Any]] = None
+    error_message: Optional[str] = None
+
+    def to_dict(self) -> dict:
+        """Return a dictionary representation of the model."""
+        return {
+            "name": self.name,
+            "provider": self.provider.value,
+            "status": self.status.value,
+            "size": self.size,
+            "modified_at": self.modified_at,
+            "digest": self.digest,
+            "details": self.details,
+            "error_message": self.error_message,
+        }
+
+logger = logging_manager.get_session("LLMSettings")
 
 class LLMSettings(BaseModel):
     """Settings for LLM (Large Language Model) configuration."""
 
     # Provider selection
-    provider: str = Field(
-        default_factory=lambda: os.environ.get("LLM_PROVIDER", "openai"),
+    provider_enum: ELLMProvider = Field(
+        default_factory=lambda: LLMSettings.to_provider_enum(os.environ.get("LLM_PROVIDER", "ollama")),
         description="LLM provider to use ('ollama' or 'openai').",
         json_schema_extra={"access_level": SettingAccessLevel.NORMAL},
     )
 
-    # Ollama settings
-    ollama_api_url: str = Field(
-        default_factory=lambda: os.environ.get("OLLAMA_HOST_API", "http://localhost:11434/api"),
-        description="URL for the Ollama API endpoint.",
-        json_schema_extra={"access_level": SettingAccessLevel.PROTECTED},
-    )
-    ollama_model: str = Field(
-        default_factory=lambda: os.environ.get("OLLAMA_MODEL", "llama3.2"),
-        description="Ollama model to use for chat interactions.",
+    model: str = Field(
+        default_factory=lambda: os.environ.get("LLM_MODEL", "llama3.2"),
+        description="Default LLM to use for the selected provider.",
         json_schema_extra={"access_level": SettingAccessLevel.NORMAL},
     )
 
-    # OpenAI settings
-    openai_api_url: str = Field(
-        default_factory=lambda: os.environ.get("OPENAI_API_URL", "https://api.openai.com/v1"),
-        description="URL for the OpenAI API endpoint.",
-        json_schema_extra={"access_level": SettingAccessLevel.PROTECTED},
-    )
-    openai_model: str = Field(
-        default_factory=lambda: os.environ.get("CHATGPT_MODEL", "gpt-4o-mini"),
-        description="OpenAI model to use for chat interactions.",
+    @staticmethod
+    def extract_provider_model_list(s: str) -> List[Tuple[ELLMProvider, str]]:
+        """
+        Extract a list of (provider_name, model_name) tuples from a string using regex.
+
+        Args:
+            s (str): Input string containing tuples in the format (provider,model).
+
+        Returns:
+            List[tuple[str, str]]: List of extracted tuples.
+        """
+        pattern = r"\(\s*([a-zA-Z0-9_]+)\s*,\s*([a-zA-Z0-9_.-]+)\s*\)"
+        res = [(
+            LLMSettings.to_provider_enum(match[0]),
+            match[1]
+        ) for match in re.findall(pattern, s)]
+
+        return res
+
+    models: List[ModelInfo] = Field(
+        default_factory=lambda: [
+            ModelInfo(name=model[1], provider=model[0], status=ModelStatus.AVAILABLE)
+            for model in LLMSettings.extract_provider_model_list(
+                os.environ.get("LLM_MODELS", "") if os.environ.get("LLM_MODELS") else "[(ollama, llama3.2), (openai, gpt-4.1-nano)]"
+            )
+        ],
+        description="List of LLMs the user can choose from.",
         json_schema_extra={"access_level": SettingAccessLevel.NORMAL},
     )
-    openai_api_key: str = Field(
-        default_factory=lambda: os.environ.get("CHATGPT_API_KEY", ""),
-        description="API key for OpenAI services.",
-        json_schema_extra={"access_level": SettingAccessLevel.PROTECTED},
-    )
 
-    def get_active_provider(self) -> str:
-        """Return the currently active LLM provider."""
-        return self.provider.lower()
-
-    def get_active_model(self) -> str:
-        """Return the currently active model name based on provider."""
-        provider = self.get_active_provider()
-        if provider == "ollama":
-            return self.ollama_model
-        elif provider == "openai":
-            return self.openai_model
-        else:
-            return self.ollama_model  # fallback
-
-    def get_active_api_url(self) -> str:
-        """Return the currently active API URL based on provider."""
-        provider = self.get_active_provider()
-        if provider == "ollama":
-            return self.ollama_api_url
-        elif provider == "openai":
-            return self.openai_api_url
-        else:
-            return self.ollama_api_url  # fallback
-
-    def get_active_api_key(self) -> Optional[str]:
-        """Return the currently active API key based on provider."""
-        provider = self.get_active_provider()
-        if provider == "openai":
-            return self.openai_api_key
-        else:
-            return None  # Ollama doesn't need API key
+    @property
+    def provider_name(self) -> str:
+        """Return the current LLM provider."""
+        return self.provider_enum.value
+    
+    @property
+    def provider_names(self) -> List[str]:
+        """Return a list of all available LLM providers."""
+        return [provider.value for provider in ELLMProvider]
+    
+    @property
+    def provider_enums(self) -> List[ELLMProvider]:
+        """Return a list of all available LLM provider enums."""
+        return List(ELLMProvider)
+    
+    @staticmethod
+    def to_provider_enum(provider_name: str) -> ELLMProvider:
+        """Convert the provider name to its corresponding enum."""
+        return ELLMProvider(provider_name)
 
     class Config:
         extra = "forbid"

@@ -15,14 +15,15 @@ from hatchling.config.settings import AppSettings
 class ModelManager:
     """Manages model availability and downloading."""
 
-    def __init__(self, settings: AppSettings, debug_log: SessionDebugLog = None):
+    def __init__(self, settings: AppSettings = None, debug_log: SessionDebugLog = None):
         """Initialize the model manager.
 
         Args:
-            settings (AppSettings): Settings for chat configuration.
+            settings (AppSettings, optional): Settings for chat configuration.
+                                            If None, uses the singleton instance.
             debug_log (SessionDebugLog, optional): Logger for debugging messages. Defaults to None.
         """
-        self.settings = settings
+        self.settings = settings or AppSettings.get_instance()
         self.logger = debug_log
 
     async def check_availability(self, session: aiohttp.ClientSession, model_name: str) -> bool:

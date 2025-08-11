@@ -57,7 +57,7 @@ WORKDIR ${HATCHLING_SOURCE_DIR}
 RUN chmod +x ./docker/entrypoint.sh
 
 # Install the package
-RUN pip install .
+RUN pip install -e .
 
 # Use the entrypoint script (runs as root initially to handle permissions)
 ENTRYPOINT ["./docker/entrypoint.sh"]
