@@ -148,9 +148,6 @@ class ErrorHandlerSubscriber(StreamSubscriber):
             message = error_data.get("message", "Unknown error")
             error_type = error_data.get("type", "Unknown")
             print(f"\n\nStreaming Error ({error_type}): {message}")
-        elif event.type == StreamEventType.REFUSAL:
-            refusal = event.data.get("refusal", "")
-            print(f"\n\nModel refused: {refusal}")
     
     def get_subscribed_events(self) -> List[StreamEventType]:
         """Return subscribed event types.
@@ -158,4 +155,4 @@ class ErrorHandlerSubscriber(StreamSubscriber):
         Returns:
             List[StreamEventType]: Event types to subscribe to.
         """
-        return [StreamEventType.ERROR, StreamEventType.REFUSAL]
+        return [StreamEventType.ERROR]
