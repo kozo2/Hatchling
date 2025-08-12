@@ -13,6 +13,8 @@ from unittest.mock import MagicMock
 # Add the parent directory to the path for imports
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
+from tests.test_decorators import regression_test
+
 from hatchling.mcp_utils.manager import MCPManager
 from hatchling.core.llm.streaming_management import StreamEventType
 
@@ -38,6 +40,7 @@ class TestToolManagementRegression(unittest.TestCase):
         self.manager._managed_tools = {}
         self.manager.connected = False
     
+    @regression_test
     def test_get_tools_by_name_still_works_with_new_tools_structure(self):
         """Test that tool listing still works with enhanced tools tracking."""
         # Mock some clients with tools
@@ -70,6 +73,7 @@ class TestToolManagementRegression(unittest.TestCase):
         self.assertIsInstance(tools, list)
         self.assertEqual(len(tools), 0)  # Managed tools are empty
     
+    @regression_test
     def test_tool_client_mapping_still_works_with_enhanced_tracking(self):
         """Test that tool-to-client mapping still works."""
         # Mock client and tool mapping
@@ -82,6 +86,7 @@ class TestToolManagementRegression(unittest.TestCase):
         self.assertIn("test_tool", self.manager._tool_client_map)
         self.assertIs(self.manager._tool_client_map["test_tool"], mock_client)
     
+    @regression_test
     def test_new_tool_management_methods_dont_break_existing_functionality(self):
         """Test that new tool management methods don't interfere with existing ones."""
         # Test that core async methods still exist
@@ -105,6 +110,7 @@ class TestToolManagementRegression(unittest.TestCase):
             self.assertTrue(hasattr(self.manager, method_name),
                           f"New method {method_name} is missing")
     
+    @regression_test
     def test_enhanced_tool_tracking_integration_still_works(self):
         """Test that enhanced tool tracking integration still works."""
         # Should have _managed_tools property for internal tool tracking
@@ -123,6 +129,7 @@ class TestToolManagementRegression(unittest.TestCase):
         all_tools = self.manager.get_all_managed_tools()
         self.assertIsInstance(all_tools, dict)
     
+    @regression_test
     def test_existing_async_tool_operations_still_work(self):
         """Test that existing async tool operations still work."""
         # Should have async methods for tool operations
@@ -134,6 +141,7 @@ class TestToolManagementRegression(unittest.TestCase):
             self.assertTrue(hasattr(self.manager, method_name),
                           f"Async method {method_name} is missing")
     
+    @regression_test
     def test_managed_tools_structure_is_properly_initialized(self):
         """Test that managed tools structure is properly initialized."""
         # Should have managed tools attribute
@@ -143,6 +151,7 @@ class TestToolManagementRegression(unittest.TestCase):
         # Should start empty
         self.assertEqual(len(self.manager._managed_tools), 0)
     
+    @regression_test
     def test_publisher_integration_doesnt_break_existing_functionality(self):
         """Test that publisher integration doesn't break existing functionality."""
         # Should have publisher
@@ -159,6 +168,7 @@ class TestToolManagementRegression(unittest.TestCase):
         # Should still have connection lock
         self.assertTrue(hasattr(self.manager, '_connection_lock'))
     
+    @regression_test
     def test_event_publishing_methods_exist_but_dont_interfere(self):
         """Test that event publishing methods exist but don't interfere with core functionality."""
         # Should have event publishing methods
@@ -179,6 +189,7 @@ class TestToolManagementRegression(unittest.TestCase):
         except Exception as e:
             self.fail(f"Event publishing methods should not raise exceptions: {e}")
     
+    @regression_test
     def test_connection_and_disconnection_enhanced_but_compatible(self):
         """Test that enhanced connection/disconnection is backward compatible."""
         # Should still have the core async methods
@@ -191,6 +202,7 @@ class TestToolManagementRegression(unittest.TestCase):
             self.assertTrue(hasattr(self.manager, method_name),
                           f"Async connection method {method_name} is missing")
     
+    @regression_test
     def test_session_tracking_still_works_with_enhanced_tools(self):
         """Test that session tracking still works with enhanced tool management."""
         # Should still have session tracking

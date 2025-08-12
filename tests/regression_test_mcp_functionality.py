@@ -14,6 +14,8 @@ from unittest.mock import MagicMock
 # Add the parent directory to the path for imports
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
+from tests.test_decorators import regression_test
+
 from hatchling.mcp_utils.manager import MCPManager
 
 
@@ -37,6 +39,7 @@ class TestMCPManagerRegressionTests(unittest.TestCase):
         self.manager._tool_client_map = {}
         self.manager._managed_tools = {}
     
+    @regression_test
     def test_singleton_pattern_still_works(self):
         """Test that MCPManager singleton pattern still works."""
         # Create another instance
@@ -45,6 +48,7 @@ class TestMCPManagerRegressionTests(unittest.TestCase):
         # Should be the same instance
         self.assertIs(self.manager, manager2)
     
+    @regression_test
     def test_validate_server_paths_still_works(self):
         """Test that server path validation still works."""
         # This method should still exist and work
@@ -60,6 +64,7 @@ class TestMCPManagerRegressionTests(unittest.TestCase):
         # Should return empty list for nonexistent path
         self.assertEqual(len(result), 0)
     
+    @regression_test
     def test_get_tools_by_name_still_works(self):
         """Test that get_tools_by_name method still works."""
         # Mock some clients with tools
@@ -82,6 +87,7 @@ class TestMCPManagerRegressionTests(unittest.TestCase):
         # When we mock clients but the managed tools are empty, should return empty list
         self.assertEqual(len(tools), 0)
     
+    @regression_test
     def test_connection_tracking_still_works(self):
         """Test that connection state tracking still works."""
         # Initially not connected (using the is_connected property)
@@ -96,6 +102,7 @@ class TestMCPManagerRegressionTests(unittest.TestCase):
         self.manager.mcp_clients.clear()
         self.assertFalse(self.manager.is_connected)
     
+    @regression_test
     def test_tool_client_mapping_still_works(self):
         """Test that tool to client mapping still works."""
         # Mock client and tool mapping
@@ -108,6 +115,7 @@ class TestMCPManagerRegressionTests(unittest.TestCase):
         self.assertIn("test_tool", self.manager._tool_client_map)
         self.assertIs(self.manager._tool_client_map["test_tool"], mock_client)
     
+    @regression_test
     def test_settings_registry_integration_still_works(self):
         """Test that settings registry integration still works."""
         # The manager now has settings attribute directly
@@ -116,6 +124,7 @@ class TestMCPManagerRegressionTests(unittest.TestCase):
         # Settings should be accessible
         self.assertIsNotNone(self.manager.settings)
     
+    @regression_test
     def test_hatch_environment_manager_integration_still_works(self):
         """Test that Hatch environment manager integration still works."""
         # Should have environment manager attribute (renamed from _hatch_env_manager)
@@ -124,6 +133,7 @@ class TestMCPManagerRegressionTests(unittest.TestCase):
         # Environment manager should be accessible
         self.assertIsNotNone(self.manager.hatch_env_manager)
     
+    @regression_test
     def test_server_process_tracking_still_works(self):
         """Test that server process tracking still works."""
         # Should have server_processes dict
@@ -133,6 +143,7 @@ class TestMCPManagerRegressionTests(unittest.TestCase):
         # Should start empty
         self.assertEqual(len(self.manager.server_processes), 0)
     
+    @regression_test
     def test_session_tracking_still_works(self):
         """Test that session tracking still works."""
         # Should have session tracking attributes and methods
@@ -146,6 +157,7 @@ class TestMCPManagerRegressionTests(unittest.TestCase):
         self.manager.reset_session_tracking()
         self.assertEqual(len(self.manager._used_servers_in_session), 0)
     
+    @regression_test
     def test_tool_management_integration_still_works(self):
         """Test that tool management integration still works."""
         # Should have _managed_tools property for internal tool tracking
@@ -164,6 +176,7 @@ class TestMCPManagerRegressionTests(unittest.TestCase):
         all_tools = self.manager.get_all_managed_tools()
         self.assertIsInstance(all_tools, dict)
     
+    @regression_test
     def test_async_methods_still_exist(self):
         """Test that async methods still exist."""
         # Critical async methods should still exist
@@ -178,6 +191,7 @@ class TestMCPManagerRegressionTests(unittest.TestCase):
             self.assertTrue(hasattr(self.manager, method_name),
                           f"Missing async method: {method_name}")
     
+    @regression_test
     def test_python_executable_resolution_still_works(self):
         """Test that Python executable resolution still works."""
         # Should have the private method

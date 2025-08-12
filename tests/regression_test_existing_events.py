@@ -14,6 +14,8 @@ from typing import Dict, Any
 # Add the parent directory to the path for imports
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
+from tests.test_decorators import regression_test
+
 from hatchling.core.llm.streaming_management import (
     StreamEventType,
     StreamEvent,
@@ -22,7 +24,6 @@ from hatchling.core.llm.streaming_management import (
     UsageStatsSubscriber,
     ErrorHandlerSubscriber
 )
-
 
 class TestExistingEventHandling(unittest.TestCase):
     """Test suite for existing event handling functionality."""
@@ -35,6 +36,7 @@ class TestExistingEventHandling(unittest.TestCase):
         """Clean up after each test method."""
         self.publisher.clear_subscribers()
     
+    @regression_test
     def test_existing_event_types_still_available(self):
         """Test that all core event types are still available."""
         # Core event types that should exist in the current system
@@ -51,6 +53,7 @@ class TestExistingEventHandling(unittest.TestCase):
             event = getattr(StreamEventType, event_name)
             self.assertIsInstance(event, StreamEventType)
     
+    @regression_test
     def test_stream_event_creation_still_works(self):
         """Test that StreamEvent creation still works with original events."""
         # Test creating various types of events
@@ -75,6 +78,7 @@ class TestExistingEventHandling(unittest.TestCase):
         self.assertEqual(role_event.type, StreamEventType.ROLE)
         self.assertEqual(role_event.data["role"], "assistant")
     
+    @regression_test
     def test_content_printer_subscriber_still_works(self):
         """Test that ContentPrinterSubscriber still works correctly."""
         subscriber = ContentPrinterSubscriber()
@@ -99,6 +103,7 @@ class TestExistingEventHandling(unittest.TestCase):
         except Exception as e:
             self.fail(f"ContentPrinterSubscriber failed to handle events: {e}")
     
+    @regression_test
     def test_usage_stats_subscriber_still_works(self):
         """Test that UsageStatsSubscriber still works correctly."""
         subscriber = UsageStatsSubscriber()
@@ -135,6 +140,7 @@ class TestExistingEventHandling(unittest.TestCase):
         except Exception as e:
             self.fail(f"UsageStatsSubscriber failed to handle events: {e}")
     
+    @regression_test
     def test_error_handler_subscriber_still_works(self):
         """Test that ErrorHandlerSubscriber still works correctly."""
         subscriber = ErrorHandlerSubscriber()
@@ -164,6 +170,7 @@ class TestExistingEventHandling(unittest.TestCase):
         except Exception as e:
             self.fail(f"ErrorHandlerSubscriber failed to handle events: {e}")
     
+    @regression_test
     def test_publisher_subscription_system_still_works(self):
         """Test that the publisher subscription system still works."""
         content_subscriber = ContentPrinterSubscriber()

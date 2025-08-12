@@ -27,7 +27,7 @@ def requires_api_key(func):
         def test_openai_integration(self):
             pass
     """
-    func._requires_api = True
+    func._requires_api_key = True
     return func
 
 

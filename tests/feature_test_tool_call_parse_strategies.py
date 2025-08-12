@@ -8,6 +8,8 @@ import unittest
 import time
 import logging
 
+from tests.test_decorators import feature_test
+
 from hatchling.core.llm.streaming_management import StreamEvent, StreamEventType
 from hatchling.core.llm.tool_management import ToolCallParseRegistry
 from hatchling.config.llm_settings import ELLMProvider
@@ -15,6 +17,7 @@ from hatchling.config.llm_settings import ELLMProvider
 class TestToolCallParseStrategiesRegistry(unittest.TestCase):
     """Test suite for tool call parsing strategies using the registry."""
 
+    @feature_test
     def test_ollama_parse_strategy(self):
 
         ollama_event = StreamEvent(
@@ -42,6 +45,7 @@ class TestToolCallParseStrategiesRegistry(unittest.TestCase):
         self.assertEqual(result["arguments"]["city"], "New York")
         self.assertEqual(result["arguments"]["unit"], "celsius")
 
+    @feature_test
     def test_ollama_parse_strategy_with_string_args(self):
 
         ollama_event = StreamEvent(
@@ -69,6 +73,7 @@ class TestToolCallParseStrategiesRegistry(unittest.TestCase):
         self.assertEqual(result["arguments"]["city"], "New York")
         self.assertEqual(result["arguments"]["unit"], "celsius")
 
+    @feature_test
     def test_openai_parse_strategy_first_chunk(self):
 
         openai_event = StreamEvent(
@@ -93,6 +98,7 @@ class TestToolCallParseStrategiesRegistry(unittest.TestCase):
         self.assertIsInstance(result["arguments"], dict)
         self.assertTrue("_partial" in result["arguments"])
 
+    @feature_test
     def test_openai_parse_strategy_continuation(self):
 
         strategy = ToolCallParseRegistry.get_strategy(ELLMProvider.OPENAI)
@@ -133,6 +139,7 @@ class TestToolCallParseStrategiesRegistry(unittest.TestCase):
         self.assertEqual(result["arguments"]["city"], "New York")
         self.assertEqual(result["arguments"]["unit"], "celsius")
 
+    @feature_test
     def test_deprecated_function_call_format(self):
 
         deprecated_event = StreamEvent(

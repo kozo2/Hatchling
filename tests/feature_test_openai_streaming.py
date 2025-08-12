@@ -16,6 +16,8 @@ from openai.types.completion_usage import CompletionTokensDetails, PromptTokensD
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..'))
 
+from tests.test_decorators import feature_test
+
 from hatchling.core.llm.providers.openai_provider import OpenAIProvider
 from hatchling.core.llm.streaming_management import (
     StreamPublisher,
@@ -163,6 +165,7 @@ class TestOpenAIChunkParsing(unittest.TestCase):
         self.provider.publisher.clear_subscribers()
         self.provider = None
     
+    @feature_test
     def test_chunk_parsing_with_subscribers(self):
         """Test the publish-subscribe chunk parsing functionality."""
         # Set up subscribers
@@ -186,6 +189,7 @@ class TestOpenAIChunkParsing(unittest.TestCase):
         print("\n" + "=" * 50)
         print("Test completed successfully!")
     
+    @feature_test
     def test_chunk_parsing_error_handling(self):
         """Test error handling in chunk parsing."""
         error_handler = ErrorHandlerSubscriber()

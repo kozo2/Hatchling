@@ -19,6 +19,9 @@ from contextlib import redirect_stdout
 # Add the parent directory to the path for imports
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
+# Import test decorators
+from tests.test_decorators import integration_test
+
 from hatchling.core.chat.mcp_commands import MCPCommands
 from hatchling.core.chat.model_commands import ModelCommands
 from hatchling.core.chat.chat_command_handler import ChatCommandHandler
@@ -91,6 +94,7 @@ class TestCommandSystemIntegration(AsyncTestCase):
         self.logger = logging.getLogger("test_command_system")
         self.logger.setLevel(logging.DEBUG)
     
+    @integration_test
     def test_command_handler_initialization(self):
         """Test that command handler initializes correctly."""
         # Verify command handler has both command types
@@ -117,6 +121,7 @@ class TestCommandSystemIntegration(AsyncTestCase):
         for cmd_name in model_commands.keys():
             self.assertIn(':', cmd_name, f"Command {cmd_name} should use colon separator")
     
+    @integration_test
     def test_mcp_command_structure(self):
         """Test MCP command structure and validation."""
         mcp_commands = self.cmd_handler.mcp_commands.commands
@@ -147,6 +152,7 @@ class TestCommandSystemIntegration(AsyncTestCase):
             self.assertIn('is_async', cmd_info, f"Command {cmd_name} should specify async flag")
             self.assertIn('args', cmd_info, f"Command {cmd_name} should have args definition")
     
+    @integration_test
     def test_model_command_structure(self):
         """Test Model command structure and validation."""
         model_commands = self.cmd_handler.model_commands.commands
@@ -167,6 +173,7 @@ class TestCommandSystemIntegration(AsyncTestCase):
             self.assertIn('is_async', cmd_info, f"Command {cmd_name} should specify async flag")
             self.assertIn('args', cmd_info, f"Command {cmd_name} should have args definition")
     
+    @integration_test
     def test_command_recognition(self):
         """Test command recognition and parsing."""
         # Test valid command recognition through process_command
@@ -191,6 +198,7 @@ class TestCommandSystemIntegration(AsyncTestCase):
         
         self.run_async(async_test())
     
+    @integration_test
     def test_command_argument_parsing(self):
         """Test command argument parsing and validation."""
         # Test simple command without arguments
@@ -208,6 +216,7 @@ class TestCommandSystemIntegration(AsyncTestCase):
         args = self.cmd_handler.model_commands._parse_args("--provider-name openai", arg_defs)
         self.assertEqual(args, {"provider-name": "openai"})
     
+    @integration_test
     def test_mcp_server_list_command(self):
         """Test MCP server list command execution."""
         async def async_test():
@@ -233,6 +242,7 @@ class TestCommandSystemIntegration(AsyncTestCase):
         
         self.run_async(async_test())
     
+    @integration_test
     def test_model_provider_list_command(self):
         """Test Model provider list command execution."""
         async def async_test():
@@ -261,6 +271,7 @@ class TestCommandSystemIntegration(AsyncTestCase):
         
         self.run_async(async_test())
     
+    @integration_test
     def test_command_error_handling(self):
         """Test command error handling."""
         async def async_test():
@@ -277,6 +288,7 @@ class TestCommandSystemIntegration(AsyncTestCase):
         
         self.run_async(async_test())
     
+    @integration_test
     def test_command_help_system(self):
         """Test command help and discovery system."""
         # Test general help
@@ -296,6 +308,7 @@ class TestCommandSystemIntegration(AsyncTestCase):
         self.assertIn('help', help_text)
         self.assertIn('quit', help_text)
     
+    @integration_test
     def test_invalid_command_handling(self):
         """Test handling of invalid commands."""
         async def async_test():
@@ -331,6 +344,7 @@ class TestCommandArgumentValidation(AsyncTestCase):
             self.command_style
         )
     
+    @integration_test
     def test_required_argument_validation(self):
         """Test validation of required arguments."""
         # Test missing required argument
@@ -350,6 +364,7 @@ class TestCommandArgumentValidation(AsyncTestCase):
             
             self.run_async(async_test())
     
+    @integration_test
     def test_optional_argument_handling(self):
         """Test handling of optional arguments."""
         with patch('hatchling.core.llm.model_manager_api.ModelManagerAPI.list_available_models') as mock_api:
