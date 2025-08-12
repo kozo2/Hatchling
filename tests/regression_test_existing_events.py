@@ -149,7 +149,6 @@ class TestExistingEventHandling(unittest.TestCase):
         # Test subscribed events
         subscribed_events = subscriber.get_subscribed_events()
         self.assertIn(StreamEventType.ERROR, subscribed_events)
-        # REFUSAL is not available in current implementation
         
         # Test event handling (should not raise exceptions)
         try:
@@ -164,8 +163,6 @@ class TestExistingEventHandling(unittest.TestCase):
                 provider="test_provider"
             )
             subscriber.on_event(error_event)
-            
-            # REFUSAL event type is not available in current implementation
             
         except Exception as e:
             self.fail(f"ErrorHandlerSubscriber failed to handle events: {e}")

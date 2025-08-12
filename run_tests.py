@@ -2,7 +2,7 @@
 """Test runner for Hatchling test suite.
 
 This script provides a centralized way to run different types of tests:
-- Development tests: Deprecated (functionality moved to feature/regression tests)
+- Development tests: Temporary tests for in-progress features; used to drive development
 - Regression tests: Permanent tests to ensure existing functionality isn't broken
 - Feature tests: Permanent tests for new functionality
 - Integration tests: Tests that validate component interactions
@@ -176,19 +176,11 @@ def determine_type_from_args(args):
 def run_development_tests(phase=None):
     """Run development tests for specific phases.
     
-    Note: Development tests are now deprecated. Most functionality has been
-    moved to feature tests and regression tests. This function is kept for
-    backward compatibility but logs a deprecation warning.
-    
     Args:
         phase (int, optional): Specific phase to test. If None, runs all phases.
     """
-    logger.warning("Development tests are deprecated. Most functionality has been moved to feature tests.")
-    logger.info("Running development tests...")
-    
-    # No development tests remain - they have been converted to feature tests
-    # or removed as obsolete
-    logger.info("No development tests to run - functionality moved to feature and regression tests")
+    logger.warning("No development tests currently. Use this section for tests helping drive development.")
+
     return True
 
 
@@ -251,21 +243,20 @@ def run_regression_tests():
         logger.error(f"Enhanced Tool Execution regression tests failed: {e}")
         success = False
     
-    # Test persistent settings (commented out as these may not exist yet)
-    # try:
-    #     from tests.regression_test_persistent_settings import run_regression_tests as run_persistent_settings_regression_tests
-    #     if not run_persistent_settings_regression_tests():
-    #         return False
-    #     
-    #     from tests.regression_test_versioning import run_regression_tests as run_versioning_regression_tests
-    #     if not run_versioning_regression_tests():
-    #         return False
-    # except ImportError as e:
-    #     logger.error(f"Could not import persistent settings regression tests: {e}")
-    #     return False
-    # except Exception as e:
-    #     logger.error(f"Regression tests failed: {e}")
-    #     return False
+    try:
+        from tests.regression_test_persistent_settings import run_regression_tests as run_persistent_settings_regression_tests
+        if not run_persistent_settings_regression_tests():
+            return False
+        
+        from tests.regression_test_versioning import run_regression_tests as run_versioning_regression_tests
+        if not run_versioning_regression_tests():
+            return False
+    except ImportError as e:
+        logger.error(f"Could not import persistent settings regression tests: {e}")
+        return False
+    except Exception as e:
+        logger.error(f"Regression tests failed: {e}")
+        return False
 
     return success
 
