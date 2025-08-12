@@ -14,6 +14,10 @@ from unittest import mock
 script_dir = Path(__file__).parent.parent / "scripts"
 sys.path.insert(0, str(script_dir))
 
+# Import test decorators
+sys.path.insert(0, str(Path(__file__).parent.parent))
+from tests.test_decorators import regression_test
+
 from version_manager import VersionManager
 
 class TestVersionManager(unittest.TestCase):
@@ -46,11 +50,13 @@ class TestVersionManager(unittest.TestCase):
         self.mock_path_exists = self.patcher_path_exists.start()
         self.addCleanup(self.patcher_path_exists.stop)
 
+    @regression_test
     def test_get_version_string(self):
         vm = VersionManager()
         version = vm.get_version_string(self.version_data)
         self.assertEqual(version, 'v1.2.0')
 
+    @regression_test
     def test_feature_branch_creation_from_main(self):
         vm = VersionManager()
         self.mock_read.return_value = {
@@ -60,6 +66,7 @@ class TestVersionManager(unittest.TestCase):
         feat_version = vm.update_version_for_branch('feat/test-feature')
         self.assertEqual(feat_version, 'v1.3.0.dev0+build0')
 
+    @regression_test
     def test_feature_branch_update_build_increment(self):
         vm = VersionManager()
         self.mock_read.return_value = {
@@ -69,6 +76,7 @@ class TestVersionManager(unittest.TestCase):
         feat_version2 = vm.update_version_for_branch('feat/test-feature')
         self.assertEqual(feat_version2, 'v1.3.0.dev0+build1')
 
+    @regression_test
     def test_fix_branch_creation_from_main(self):
         vm = VersionManager()
         self.mock_read.return_value = {
@@ -78,6 +86,7 @@ class TestVersionManager(unittest.TestCase):
         fix_version = vm.update_version_for_branch('fix/test-fix')
         self.assertEqual(fix_version, 'v1.2.1.dev0+build0')
 
+    @regression_test
     def test_fix_branch_update_build_increment(self):
         vm = VersionManager()
         self.mock_read.return_value = {
@@ -87,6 +96,7 @@ class TestVersionManager(unittest.TestCase):
         fix_version2 = vm.update_version_for_branch('fix/test-fix')
         self.assertEqual(fix_version2, 'v1.2.1.dev0+build1')
 
+    @regression_test
     def test_switching_between_fix_branches_patch_increment(self):
         vm = VersionManager()
         self.mock_read.return_value = {
@@ -95,7 +105,8 @@ class TestVersionManager(unittest.TestCase):
         }
         fix_version3 = vm.update_version_for_branch('fix/another-fix')
         self.assertTrue(fix_version3.startswith('v1.2.2'))
-
+    
+    @regression_test
     def test_dev_branch_from_main(self):
         vm = VersionManager()
         self.mock_read.return_value = {
@@ -104,7 +115,8 @@ class TestVersionManager(unittest.TestCase):
         }
         dev_version = vm.update_version_for_branch('dev')
         self.assertEqual(dev_version, 'v1.3.0.dev0')
-
+    
+    @regression_test
     def test_dev_branch_from_feature_increment_dev_number(self):
         vm = VersionManager()
         self.mock_read.return_value = {
@@ -113,7 +125,8 @@ class TestVersionManager(unittest.TestCase):
         }
         dev_version2 = vm.update_version_for_branch('dev')
         self.assertEqual(dev_version2, 'v1.3.0.dev1')
-
+    
+    @regression_test
     def test_main_branch_clears_dev_build(self):
         vm = VersionManager()
         self.mock_read.return_value = {

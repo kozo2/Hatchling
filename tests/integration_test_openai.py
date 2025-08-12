@@ -182,6 +182,7 @@ class TestOpenAIProviderIntegration(unittest.TestCase):
             finally:
                 self.loop.close()
 
+    @integration_test
     def test_provider_registration(self):
         """Test that OpenAIProvider is properly registered in the provider registry.
         
@@ -254,6 +255,7 @@ class TestOpenAIProviderIntegration(unittest.TestCase):
         except Exception as e:
             self.fail(f"Health check test failed: {e}")
 
+    @integration_test
     def test_payload_preparation(self):
         """Test chat payload preparation for API requests.
         
@@ -280,7 +282,6 @@ class TestOpenAIProviderIntegration(unittest.TestCase):
         self.assertEqual(payload["max_completion_tokens"], 100, "Max tokens should be set correctly")
         self.assertIn("stream_options", payload, "Stream options should be included for streaming")
 
-    @slow_test
     async def async_test_tools_payload_integration(self):
         """Test adding tools to payload and MCP tool lifecycle integration.
         
@@ -385,7 +386,6 @@ class TestOpenAIProviderIntegration(unittest.TestCase):
         except Exception as e:
             self.fail(f"Tools payload integration test failed: {e}")
 
-    @slow_test
     async def async_test_simple_chat_integration(self):
         """Test a simple chat interaction with OpenAI using publish-subscribe pattern.
         
@@ -473,6 +473,7 @@ class TestOpenAIProviderIntegration(unittest.TestCase):
             self.assertEqual(features[feature], expected_value,
                            f"Feature '{feature}' should have value {expected_value}")
 
+    @integration_test
     def test_api_key_validation(self):
         """Test that provider validates API key requirement.
 

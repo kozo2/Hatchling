@@ -15,6 +15,8 @@ from unittest.mock import MagicMock, patch
 # Add the parent directory to the path for imports
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
+from tests.test_decorators import regression_test
+
 from hatchling.mcp_utils.mcp_tool_execution import MCPToolExecution
 
 
@@ -42,6 +44,7 @@ class TestToolExecutionRegression(unittest.TestCase):
             mock_logging.get_session.return_value = logging.getLogger("test")
             self.tool_execution = MCPToolExecution(self.mock_settings)
     
+    @regression_test
     def test_tool_execution_manager_renamed_to_mcp_tool_execution(self):
         """Test that the renamed class still provides the same interface."""
         # Verify the class exists and has expected attributes
@@ -52,6 +55,7 @@ class TestToolExecutionRegression(unittest.TestCase):
         self.assertTrue(hasattr(self.tool_execution, 'root_tool_query'))
         self.assertTrue(hasattr(self.tool_execution, 'stream_publisher'))
     
+    @regression_test
     def test_mcp_manager_integration_still_works(self):
         """Test that MCP manager integration still works as expected."""
         # MCPToolExecution should still integrate with mcp_manager for tool execution
@@ -62,6 +66,7 @@ class TestToolExecutionRegression(unittest.TestCase):
         method = getattr(self.tool_execution, 'execute_tool')
         self.assertTrue(asyncio.iscoroutinefunction(method))
     
+    @regression_test
     def test_tool_execution_workflow_still_works(self):
         """Test that tool execution workflow still works."""
         # Should have the core tool execution methods
@@ -76,6 +81,7 @@ class TestToolExecutionRegression(unittest.TestCase):
         self.assertTrue(hasattr(self.tool_execution, 'handle_tool_calling_chain'))
         self.assertTrue(asyncio.iscoroutinefunction(self.tool_execution.handle_tool_calling_chain))
     
+    @regression_test
     def test_reset_for_new_query_method_still_works(self):
         """Test that reset_for_new_query method still works."""
         self.assertTrue(hasattr(self.tool_execution, 'reset_for_new_query'))
@@ -92,6 +98,7 @@ class TestToolExecutionRegression(unittest.TestCase):
         self.assertEqual(self.tool_execution.root_tool_query, test_query)
         self.assertIsNotNone(self.tool_execution.tool_call_start_time)
     
+    @regression_test
     def test_execute_tool_method_still_exists_and_async(self):
         """Test that execute_tool method still exists and is async."""
         self.assertTrue(hasattr(self.tool_execution, 'execute_tool'))
@@ -124,6 +131,7 @@ class TestToolExecutionRegression(unittest.TestCase):
             self.assertEqual(result["tool_call_id"], "regression_test_123")
             self.assertEqual(result["name"], "regression_test_function")
     
+    @regression_test
     def test_execute_tool_sync_method_still_exists(self):
         """Test that execute_tool_sync method exists and is synchronous."""
         self.assertTrue(hasattr(self.tool_execution, 'execute_tool_sync'))
@@ -157,6 +165,7 @@ class TestToolExecutionRegression(unittest.TestCase):
                 arguments={"param1": "value1", "param2": 42}
             )
     
+    @regression_test
     def test_stream_publisher_integration_still_works(self):
         """Test that stream publisher integration still works."""
         # The new interface should have stream_publisher property
@@ -170,6 +179,7 @@ class TestToolExecutionRegression(unittest.TestCase):
         self.assertTrue(hasattr(publisher, 'publish'))
         self.assertTrue(hasattr(publisher, 'subscribe'))
     
+    @regression_test
     def test_handle_tool_calling_chain_method_still_exists_and_async(self):
         """Test that handle_tool_calling_chain method still exists and is async."""
         self.assertTrue(hasattr(self.tool_execution, 'handle_tool_calling_chain'))
@@ -177,6 +187,7 @@ class TestToolExecutionRegression(unittest.TestCase):
         self.assertTrue(callable(method))
         self.assertTrue(asyncio.iscoroutinefunction(method))
     
+    @regression_test
     def test_tool_calling_iteration_tracking_still_works(self):
         """Test that tool calling iteration tracking still works."""
         # Test initial state
@@ -188,6 +199,7 @@ class TestToolExecutionRegression(unittest.TestCase):
         
         self.assertEqual(self.tool_execution.current_tool_call_iteration, original_iteration + 1)
     
+    @regression_test
     def test_event_publishing_capabilities_still_work(self):
         """Test that event publishing capabilities still work."""
         # Should have internal event publishing method
@@ -203,6 +215,7 @@ class TestToolExecutionRegression(unittest.TestCase):
         except Exception as e:
             self.fail(f"Event publishing should not raise exception: {e}")
     
+    @regression_test
     def test_settings_integration_still_works(self):
         """Test that settings integration still works."""
         # Verify settings are stored and accessible
@@ -216,6 +229,7 @@ class TestToolExecutionRegression(unittest.TestCase):
         model = self.tool_execution.settings.llm.get_active_model()
         self.assertEqual(model, "gpt-4")  # From our mock
     
+    @regression_test
     def test_new_stream_publisher_doesnt_break_existing_functionality(self):
         """Test that the new StreamPublisher doesn't interfere with existing functionality."""
         # Verify the stream publisher exists (new functionality)

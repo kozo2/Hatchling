@@ -7,6 +7,8 @@ import sys
 import logging
 import unittest
 
+from tests.test_decorators import feature_test
+
 from hatchling.core.llm.providers.registry import ProviderRegistry
 from hatchling.core.llm.streaming_management import (
     StreamPublisher,
@@ -94,7 +96,7 @@ class TestOllamaChunkParsing(unittest.TestCase):
         self.provider.publisher.clear_subscribers()
         self.provider = None
     
-
+    @feature_test
     def test_ollama_chunk_parsing_with_subscribers(self):
         """Test Ollama chunk parsing with publish-subscribe pattern."""
         # Create test subscribers
@@ -118,7 +120,8 @@ class TestOllamaChunkParsing(unittest.TestCase):
         
         print("\n" + "=" * 50)
         print("Test completed successfully!")
-    
+
+    @feature_test 
     def test_ollama_chunk_parsing_error_handling(self):
         """Test error handling in Ollama chunk parsing."""
         error_handler = ErrorHandlerSubscriber()

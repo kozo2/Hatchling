@@ -14,7 +14,9 @@ import sys
 import logging
 import unittest
 import time
-from unittest.mock import MagicMock, AsyncMock
+from unittest.mock import MagicMock
+
+from tests.test_decorators import feature_test
 
 from hatchling.core.llm.streaming_management import StreamEvent, StreamEventType
 
@@ -33,6 +35,7 @@ class TestMCPToolCallSubscriberRegistry(unittest.TestCase):
         self.mock_tool_execution.stream_publisher.publish = MagicMock()
         self.mock_tool_execution.execute_tool_sync = MagicMock()
 
+    @feature_test
     def test_on_event_ollama(self):
         # Create a mock Ollama tool call event
         ollama_event = StreamEvent(
@@ -72,6 +75,7 @@ class TestMCPToolCallSubscriberRegistry(unittest.TestCase):
             arguments={"city": "New York", "unit": "celsius"}
         )
 
+    @feature_test
     def test_on_event_openai(self):
         # Create a mock OpenAI tool call event (first chunk)
         first_event = StreamEvent(

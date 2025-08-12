@@ -10,6 +10,8 @@ import tempfile
 from pathlib import Path
 import unittest
 
+from tests.test_decorators import regression_test
+
 from hatchling.config.settings import AppSettings
 from hatchling.config.settings_registry import SettingsRegistry
 
@@ -29,6 +31,7 @@ class TestPersistentSettingsRegression(unittest.TestCase):
         os.environ.clear()
         os.environ.update(self._original_env)
 
+    @regression_test
     def test_persistent_settings_save_and_load(self):
         """Test that settings are saved and loaded persistently across sessions."""
         os.environ['HATCHLING_SETTINGS_DIR'] = str(Path(self.temp_dir.name) / "settings")
@@ -44,6 +47,7 @@ class TestPersistentSettingsRegression(unittest.TestCase):
         self.assertTrue(registry.load_persistent_settings(), "Should load settings from file after save")
         self.assertEqual(registry.get_setting('llm', 'ollama_api_url')['current_value'], 'regression-test-model', "Model should persist after reload")
 
+    @regression_test
     def test_cache_and_settings_dir_env_vars(self):
         """Test that cache and settings directories are settable via environment variables and are read-only after init."""
         cache_dir = Path(self.temp_dir.name) / "mycache"
@@ -57,6 +61,7 @@ class TestPersistentSettingsRegression(unittest.TestCase):
         os.environ['HATCHLING_CACHE_DIR'] = str(Path(self.temp_dir.name) / "othercache")
         self.assertEqual(settings.paths.hatchling_cache_dir, cache_dir, "Cache dir should be read-only after init")
 
+    @regression_test
     def test_persistent_settings_file_content(self):
         """Test that the persistent settings file contains the expected data."""
         os.environ['HATCHLING_SETTINGS_DIR'] = str(Path(self.temp_dir.name) / "settings")
@@ -67,28 +72,6 @@ class TestPersistentSettingsRegression(unittest.TestCase):
         self.assertTrue(settings_file.exists(), "Settings file should exist after save")
         content = settings_file.read_text()
         self.assertIn('file-content-test', content, "Saved value should appear in settings file")
-
-# Optionally, add more regression tests for edge cases as needed
-
-# def run_phase3_tests():
-#     """Run all Phase 3 development tests using unittest.
-    
-#     Returns:
-#         bool: True if all tests passed, False otherwise.
-#     """
-#     loader = unittest.TestLoader()
-#     suite = unittest.TestSuite()
-    
-#     # Add all test cases
-#     suite.addTests(loader.loadTestsFromTestCase(TestExportLogicWithReadOnly))
-#     suite.addTests(loader.loadTestsFromTestCase(TestCacheDirectorySettings))
-#     suite.addTests(loader.loadTestsFromTestCase(TestPersistentSettings))
-    
-#     # Run tests
-#     runner = unittest.TextTestRunner(verbosity=2)
-#     result = runner.run(suite)
-    
-#     return result.wasSuccessful()
 
 def run_regression_tests():
     """Run all regression tests for persistent settings."""
