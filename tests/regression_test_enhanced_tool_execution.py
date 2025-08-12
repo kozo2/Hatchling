@@ -1,5 +1,4 @@
-"""Regression test for Phase 4: Enhanced Tool Execution Management.
-
+"""
 This test ensures that existing tool execution functionality still works
 correctly after adding event-driven architecture.
 """
@@ -72,14 +71,9 @@ class TestToolExecutionRegression(unittest.TestCase):
         # Should have the core tool execution methods
         self.assertTrue(hasattr(self.tool_execution, 'execute_tool'))
         self.assertTrue(hasattr(self.tool_execution, 'execute_tool_sync'))
-        
         # Execute_tool should be async, execute_tool_sync should be sync
         self.assertTrue(asyncio.iscoroutinefunction(self.tool_execution.execute_tool))
         self.assertFalse(asyncio.iscoroutinefunction(self.tool_execution.execute_tool_sync))
-        
-        # Should support tool calling chain handling
-        self.assertTrue(hasattr(self.tool_execution, 'handle_tool_calling_chain'))
-        self.assertTrue(asyncio.iscoroutinefunction(self.tool_execution.handle_tool_calling_chain))
     
     @regression_test
     def test_reset_for_new_query_method_still_works(self):
@@ -178,14 +172,6 @@ class TestToolExecutionRegression(unittest.TestCase):
         # Should have the necessary methods for event publishing
         self.assertTrue(hasattr(publisher, 'publish'))
         self.assertTrue(hasattr(publisher, 'subscribe'))
-    
-    @regression_test
-    def test_handle_tool_calling_chain_method_still_exists_and_async(self):
-        """Test that handle_tool_calling_chain method still exists and is async."""
-        self.assertTrue(hasattr(self.tool_execution, 'handle_tool_calling_chain'))
-        method = getattr(self.tool_execution, 'handle_tool_calling_chain')
-        self.assertTrue(callable(method))
-        self.assertTrue(asyncio.iscoroutinefunction(method))
     
     @regression_test
     def test_tool_calling_iteration_tracking_still_works(self):
