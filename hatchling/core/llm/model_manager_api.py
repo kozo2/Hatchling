@@ -6,9 +6,7 @@ metadata operations without requiring instance management.
 """
 
 from typing import List, Tuple, Optional
-from enum import Enum
 from tqdm import tqdm
-import aiohttp
 
 from ollama import AsyncClient, ListResponse
 from openai import AsyncOpenAI

@@ -412,19 +412,3 @@ class OpenAIProvider(LLMProvider):
                 "available": False,
                 "message": f"OpenAI API unavailable: {str(e)}"
             }
-    
-    def get_supported_features(self) -> Dict[str, bool]:
-        """Get supported features of this provider.
-        
-        Returns:
-            Dict[str, bool]: Dictionary of supported features.
-        """
-        return {
-            "streaming": True,
-            "tools": True,
-            "multimodal": True,  # GPT-4V and newer models
-            "embeddings": True,  # Available through separate endpoint
-            "fine_tuning": True,
-            "structured_outputs": True,  # JSON schema support
-            "reasoning": True  # o1 models
-        }
