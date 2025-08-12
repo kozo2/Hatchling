@@ -37,15 +37,19 @@ class TestPersistentSettingsRegression(unittest.TestCase):
         os.environ['HATCHLING_SETTINGS_DIR'] = str(Path(self.temp_dir.name) / "settings")
         registry = SettingsRegistry()
 
-        # Change a setting and save
-        original_model = registry.get_setting('llm', 'ollama_api_url')['current_value']
-        registry.set_setting('llm', 'ollama_api_url', 'regression-test-model', True)
+        # Change Ollama ip and port and save
+        original_ip = registry.get_setting('ollama', 'ip')['current_value']
+        original_port = registry.get_setting('ollama', 'port')['current_value']
+        registry.set_setting('ollama', 'ip', 'regression-test-ip', True)
+        registry.set_setting('ollama', 'port', 12345, True)
         self.assertTrue(registry.save_persistent_settings(), "Should save persistent settings successfully")
 
         # Reset and reload
-        registry.set_setting('llm', 'ollama_api_url', original_model, True)
+        registry.set_setting('ollama', 'ip', original_ip, True)
+        registry.set_setting('ollama', 'port', original_port, True)
         self.assertTrue(registry.load_persistent_settings(), "Should load settings from file after save")
-        self.assertEqual(registry.get_setting('llm', 'ollama_api_url')['current_value'], 'regression-test-model', "Model should persist after reload")
+        self.assertEqual(registry.get_setting('ollama', 'ip')['current_value'], 'regression-test-ip', "IP should persist after reload")
+        self.assertEqual(registry.get_setting('ollama', 'port')['current_value'], 12345, "Port should persist after reload")
 
     @regression_test
     def test_cache_and_settings_dir_env_vars(self):
@@ -66,12 +70,14 @@ class TestPersistentSettingsRegression(unittest.TestCase):
         """Test that the persistent settings file contains the expected data."""
         os.environ['HATCHLING_SETTINGS_DIR'] = str(Path(self.temp_dir.name) / "settings")
         registry = SettingsRegistry()
-        registry.set_setting('llm', 'ollama_api_url', 'file-content-test', True)
+        registry.set_setting('ollama', 'ip', 'file-content-test-ip', True)
+        registry.set_setting('ollama', 'port', 54321, True)
         registry.save_persistent_settings()
         settings_file = registry.get_persistent_settings_file_path()
         self.assertTrue(settings_file.exists(), "Settings file should exist after save")
         content = settings_file.read_text()
-        self.assertIn('file-content-test', content, "Saved value should appear in settings file")
+        self.assertIn('file-content-test-ip', content, "Saved IP value should appear in settings file")
+        self.assertIn('54321', content, "Saved port value should appear in settings file")
 
 def run_regression_tests():
     """Run all regression tests for persistent settings."""

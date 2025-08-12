@@ -18,6 +18,8 @@ sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..'))
 
 from tests.test_decorators import feature_test
 
+from hatchling.config.settings import AppSettings
+from hatchling.config.openai_settings import OpenAISettings
 from hatchling.core.llm.providers.openai_provider import OpenAIProvider
 from hatchling.core.llm.streaming_management import (
     StreamPublisher,
@@ -149,27 +151,29 @@ class TestOpenAIChunkParsing(unittest.TestCase):
     
     def setUp(self):
         """Set up test fixtures before each test method."""
-        self.config = {
-            "api_key": "dummy-key",  # Won't be used for parsing test
-            "model": "gpt-4-1-nano"
-        }
-        self.provider = OpenAIProvider(self.config)
-
-        # Mocking the provider's initialize. Only focus on the stream publisher
-        self.provider._stream_publisher = StreamPublisher()
+        # Create proper AppSettings for testing
+        openai_settings = OpenAISettings(
+            api_key="dummy-key",  # Won't be used for parsing test
+            timeout=30.0
+        )
+        self.test_settings = AppSettings(openai=openai_settings)
+        
+        # Create provider with proper settings
+        self.provider = OpenAIProvider(self.test_settings)
 
         self.chunks = create_test_chunks()
     
     def tearDown(self):
         """Clean up after each test method."""
-        self.provider.publisher.clear_subscribers()
+        if hasattr(self.provider, 'publisher'):
+            self.provider.publisher.clear_subscribers()
         self.provider = None
     
     @feature_test
     def test_chunk_parsing_with_subscribers(self):
         """Test the publish-subscribe chunk parsing functionality."""
         # Set up subscribers
-        content_printer = ContentPrinterSubscriber(include_role=True)
+        content_printer = ContentPrinterSubscriber()
         usage_stats = UsageStatsSubscriber()
         error_handler = ErrorHandlerSubscriber()
         
@@ -203,7 +207,7 @@ class TestOpenAIChunkParsing(unittest.TestCase):
 
 
 def run_openai_chunk_parsing_tests():
-    """Run all OpenAI integration tests.
+    """Run all OpenAI chunk parsing tests.
     
     Returns:
         bool: True if all tests pass or are skipped, False if any fail.

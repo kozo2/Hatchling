@@ -363,17 +363,3 @@ class OllamaProvider(LLMProvider):
                 "available": False,
                 "message": f"Ollama server unavailable: {str(e)}"
             }
-    
-    def get_supported_features(self) -> Dict[str, bool]:
-        """Get supported features of this provider.
-        
-        Returns:
-            Dict[str, bool]: Dictionary of supported features.
-        """
-        return {
-            "streaming": True,
-            "tools": True,
-            "multimodal": True,  # Depends on model
-            "embeddings": False,  # Not implemented in this provider
-            "fine_tuning": False
-        }

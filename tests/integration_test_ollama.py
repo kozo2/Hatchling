@@ -160,30 +160,6 @@ class TestOllamaProviderSync(unittest.TestCase):
 
     @integration_test
     @requires_external_service("ollama")
-    def test_supported_features(self):
-        """Test that provider reports supported features correctly."""
-        try: 
-            features = self.provider.get_supported_features()
-            
-            self.assertIsInstance(features, dict)
-            
-            # Ollama should support these features
-            expected_features = {
-                "streaming": True,
-                "tools": True,
-                "multimodal": True,
-                "embeddings": False,
-                "fine_tuning": False
-            }
-            
-            for feature, expected_value in expected_features.items():
-                self.assertIn(feature, features)
-                self.assertEqual(features[feature], expected_value)
-        except Exception as e:
-            self.skipTest(f"Features test failed: {e}")
-
-    @integration_test
-    @requires_external_service("ollama")
     def test_tool_lifecycle_subscriber_cache(self):
         """Test ToolLifecycleSubscriber cache and event handling in isolation."""
         tls = ToolLifecycleSubscriber("ollama")

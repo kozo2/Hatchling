@@ -447,32 +447,6 @@ class TestOpenAIProviderIntegration(unittest.TestCase):
         except Exception as e:
             self.fail(f"Simple chat integration test failed: {e}")
 
-
-    def test_supported_features(self):
-        """Test that provider reports supported features correctly.
-
-        Ensures that the OpenAIProvider advertises the correct set of supported features
-        according to the OpenAI API capabilities.
-        """
-        features = self.provider.get_supported_features()
-        self.assertIsInstance(features, dict, "Features should be returned as a dictionary")
-
-        # OpenAI should support these features
-        expected_features = {
-            "streaming": True,
-            "tools": True,
-            "multimodal": True,
-            "embeddings": True,
-            "fine_tuning": True,
-            "structured_outputs": True,
-            "reasoning": True
-        }
-
-        for feature, expected_value in expected_features.items():
-            self.assertIn(feature, features, f"Feature '{feature}' should be reported in capabilities")
-            self.assertEqual(features[feature], expected_value,
-                           f"Feature '{feature}' should have value {expected_value}")
-
     @integration_test
     def test_api_key_validation(self):
         """Test that provider validates API key requirement.
