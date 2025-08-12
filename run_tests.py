@@ -9,7 +9,12 @@ This script provides a centralized way to run different types of tests:
 
 Usage:
     python run_tests.py [--development] [--regression] [--feature] [--integration] [--all]
-    python run_tests.py [--file TEST_FILE] [--test TEST_METHOD] [--skip-slow]
+    python run_tests.py [--file TEST_FILE] [--test TEST_METHOD]
+    python run_tests.py [--skip TAG1,TAG2] [--only TAG3,TAG4]
+    
+Available decorator tags for filtering:
+    slow, requires_api, integration, development, regression, feature, 
+    requires_service, requires_mcp, skip_ci
 """
 
 import sys
@@ -33,14 +38,29 @@ logging.basicConfig(
 logger = logging.getLogger("hatchling.test_runner")
 
 
-def discover_tests(test_type=None, file=None, test_name=None, skip_tags=None):
+def parse_tag_list(tag_string):
+    """Parse comma-separated tag list into a list of strings.
+    
+    Args:
+        tag_string (str): Comma-separated string of tags (e.g., "slow,api_key,integration")
+        
+    Returns:
+        list: List of tag strings, or None if input is None/empty
+    """
+    if not tag_string:
+        return None
+    return [tag.strip() for tag in tag_string.split(',') if tag.strip()]
+
+
+def discover_tests(test_type=None, file=None, test_name=None, skip_tags=None, only_tags=None):
     """Dynamically build test suites based on criteria.
     
     Args:
         test_type (str): Type of tests to discover ('development', 'regression', 'feature', 'integration')
         file (str): Specific test file to run
         test_name (str): Specific test method to run
-        skip_tags (list): Tags to skip (e.g., ['slow'])
+        skip_tags (list): Tags to skip (e.g., ['slow', 'requires_api', 'integration'])
+        only_tags (list): Only run tests with these tags (e.g., ['feature', 'regression'])
         
     Returns:
         unittest.TestSuite: Configured test suite
@@ -91,19 +111,47 @@ def discover_tests(test_type=None, file=None, test_name=None, skip_tags=None):
         discovered = loader.discover(str(tests_dir), pattern=pattern)
         
         # Filter by tags if specified
-        if skip_tags:
-            filtered_suite = unittest.TestSuite()
-            for test_group in discovered:
-                for test_case in test_group:
-                    if hasattr(test_case, '_testMethodName'):
-                        method = getattr(test_case, test_case._testMethodName)
-                        should_skip = False
-                        for tag in skip_tags:
-                            if hasattr(method, f'_{tag}'):
-                                should_skip = True
-                                break
-                        if not should_skip:
-                            filtered_suite.addTest(test_case)
+        if skip_tags or only_tags:
+            def filter_test_suite(test_suite):
+                """Recursively filter tests in a test suite."""
+                filtered = unittest.TestSuite()
+                
+                for test in test_suite:
+                    if isinstance(test, unittest.TestSuite):
+                        # Recursively handle nested test suites
+                        nested_filtered = filter_test_suite(test)
+                        if nested_filtered.countTestCases() > 0:
+                            filtered.addTest(nested_filtered)
+                    elif isinstance(test, unittest.TestCase):
+                        if hasattr(test, '_testMethodName'):
+                            method = getattr(test, test._testMethodName)
+                            
+                            # Check if test should be skipped
+                            should_skip = False
+                            if skip_tags:
+                                for tag in skip_tags:
+                                    if hasattr(method, f'_{tag}'):
+                                        should_skip = True
+                                        logger.info(f"Skipping test {test.id()} due to tag: {tag}")
+                                        break
+                            
+                            # Check if test should be included (only_tags filter)
+                            should_include = True
+                            if only_tags:
+                                should_include = False
+                                for tag in only_tags:
+                                    if hasattr(method, f'_{tag}'):
+                                        should_include = True
+                                        logger.info(f"Including test {test.id()} due to tag: {tag}")
+                                        break
+                            
+                            # Include test if it passes both filters
+                            if not should_skip and should_include:
+                                filtered.addTest(test)
+                                
+                return filtered
+            
+            filtered_suite = filter_test_suite(discovered)
             suite.addTests(filtered_suite)
         else:
             suite.addTests(discovered)
@@ -341,12 +389,16 @@ def main():
                        help="Run all test types")
     parser.add_argument("--file", help="Run tests from specific file")
     parser.add_argument("--test", help="Run specific test method")
-    parser.add_argument("--skip-slow", action="store_true",
-                       help="Skip tests marked as slow")
+    parser.add_argument("--skip", help="Skip tests with these decorator tags (comma-separated, e.g., 'slow,requires_api,integration')")
+    parser.add_argument("--only", help="Only run tests with these decorator tags (comma-separated, e.g., 'feature,regression')")
     parser.add_argument("--phase", type=int,
                        help="Run development tests for specific phase only (deprecated)")
     
     args = parser.parse_args()
+    
+    # Parse tag lists
+    skip_tags = parse_tag_list(args.skip)
+    only_tags = parse_tag_list(args.only)
     
     # If no specific test type is specified, run all
     if not any([args.development, args.regression, args.feature, args.integration, args.all, args.file]):
@@ -363,45 +415,83 @@ def main():
             logger.info(f"RUNNING TESTS FROM FILE: {args.file}")
         logger.info("=" * 50)
         
-        skip_tags = ["slow"] if args.skip_slow else None
         suite = discover_tests(
             test_type=None,
             file=args.file,
             test_name=args.test,
-            skip_tags=skip_tags
+            skip_tags=skip_tags,
+            only_tags=only_tags
         )
         runner = unittest.TextTestRunner(verbosity=2)
         result = runner.run(suite)
         success = result.wasSuccessful()
     else:
-        # Run test types using existing functions for backward compatibility
-        if args.all or args.development:
-            logger.info("=" * 50)
-            logger.info("DEVELOPMENT TESTS")
-            logger.info("=" * 50)
-            if not run_development_tests(args.phase):
-                success = False
+        # Use the unified discovery system for better filtering support
+        test_types_to_run = []
         
-        if args.all or args.regression:
-            logger.info("=" * 50)
-            logger.info("REGRESSION TESTS")
-            logger.info("=" * 50)
-            if not run_regression_tests():
-                success = False
+        if args.all:
+            test_types_to_run = ['development', 'regression', 'feature', 'integration']
+        else:
+            if args.development:
+                test_types_to_run.append('development')
+            if args.regression:
+                test_types_to_run.append('regression')
+            if args.feature:
+                test_types_to_run.append('feature')
+            if args.integration:
+                test_types_to_run.append('integration')
         
-        if args.all or args.feature:
+        for test_type in test_types_to_run:
             logger.info("=" * 50)
-            logger.info("FEATURE TESTS")
+            logger.info(f"{test_type.upper()} TESTS")
             logger.info("=" * 50)
-            if not run_feature_tests():
-                success = False
+            
+            suite = discover_tests(
+                test_type=test_type,
+                skip_tags=skip_tags,
+                only_tags=only_tags
+            )
+            
+            # Only run if there are tests in the suite
+            if suite.countTestCases() > 0:
+                runner = unittest.TextTestRunner(verbosity=2)
+                result = runner.run(suite)
+                if not result.wasSuccessful():
+                    success = False
+            else:
+                logger.info(f"No {test_type} tests found matching filter criteria")
         
-        if args.all or args.integration:
-            logger.info("=" * 50)
-            logger.info("INTEGRATION TESTS")
-            logger.info("=" * 50)
-            if not run_integration_tests():
-                success = False
+        # Fall back to legacy functions if no tests were discovered
+        # This maintains backward compatibility with any tests not following the decorator pattern
+        if not any(test_types_to_run):
+            # Run test types using existing functions for backward compatibility
+            if args.all or args.development:
+                logger.info("=" * 50)
+                logger.info("DEVELOPMENT TESTS (Legacy)")
+                logger.info("=" * 50)
+                if not run_development_tests(args.phase):
+                    success = False
+            
+            if args.all or args.regression:
+                logger.info("=" * 50)
+                logger.info("REGRESSION TESTS (Legacy)")
+                logger.info("=" * 50)
+                if not run_regression_tests():
+                    success = False
+            
+            if args.all or args.feature:
+                logger.info("=" * 50)
+                logger.info("FEATURE TESTS (Legacy)")
+                logger.info("=" * 50)
+                if not run_feature_tests():
+                    success = False
+            
+            if args.all or args.integration:
+                logger.info("=" * 50)
+                logger.info("INTEGRATION TESTS (Legacy)")
+                logger.info("=" * 50)
+                if not run_integration_tests():
+                    success = False
     
     if success:
         logger.info("=" * 50)
