@@ -9,7 +9,10 @@ import unittest
 
 from tests.test_decorators import feature_test
 
-from hatchling.core.llm.providers.registry import ProviderRegistry
+from hatchling.config.llm_settings import ELLMProvider
+from hatchling.config.settings import AppSettings
+from hatchling.config.ollama_settings import OllamaSettings
+from hatchling.core.llm.providers import ProviderRegistry
 from hatchling.core.llm.streaming_management import (
     StreamPublisher,
     ContentPrinterSubscriber,
@@ -23,15 +26,15 @@ class TestOllamaChunkParsing(unittest.TestCase):
     
     def setUp(self):
         """Set up test fixtures before each test method."""
-        self.config = {
-            "host": "http://localhost:11434", 
-            "model": "llama3.2:latest",
-            "timeout": 30.0
-        }
-        self.provider = ProviderRegistry.create_provider("ollama", self.config)
+        # Create proper AppSettings for testing
+        ollama_settings = OllamaSettings(
+            ip="localhost",
+            port=11434
+        )
+        self.test_settings = AppSettings(ollama=ollama_settings)
         
-        # Mocking the provider's initialize. Only focus on the stream publisher
-        self.provider._stream_publisher = StreamPublisher()
+        # Create provider with proper settings
+        self.provider = ProviderRegistry.create_provider(ELLMProvider.OLLAMA, self.test_settings)
         
         # Mock Ollama response chunks based on actual Ollama streaming format
         self.mock_chunks = [
@@ -93,14 +96,15 @@ class TestOllamaChunkParsing(unittest.TestCase):
     
     def tearDown(self):
         """Clean up after each test method."""
-        self.provider.publisher.clear_subscribers()
+        if hasattr(self.provider, 'publisher'):
+            self.provider.publisher.clear_subscribers()
         self.provider = None
     
     @feature_test
     def test_ollama_chunk_parsing_with_subscribers(self):
         """Test Ollama chunk parsing with publish-subscribe pattern."""
         # Create test subscribers
-        content_printer = ContentPrinterSubscriber(include_role=True)
+        content_printer = ContentPrinterSubscriber()
         usage_stats = UsageStatsSubscriber()
         error_handler = ErrorHandlerSubscriber()
 
@@ -136,7 +140,7 @@ class TestOllamaChunkParsing(unittest.TestCase):
         print("Error handling test completed successfully")
 
 def run_ollama_chunk_parsing_tests():
-    """Run all OpenAI integration tests.
+    """Run all Ollama chunk parsing tests.
     
     Returns:
         bool: True if all tests pass or are skipped, False if any fail.
