@@ -71,8 +71,6 @@ class TestStreamToolCallSubscriber(StreamSubscriber):
         return [StreamEventType.LLM_TOOL_CALL_REQUEST, StreamEventType.CONTENT, StreamEventType.USAGE]
 
 
-@integration_test
-@requires_external_service("ollama")
 class TestOllamaProviderSync(unittest.TestCase):
     """Synchronous tests for OllamaProvider that don't require async operations.
     
@@ -110,6 +108,8 @@ class TestOllamaProviderSync(unittest.TestCase):
         self.provider.close()
         ProviderRegistry._instances.clear()  # Clear provider instances to reset state
     
+    @integration_test
+    @requires_external_service("ollama")
     def test_provider_registration(self):
         """Test that OllamaProvider is properly registered in the provider registry.
         
@@ -121,6 +121,8 @@ class TestOllamaProviderSync(unittest.TestCase):
         self.assertEqual(provider_class, OllamaProvider,
                         "Provider registry should return OllamaProvider class for OLLAMA enum")
 
+    @integration_test
+    @requires_external_service("ollama")
     def test_provider_initialization(self):
         """Test provider initialization with real connection.
         
@@ -135,6 +137,8 @@ class TestOllamaProviderSync(unittest.TestCase):
         except Exception as e:
             self.skipTest(f"Provider initialization failed: {e}")
 
+    @integration_test
+    @requires_external_service("ollama")
     def test_payload_preparation(self):
         """Test chat payload preparation."""
         try:
@@ -154,6 +158,8 @@ class TestOllamaProviderSync(unittest.TestCase):
         except Exception as e:
             self.skipTest(f"Payload preparation test failed: {e}")
 
+    @integration_test
+    @requires_external_service("ollama")
     def test_supported_features(self):
         """Test that provider reports supported features correctly."""
         try: 
@@ -176,6 +182,8 @@ class TestOllamaProviderSync(unittest.TestCase):
         except Exception as e:
             self.skipTest(f"Features test failed: {e}")
 
+    @integration_test
+    @requires_external_service("ollama")
     def test_tool_lifecycle_subscriber_cache(self):
         """Test ToolLifecycleSubscriber cache and event handling in isolation."""
         tls = ToolLifecycleSubscriber("ollama")
@@ -232,9 +240,6 @@ class TestOllamaProviderSync(unittest.TestCase):
         self.assertEqual(len(tls.get_all_tools()), 0)
 
 
-@integration_test
-@requires_external_service("ollama")
-@slow_test
 class TestOllamaProviderIntegration(unittest.IsolatedAsyncioTestCase):
     """Integration tests for OllamaProvider with real Ollama instance using async test case.
     
@@ -274,6 +279,8 @@ class TestOllamaProviderIntegration(unittest.IsolatedAsyncioTestCase):
         ProviderRegistry._instances.clear()  # Clear provider instances to reset state
 
 
+    @integration_test
+    @requires_external_service("ollama")
     async def test_health_check(self):
         """Test health check against real Ollama instance."""
         health = await self.provider.check_health()
@@ -288,6 +295,9 @@ class TestOllamaProviderIntegration(unittest.IsolatedAsyncioTestCase):
             self.assertIsInstance(health["models"], list)
             logger.info(f"Available models: {health['models']}")
 
+    @integration_test
+    @requires_external_service("ollama")
+    @slow_test
     async def test_tools_payload_integration(self):
         """Test adding tools to payload and round-trip with ToolLifecycleSubscriber."""
         # Simulate a tool enabled event
@@ -370,6 +380,9 @@ class TestOllamaProviderIntegration(unittest.IsolatedAsyncioTestCase):
         enabled_tools_after = tls.get_enabled_tools()
         self.assertNotIn(tool_name, enabled_tools_after)
 
+    @integration_test
+    @requires_external_service("ollama")
+    @slow_test
     async def test_simple_chat_integration(self):
         """Test a simple chat interaction with Ollama and ToolLifecycleSubscriber integration."""
 

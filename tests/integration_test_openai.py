@@ -117,9 +117,6 @@ class TestStreamToolCallSubscriber(StreamSubscriber):
         return [StreamEventType.LLM_TOOL_CALL_REQUEST, StreamEventType.CONTENT, StreamEventType.USAGE, StreamEventType.FINISH]
 
 
-@integration_test
-@requires_api_key
-@requires_external_service("openai")
 class TestOpenAIProviderIntegration(unittest.TestCase):
     """Integration tests for OpenAIProvider with real OpenAI API.
     
@@ -213,6 +210,9 @@ class TestOpenAIProviderIntegration(unittest.TestCase):
         self.assertIsNotNone(provider._client,
                             "Provider client should be initialized after creation")
 
+    @integration_test
+    @requires_api_key
+    @requires_external_service("openai")
     def test_provider_initialization_sync(self):
         """Synchronous wrapper for async initialization test."""
         try:
@@ -244,6 +244,9 @@ class TestOpenAIProviderIntegration(unittest.TestCase):
             self.assertTrue(any("gpt" in model for model in model_names),
                           "Should include GPT models in available models list")
 
+    @integration_test
+    @requires_api_key
+    @requires_external_service("openai")
     def test_health_check_sync(self):
         """Synchronous wrapper for async health check test."""
         try:
@@ -371,6 +374,10 @@ class TestOpenAIProviderIntegration(unittest.TestCase):
         self.assertNotIn(tool_name, enabled_tools_after, 
                         f"Tool '{tool_name}' should be disabled after disable event")
 
+    @integration_test
+    @requires_api_key
+    @requires_external_service("openai")
+    @slow_test
     def test_tools_payload_integration_sync(self):
         """Synchronous wrapper for tools payload integration test."""
         try:
@@ -429,6 +436,10 @@ class TestOpenAIProviderIntegration(unittest.TestCase):
         finally:
             print("\n=== End of OpenAI Response ===")
 
+    @integration_test
+    @requires_api_key
+    @requires_external_service("openai")
+    @slow_test
     def test_simple_chat_integration_sync(self):
         """Synchronous wrapper for simple chat integration test."""
         try:
