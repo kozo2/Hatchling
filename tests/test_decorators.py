@@ -15,7 +15,7 @@ def slow_test(func):
         def test_large_dataset_processing(self):
             pass
     """
-    func._slow = True
+    func._slow_test = True
     return func
 
 
