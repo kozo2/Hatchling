@@ -42,7 +42,7 @@ class UIStateManager:
     def set_only(self, flag: UIStateFlags):
         self.flags = flag
 
-from hatchling.core.llm.streaming_management.stream_subscriber import StreamSubscriber
+from hatchling.core.llm.streaming_management.event_subscriber import EventSubscriber
 from hatchling.core.llm.streaming_management.stream_data import StreamEvent, StreamEventType
 from hatchling.core.logging.logging_manager import logging_manager
 from prompt_toolkit import print_formatted_text as print_pt
@@ -67,7 +67,7 @@ class TokenStats:
     start_time: float = None
     end_time: float = None
 
-class CLIEventSubscriber(StreamSubscriber):
+class CLIEventSubscriber(EventSubscriber):
     """CLI Event Subscriber for managing UI state based on stream events.
     
     This subscriber maintains state for all UI elements:

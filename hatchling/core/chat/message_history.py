@@ -6,13 +6,13 @@ including user messages, assistant responses, and tool interactions.
 
 from typing import List, Dict, Any, Optional
 from hatchling.core.logging.logging_manager import logging_manager
-from hatchling.core.llm.streaming_management import StreamSubscriber, StreamEvent, StreamEventType
+from hatchling.core.llm.streaming_management import EventSubscriber, StreamEvent, StreamEventType
 from hatchling.config.llm_settings import ELLMProvider
 
 from hatchling.core.llm.data_structures import ToolCallParsedResult
 from hatchling.mcp_utils.mcp_tool_execution import ToolCallExecutionResult
 
-class MessageHistory(StreamSubscriber):
+class MessageHistory(EventSubscriber):
     """Event-driven message history manager with canonical and provider-specific histories.
     
     Maintains a canonical (provider-agnostic) history and dynamically generates

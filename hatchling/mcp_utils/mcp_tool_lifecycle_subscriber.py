@@ -2,11 +2,11 @@ import logging
 from typing import Dict, List, Callable, Any
 
 from ..core.llm.streaming_management.stream_data import StreamEvent, StreamEventType
-from ..core.llm.streaming_management.stream_subscriber import StreamSubscriber
+from ..core.llm.streaming_management.event_subscriber import EventSubscriber
 from hatchling.mcp_utils import MCPToolInfo, MCPToolStatus, MCPToolStatusReason
 
 
-class ToolLifecycleSubscriber(StreamSubscriber):
+class ToolLifecycleSubscriber(EventSubscriber):
     """Subscriber that manages MCP tool lifecycle and maintains tool cache
     in the format required by the LLM provider.
     

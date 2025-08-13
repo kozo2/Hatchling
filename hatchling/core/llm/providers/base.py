@@ -10,7 +10,7 @@ from typing import Dict, List, Any, Optional
 
 from hatchling.core.llm.event_system import EventPublisher
 from Hatchling.hatchling.mcp_utils.mcp_tool_lifecycle_subscriber import ToolLifecycleSubscriber
-from hatchling.core.llm.event_system.stream_subscribers import StreamEvent
+from hatchling.core.llm.event_system.event_subscribers_examples import StreamEvent
 from hatchling.core.llm.data_structures import ToolCallParsedResult
 from hatchling.config.settings import AppSettings
 from hatchling.mcp_utils.mcp_tool_data import MCPToolInfo

@@ -183,7 +183,7 @@ if __name__ == "__main__":
     @feature_test
     def test_tool_execution_events_defined(self):
         """Test that tool execution events are properly defined."""
-        from hatchling.core.llm.streaming_management.stream_subscribers import StreamEventType
+        from hatchling.core.llm.streaming_management.event_subscribers_examples import StreamEventType
         
         required_execution_events = [
             ('MCP_TOOL_CALL_DISPATCHED', 'mcp_tool_call_dispatched'),
@@ -236,7 +236,7 @@ if __name__ == "__main__":
     @feature_test
     def test_stream_event_creation(self):
         """Test that StreamEvent objects can be created correctly."""
-        from hatchling.core.llm.streaming_management.stream_subscribers import StreamEvent, StreamEventType
+        from hatchling.core.llm.streaming_management.event_subscribers_examples import StreamEvent, StreamEventType
         from hatchling.core.llm.providers.base import ELLMProvider
         
         # Test creating a basic stream event
@@ -261,7 +261,7 @@ if __name__ == "__main__":
     @feature_test
     def test_event_type_comprehensive_coverage(self):
         """Test that all necessary event types are available."""
-        from hatchling.core.llm.streaming_management.stream_subscribers import StreamEventType
+        from hatchling.core.llm.streaming_management.event_subscribers_examples import StreamEventType
         
         # Core streaming events
         core_events = ['CONTENT', 'FINISH', 'ERROR', 'USAGE_STATS']

@@ -66,7 +66,7 @@ class ChatSession:
         without tight coupling to backend logic.
         
         Args:
-            subscriber: The subscriber to register (must implement StreamSubscriber interface).
+            subscriber: The subscriber to register (must implement EventSubscriber interface).
         """
         # Subscribe to all LLM provider publishers
         for _provider_enum in ProviderRegistry.list_providers():

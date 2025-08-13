@@ -39,7 +39,7 @@ from Hatchling.hatchling.mcp_utils.mcp_tool_lifecycle_subscriber import ToolLife
 from hatchling.core.llm.providers.registry import ProviderRegistry
 from hatchling.mcp_utils.mcp_tool_data import MCPToolInfo, MCPToolStatus, MCPToolStatusReason
 from hatchling.core.llm.streaming_management import (
-    StreamSubscriber,
+    EventSubscriber,
     ContentPrinterSubscriber,
     UsageStatsSubscriber,
     ErrorHandlerSubscriber,
@@ -59,7 +59,7 @@ if load_dotenv(env_path):
 else:
     logger.warning("No .env file found, using system environment variables")
 
-class TestStreamToolCallSubscriber(StreamSubscriber):
+class TestStreamToolCallSubscriber(EventSubscriber):
     """Test subscriber for streaming tool calls.
     
     This subscriber reconstructs OpenAI-style tool call arguments that may be 

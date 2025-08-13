@@ -10,7 +10,7 @@ from collections import deque
 
 from hatchling.core.logging.logging_manager import logging_manager
 
-from hatchling.core.llm.streaming_management.stream_subscriber import StreamSubscriber
+from hatchling.core.llm.streaming_management.event_subscriber import EventSubscriber
 from hatchling.core.llm.streaming_management.stream_data import StreamEvent, StreamEventType
 
 from hatchling.core.llm.data_structures import ToolCallParsedResult
@@ -44,7 +44,7 @@ class ToolCallExecutionResultLight:
 
 
 
-class ToolResultCollectorSubscriber(StreamSubscriber):
+class ToolResultCollectorSubscriber(EventSubscriber):
     """Collects tool execution results from MCPToolExecution events.
     
     This subscriber accumulates tool call results until reset.

@@ -12,7 +12,7 @@ from typing import List
 
 from hatchling.config.settings import AppSettings
 from hatchling.core.llm.providers import ProviderRegistry
-from hatchling.core.llm.streaming_management.stream_subscriber import StreamSubscriber
+from hatchling.core.llm.streaming_management.event_subscriber import EventSubscriber
 from hatchling.core.llm.streaming_management.stream_data import StreamEventType, StreamEvent
 from hatchling.core.llm.streaming_management.stream_publisher import EventPublisher
 from hatchling.core.llm.data_structures import ToolCallParsedResult
@@ -22,7 +22,7 @@ from hatchling.core.chat.message_history_registry import MessageHistoryRegistry
 from hatchling.core.logging.logging_manager import logging_manager
 from hatchling.mcp_utils.mcp_tool_execution import MCPToolExecution
 
-class ToolChainingSubscriber(StreamSubscriber):
+class ToolChainingSubscriber(EventSubscriber):
     """Manages automatic tool calling chains with intelligent continuation logic.
     
     This subscriber listens for tool completion events and automatically
