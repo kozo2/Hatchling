@@ -11,7 +11,7 @@ from collections import deque
 from hatchling.core.logging.logging_manager import logging_manager
 
 from hatchling.core.llm.event_system.event_subscriber import EventSubscriber
-from hatchling.core.llm.event_system.stream_data import StreamEvent, StreamEventType
+from hatchling.core.llm.event_system.stream_data import StreamEvent, EventType
 
 from hatchling.core.llm.data_structures import ToolCallParsedResult
 from hatchling.mcp_utils.mcp_tool_execution import ToolCallExecutionResult
@@ -66,13 +66,13 @@ class ToolResultCollectorSubscriber(EventSubscriber):
         Args:
             event (StreamEvent): The event received. The `event.data` must be a dictionary
             matching the data structure of either ToolCallParsedResult or ToolCallExecutionResult:
-              - with `event.type` being `StreamEventType.MCP_TOOL_CALL_DISPATCHED`, the `event.data`
+              - with `event.type` being `EventType.MCP_TOOL_CALL_DISPATCHED`, the `event.data`
               should match the ToolCallParsedResult structure
-              - with `event.type` being `StreamEventType.MCP_TOOL_CALL_RESULT`, the `event.data` should
+              - with `event.type` being `EventType.MCP_TOOL_CALL_RESULT`, the `event.data` should
               match the ToolCallExecutionResult structure.
         """        
         try:
-            if event.type == StreamEventType.MCP_TOOL_CALL_DISPATCHED:
+            if event.type == EventType.MCP_TOOL_CALL_DISPATCHED:
                 # We expect `data` to match the ToolCallParsedResult structure
                 toolCallParsedRes = ToolCallParsedResult(**event.data)
                 self.logger.debug(f"Tool call dispatched received: {toolCallParsedRes} with request ID {event.request_id}")
@@ -81,7 +81,7 @@ class ToolResultCollectorSubscriber(EventSubscriber):
                 self.tool_call_queue.append((toolCallParsedRes.tool_call_id, event.timestamp, toolCallParsedRes))
                 self.logger.debug(f"Added to FIFO queue. Queue length: {len(self.tool_call_queue)}")
 
-            elif event.type == StreamEventType.MCP_TOOL_CALL_RESULT:
+            elif event.type == EventType.MCP_TOOL_CALL_RESULT:
                 toolCallExecRes = ToolCallExecutionResult(**event.data)
                 self.logger.debug(f"Tool call result received: {toolCallExecRes}")
                 
@@ -98,7 +98,7 @@ class ToolResultCollectorSubscriber(EventSubscriber):
                 self.tool_result_buffer[toolCallExecRes.tool_call_id] = toolCallExecRes
                 self.logger.debug(f"Added to result buffer. Buffer size: {len(self.tool_result_buffer)}")
 
-            elif event.type == StreamEventType.MCP_TOOL_CALL_ERROR:
+            elif event.type == EventType.MCP_TOOL_CALL_ERROR:
                 # Handle tool execution error
 
                 error_result = ToolCallExecutionResult(**event.data)
@@ -140,16 +140,16 @@ class ToolResultCollectorSubscriber(EventSubscriber):
         
         return None
     
-    def get_subscribed_events(self) -> List[StreamEventType]:
+    def get_subscribed_events(self) -> List[EventType]:
         """Get the list of events this subscriber is interested in.
         
         Returns:
-            List[StreamEventType]: List of event types to subscribe to.
+            List[EventType]: List of event types to subscribe to.
         """
         return [
-            StreamEventType.MCP_TOOL_CALL_DISPATCHED,
-            StreamEventType.MCP_TOOL_CALL_RESULT,
-            StreamEventType.MCP_TOOL_CALL_ERROR
+            EventType.MCP_TOOL_CALL_DISPATCHED,
+            EventType.MCP_TOOL_CALL_RESULT,
+            EventType.MCP_TOOL_CALL_ERROR
         ]
 
     def reset(self) -> None:

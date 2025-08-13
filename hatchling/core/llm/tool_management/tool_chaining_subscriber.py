@@ -13,7 +13,7 @@ from typing import List
 from hatchling.config.settings import AppSettings
 from hatchling.core.llm.providers import ProviderRegistry
 from hatchling.core.llm.event_system.event_subscriber import EventSubscriber
-from hatchling.core.llm.event_system.stream_data import StreamEventType, StreamEvent
+from hatchling.core.llm.event_system.stream_data import EventType, StreamEvent
 from hatchling.core.llm.event_system.stream_publisher import EventPublisher
 from hatchling.core.llm.data_structures import ToolCallParsedResult
 from hatchling.core.llm.tool_management.tool_result_collector_subscriber import ToolResultCollectorSubscriber
@@ -71,7 +71,7 @@ class ToolChainingSubscriber(EventSubscriber):
         # This holds info about the pending tool calls (dispatched) and the results
         self.tool_result_collector.on_event(event)
 
-        if event.type == StreamEventType.MCP_TOOL_CALL_DISPATCHED:
+        if event.type == EventType.MCP_TOOL_CALL_DISPATCHED:
 
             if not self.started:
                 self.logger.debug("Received MCP_TOOL_CALL_DISPATCHED event for the first time, starting tool chaining.")
@@ -84,7 +84,7 @@ class ToolChainingSubscriber(EventSubscriber):
                 _, _, current_tool = self.tool_result_collector.tool_call_queue[0]
                     
                 self.publisher.publish(
-                    event_type=StreamEventType.TOOL_CHAIN_START,
+                    event_type=EventType.TOOL_CHAIN_START,
                     data={
                         "tool_chain_id":  self.tool_chain_id,  # Unique ID for the tool chain
                         "initial_query": self.tool_execution.root_tool_query,
@@ -99,7 +99,7 @@ class ToolChainingSubscriber(EventSubscriber):
             # This is essential to detect when the tool chain really ends.
             self.chain_link_count += 1
 
-        if event.type == StreamEventType.MCP_TOOL_CALL_RESULT or event.type == StreamEventType.MCP_TOOL_CALL_ERROR:
+        if event.type == EventType.MCP_TOOL_CALL_RESULT or event.type == EventType.MCP_TOOL_CALL_ERROR:
             # We have received a tool result or an error from the MCPToolExecution
             # We are also processing the errors in the tool chaining to let the
             # LLMs know that the tool call failed, and probably retry, or at least 
@@ -139,7 +139,7 @@ class ToolChainingSubscriber(EventSubscriber):
             if self.chain_link_count == 0:
                 self.logger.debug("Received FINISH event, proceeding with the end of the tool chain.")
                 self.publisher.publish(
-                    event_type=StreamEventType.TOOL_CHAIN_END,
+                    event_type=EventType.TOOL_CHAIN_END,
                     data={
                         "tool_chain_id": self.tool_chain_id,
                         "initial_query": self.tool_execution.root_tool_query,
@@ -151,16 +151,16 @@ class ToolChainingSubscriber(EventSubscriber):
                 )
                 self.reset()
 
-    def get_subscribed_events(self) -> List[StreamEventType]:
+    def get_subscribed_events(self) -> List[EventType]:
         """Get the list of events this subscriber is interested in.
         
         Returns:
-            List[StreamEventType]: List of event types to subscribe to.
+            List[EventType]: List of event types to subscribe to.
         """
         return [
-            StreamEventType.MCP_TOOL_CALL_DISPATCHED, # For the tool result collector
-            StreamEventType.MCP_TOOL_CALL_ERROR,  # For tool result collection
-            StreamEventType.MCP_TOOL_CALL_RESULT, # For both tool result collection and chaining
+            EventType.MCP_TOOL_CALL_DISPATCHED, # For the tool result collector
+            EventType.MCP_TOOL_CALL_ERROR,  # For tool result collection
+            EventType.MCP_TOOL_CALL_RESULT, # For both tool result collection and chaining
         ]
 
     async def _chain_continuation_with_lock(self, tool_call: ToolCallParsedResult, tool_result: ToolCallParsedResult ) -> None:
@@ -193,7 +193,7 @@ class ToolChainingSubscriber(EventSubscriber):
             # Publish TOOL_CHAIN_ITERATION_START event
             self.current_tool_chain_iteration += 1
             self.publisher.publish(
-                event_type=StreamEventType.TOOL_CHAIN_ITERATION_START,
+                event_type=EventType.TOOL_CHAIN_ITERATION_START,
                 data={
                     "tool_chain_id": self.tool_chain_id,
                     "iteration": self.current_tool_chain_iteration,
@@ -225,7 +225,7 @@ class ToolChainingSubscriber(EventSubscriber):
                     "Prefer conciseness, clarity, and accuracy of the response."
 
                 self.publisher.publish(
-                    event_type=StreamEventType.TOOL_CHAIN_LIMIT_REACHED,
+                    event_type=EventType.TOOL_CHAIN_LIMIT_REACHED,
                     data={
                         "tool_chain_id": self.tool_chain_id,
                         "limit_type": "max_iterations" if reached_max_iterations else "time_limit",
@@ -277,7 +277,7 @@ class ToolChainingSubscriber(EventSubscriber):
 
             # Processing of this iteration is done, send the info that the LLM has finished
             self.publisher.publish(
-                event_type=StreamEventType.TOOL_CHAIN_ITERATION_END,
+                event_type=EventType.TOOL_CHAIN_ITERATION_END,
                 data={
                     "tool_chain_id": self.tool_chain_id,
                     "iteration": self.current_tool_chain_iteration,
@@ -301,7 +301,7 @@ class ToolChainingSubscriber(EventSubscriber):
 
 
             self.publisher.publish(
-                event_type=StreamEventType.TOOL_CHAIN_ERROR,
+                event_type=EventType.TOOL_CHAIN_ERROR,
                 data={
                     "tool_chain_id": self.tool_chain_id,
                     "error": str(e),
@@ -310,7 +310,7 @@ class ToolChainingSubscriber(EventSubscriber):
             )
 
             self.publisher.publish(
-                event_type=StreamEventType.TOOL_CHAIN_END,
+                event_type=EventType.TOOL_CHAIN_END,
                 data={
                     "tool_chain_id": self.tool_chain_id,
                     "initial_query": self.tool_execution.root_tool_query,

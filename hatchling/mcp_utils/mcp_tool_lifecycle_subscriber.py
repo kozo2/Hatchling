@@ -1,7 +1,7 @@
 import logging
 from typing import Dict, List, Callable, Any
 
-from ..core.llm.event_system.stream_data import StreamEvent, StreamEventType
+from ..core.llm.event_system.stream_data import StreamEvent, EventType
 from ..core.llm.event_system.event_subscriber import EventSubscriber
 from hatchling.mcp_utils import MCPToolInfo, MCPToolStatus, MCPToolStatusReason
 
@@ -34,35 +34,35 @@ class ToolLifecycleSubscriber(EventSubscriber):
             event (StreamEvent): The event to handle.
         """
         try:
-            if event.type == StreamEventType.MCP_SERVER_UP:
+            if event.type == EventType.MCP_SERVER_UP:
                 self._handle_server_up_event(event)
-            elif event.type == StreamEventType.MCP_SERVER_DOWN:
+            elif event.type == EventType.MCP_SERVER_DOWN:
                 self._handle_server_down_event(event)
-            elif event.type == StreamEventType.MCP_SERVER_UNREACHABLE:
+            elif event.type == EventType.MCP_SERVER_UNREACHABLE:
                 self._handle_server_unreachable_event(event)
-            elif event.type == StreamEventType.MCP_SERVER_REACHABLE:
+            elif event.type == EventType.MCP_SERVER_REACHABLE:
                 self._handle_server_reachable_event(event)
-            elif event.type == StreamEventType.MCP_TOOL_ENABLED:
+            elif event.type == EventType.MCP_TOOL_ENABLED:
                 self._handle_tool_enabled_event(event)
-            elif event.type == StreamEventType.MCP_TOOL_DISABLED:
+            elif event.type == EventType.MCP_TOOL_DISABLED:
                 self._handle_tool_disabled_event(event)
                 
         except Exception as e:
             self.logger.error(f"Error handling event {event.type}: {e}")
     
-    def get_subscribed_events(self) -> List[StreamEventType]:
+    def get_subscribed_events(self) -> List[EventType]:
         """Return MCP lifecycle event types this subscriber is interested in.
         
         Returns:
-            List[StreamEventType]: MCP lifecycle event types.
+            List[EventType]: MCP lifecycle event types.
         """
         return [
-            StreamEventType.MCP_SERVER_UP,
-            StreamEventType.MCP_SERVER_DOWN,
-            StreamEventType.MCP_SERVER_UNREACHABLE,
-            StreamEventType.MCP_SERVER_REACHABLE,
-            StreamEventType.MCP_TOOL_ENABLED,
-            StreamEventType.MCP_TOOL_DISABLED
+            EventType.MCP_SERVER_UP,
+            EventType.MCP_SERVER_DOWN,
+            EventType.MCP_SERVER_UNREACHABLE,
+            EventType.MCP_SERVER_REACHABLE,
+            EventType.MCP_TOOL_ENABLED,
+            EventType.MCP_TOOL_DISABLED
         ]
     
     def _handle_server_up_event(self, event: StreamEvent) -> None:

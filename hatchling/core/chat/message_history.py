@@ -6,7 +6,7 @@ including user messages, assistant responses, and tool interactions.
 
 from typing import List, Dict, Any, Optional
 from hatchling.core.logging.logging_manager import logging_manager
-from hatchling.core.llm.event_system import EventSubscriber, StreamEvent, StreamEventType
+from hatchling.core.llm.event_system import EventSubscriber, StreamEvent, EventType
 from hatchling.config.llm_settings import ELLMProvider
 
 from hatchling.core.llm.data_structures import ToolCallParsedResult
@@ -35,20 +35,20 @@ class MessageHistory(EventSubscriber):
         
         self.logger = logging_manager.get_session("MessageHistory")
     
-    def get_subscribed_events(self) -> List[StreamEventType]:
+    def get_subscribed_events(self) -> List[EventType]:
         """Return list of event types this subscriber handles.
         
         Returns:
-            List[StreamEventType]: Event types for message history management.
+            List[EventType]: Event types for message history management.
         """
         return [
             # LLM Response Events
-            StreamEventType.CONTENT,
-            StreamEventType.FINISH,
+            EventType.CONTENT,
+            EventType.FINISH,
             # Tool Execution Events
-            StreamEventType.MCP_TOOL_CALL_DISPATCHED,
-            StreamEventType.MCP_TOOL_CALL_RESULT,
-            StreamEventType.MCP_TOOL_CALL_ERROR,
+            EventType.MCP_TOOL_CALL_DISPATCHED,
+            EventType.MCP_TOOL_CALL_RESULT,
+            EventType.MCP_TOOL_CALL_ERROR,
         ]
     
     def on_event(self, event: StreamEvent) -> None:
@@ -64,15 +64,15 @@ class MessageHistory(EventSubscriber):
                 self._regenerate_provider_history()
                 self.logger.debug(f"Provider changed to {event.provider}, regenerated provider history")
             
-            if event.type == StreamEventType.CONTENT:
+            if event.type == EventType.CONTENT:
                 self._handle_content_event(event)
-            elif event.type == StreamEventType.FINISH:
+            elif event.type == EventType.FINISH:
                 self._handle_finish_event(event)
-            elif event.type == StreamEventType.MCP_TOOL_CALL_DISPATCHED:
+            elif event.type == EventType.MCP_TOOL_CALL_DISPATCHED:
                 self._handle_tool_call_dispatched_event(event)
-            elif event.type == StreamEventType.MCP_TOOL_CALL_RESULT:
+            elif event.type == EventType.MCP_TOOL_CALL_RESULT:
                 self._handle_tool_call_result_event(event)
-            elif event.type == StreamEventType.MCP_TOOL_CALL_ERROR:
+            elif event.type == EventType.MCP_TOOL_CALL_ERROR:
                 self._handle_tool_call_error_event(event)
                 
         except Exception as e:

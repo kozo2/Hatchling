@@ -12,7 +12,7 @@ from unittest.mock import MagicMock
 
 from tests.test_decorators import feature_test, requires_api_key
 
-from hatchling.core.llm.event_system import StreamEvent, StreamEventType
+from hatchling.core.llm.event_system import StreamEvent, EventType
 
 from hatchling.mcp_utils.mcp_tool_execution import MCPToolExecution
 from hatchling.mcp_utils.mcp_tool_call_subscriber import MCPToolCallSubscriber
@@ -32,7 +32,7 @@ class TestMCPToolCallSubscriberRegistry(unittest.TestCase):
         def mock_execute_tool_sync(parsed_tool_call):
             # Simulate what the real execute_tool_sync -> execute_tool would do
             self.mock_tool_execution.stream_publisher.publish(
-                StreamEventType.MCP_TOOL_CALL_DISPATCHED, 
+                EventType.MCP_TOOL_CALL_DISPATCHED, 
                 parsed_tool_call.to_dict()
             )
             
@@ -42,7 +42,7 @@ class TestMCPToolCallSubscriberRegistry(unittest.TestCase):
     def test_on_event_ollama(self):
         # Create a mock Ollama tool call event
         ollama_event = StreamEvent(
-            type=StreamEventType.LLM_TOOL_CALL_REQUEST,
+            type=EventType.LLM_TOOL_CALL_REQUEST,
             data={
                 "tool_calls": [
                     {
@@ -68,7 +68,7 @@ class TestMCPToolCallSubscriberRegistry(unittest.TestCase):
 
         self.mock_tool_execution.stream_publisher.publish.assert_called_once()
         args = self.mock_tool_execution.stream_publisher.publish.call_args[0]
-        self.assertEqual(args[0], StreamEventType.MCP_TOOL_CALL_DISPATCHED)
+        self.assertEqual(args[0], EventType.MCP_TOOL_CALL_DISPATCHED)
         self.assertEqual(args[1]["function_name"], "get_weather")
         self.assertEqual(args[1]["tool_call_id"], "tool_123")
         self.assertEqual(args[1]["arguments"]["city"], "New York")
@@ -81,7 +81,7 @@ class TestMCPToolCallSubscriberRegistry(unittest.TestCase):
     def test_on_event_openai(self):
         # Create a mock OpenAI tool call event (first chunk)
         first_event = StreamEvent(
-            type=StreamEventType.LLM_TOOL_CALL_REQUEST,
+            type=EventType.LLM_TOOL_CALL_REQUEST,
             data={
                 "tool_call": {
                     "index": 0,
@@ -105,7 +105,7 @@ class TestMCPToolCallSubscriberRegistry(unittest.TestCase):
 
         # Create a mock continuation event
         continuation_event = StreamEvent(
-            type=StreamEventType.LLM_TOOL_CALL_REQUEST,
+            type=EventType.LLM_TOOL_CALL_REQUEST,
             data={
                 "tool_call": {
                     "index": 0,
@@ -125,7 +125,7 @@ class TestMCPToolCallSubscriberRegistry(unittest.TestCase):
 
         self.mock_tool_execution.stream_publisher.publish.assert_called_once()
         args = self.mock_tool_execution.stream_publisher.publish.call_args[0]
-        self.assertEqual(args[0], StreamEventType.MCP_TOOL_CALL_DISPATCHED)
+        self.assertEqual(args[0], EventType.MCP_TOOL_CALL_DISPATCHED)
         self.assertEqual(args[1]["function_name"], "")  # No function name in continuation
         self.assertEqual(args[1]["tool_call_id"], "unknown")  # No ID in continuation  
         # The arguments will be in _raw due to invalid JSON

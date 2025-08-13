@@ -43,7 +43,7 @@ class UIStateManager:
         self.flags = flag
 
 from hatchling.core.llm.event_system.event_subscriber import EventSubscriber
-from hatchling.core.llm.event_system.stream_data import StreamEvent, StreamEventType
+from hatchling.core.llm.event_system.stream_data import StreamEvent, EventType
 from hatchling.core.logging.logging_manager import logging_manager
 from prompt_toolkit import print_formatted_text as print_pt
 
@@ -110,98 +110,98 @@ class CLIEventSubscriber(EventSubscriber):
 
         try:
             # Tool Chaining Events
-            if event.type == StreamEventType.TOOL_CHAIN_START:
+            if event.type == EventType.TOOL_CHAIN_START:
                 self.logger.debug(f"Handling TOOL_CHAIN_START event: {event.data}")
                 self._handle_tool_chain_start(event)
-            elif event.type == StreamEventType.TOOL_CHAIN_ITERATION_START:
+            elif event.type == EventType.TOOL_CHAIN_ITERATION_START:
                 self._handle_tool_chain_iteration_start(event)
-            elif event.type == StreamEventType.TOOL_CHAIN_ITERATION_END:
+            elif event.type == EventType.TOOL_CHAIN_ITERATION_END:
                 self._handle_tool_chain_iteration_end(event)
-            elif event.type == StreamEventType.TOOL_CHAIN_END:
+            elif event.type == EventType.TOOL_CHAIN_END:
                 self.logger.debug(f"Handling TOOL_CHAIN_END event: {event.data}")
                 self._handle_tool_chain_end(event)
-            elif event.type == StreamEventType.TOOL_CHAIN_LIMIT_REACHED:
+            elif event.type == EventType.TOOL_CHAIN_LIMIT_REACHED:
                 self.logger.debug(f"Handling TOOL_CHAIN_LIMIT_REACHED event: {event.data}")
                 self._handle_tool_chain_limit_reached(event)
-            elif event.type == StreamEventType.TOOL_CHAIN_ERROR:
+            elif event.type == EventType.TOOL_CHAIN_ERROR:
                 self.logger.debug(f"Handling TOOL_CHAIN_ERROR event: {event.data}")
                 self._handle_tool_chain_error(event)
             
             # Tool Execution Events
-            elif event.type == StreamEventType.LLM_TOOL_CALL_REQUEST:
+            elif event.type == EventType.LLM_TOOL_CALL_REQUEST:
                 self.logger.debug(f"Handling LLM_TOOL_CALL_REQUEST event: {event.data}")
                 self._handle_llm_tool_call_request(event)
-            elif event.type == StreamEventType.MCP_TOOL_CALL_DISPATCHED:
+            elif event.type == EventType.MCP_TOOL_CALL_DISPATCHED:
                 self.logger.debug(f"Handling MCP_TOOL_CALL_DISPATCHED event: {event.data}")
                 self._handle_mcp_tool_call_dispatched(event)
-            elif event.type == StreamEventType.MCP_TOOL_CALL_RESULT:
+            elif event.type == EventType.MCP_TOOL_CALL_RESULT:
                 self.logger.debug(f"Handling MCP_TOOL_CALL_RESULT event: {event.data}")
                 self._handle_mcp_tool_call_result(event)
-            elif event.type == StreamEventType.MCP_TOOL_CALL_ERROR:
+            elif event.type == EventType.MCP_TOOL_CALL_ERROR:
                 self.logger.debug(f"Handling MCP_TOOL_CALL_ERROR event: {event.data}")
                 self._handle_mcp_tool_call_error(event)
             
             # MCP Server Events
-            elif event.type == StreamEventType.MCP_SERVER_UP:
+            elif event.type == EventType.MCP_SERVER_UP:
                 self.logger.debug(f"Handling MCP_SERVER_UP event: {event.data}")
                 self._handle_mcp_server_up(event)
-            elif event.type == StreamEventType.MCP_SERVER_DOWN:
+            elif event.type == EventType.MCP_SERVER_DOWN:
                 self.logger.debug(f"Handling MCP_SERVER_DOWN event: {event.data}")
                 self._handle_mcp_server_down(event)
-            elif event.type == StreamEventType.MCP_TOOL_ENABLED:
+            elif event.type == EventType.MCP_TOOL_ENABLED:
                 self.logger.debug(f"Handling MCP_TOOL_ENABLED event: {event.data}")
                 self._handle_mcp_tool_enabled(event)
-            elif event.type == StreamEventType.MCP_TOOL_DISABLED:
+            elif event.type == EventType.MCP_TOOL_DISABLED:
                 self.logger.debug(f"Handling MCP_TOOL_DISABLED event: {event.data}")
                 self._handle_mcp_tool_disabled(event)
             
             # LLM Events
-            elif event.type == StreamEventType.CONTENT:
+            elif event.type == EventType.CONTENT:
                 #self.logger.debug(f"Handling CONTENT event: {event.data}")
                 self._handle_content(event)
-            elif event.type == StreamEventType.USAGE:
+            elif event.type == EventType.USAGE:
                 self.logger.debug(f"Handling USAGE event: {event.data}")
                 self._handle_usage(event)
-            elif event.type == StreamEventType.ERROR:
+            elif event.type == EventType.ERROR:
                 self.logger.debug(f"Handling ERROR event: {event.data}")
                 self._handle_error(event)
-            elif event.type == StreamEventType.FINISH:
+            elif event.type == EventType.FINISH:
                 self.logger.debug(f"Handling FINISH event: {event.data}")
                 self._handle_finish(event)
             
         except Exception as e:
             self.logger.error(f"Error handling event {event.type.value}: {e}")
 
-    def get_subscribed_events(self) -> List[StreamEventType]:
+    def get_subscribed_events(self) -> List[EventType]:
         """Return list of event types this subscriber is interested in.
         
         Returns:
-            List[StreamEventType]: Event types for UI updates.
+            List[EventType]: Event types for UI updates.
         """
         return [
             # Tool Chaining Events
-            StreamEventType.TOOL_CHAIN_START,
-            StreamEventType.TOOL_CHAIN_END,
-            StreamEventType.TOOL_CHAIN_LIMIT_REACHED,
-            StreamEventType.TOOL_CHAIN_ERROR,
+            EventType.TOOL_CHAIN_START,
+            EventType.TOOL_CHAIN_END,
+            EventType.TOOL_CHAIN_LIMIT_REACHED,
+            EventType.TOOL_CHAIN_ERROR,
             
             # Tool Execution Events
-            StreamEventType.LLM_TOOL_CALL_REQUEST,
-            StreamEventType.MCP_TOOL_CALL_DISPATCHED,
-            StreamEventType.MCP_TOOL_CALL_RESULT,
-            StreamEventType.MCP_TOOL_CALL_ERROR,
+            EventType.LLM_TOOL_CALL_REQUEST,
+            EventType.MCP_TOOL_CALL_DISPATCHED,
+            EventType.MCP_TOOL_CALL_RESULT,
+            EventType.MCP_TOOL_CALL_ERROR,
             
             # MCP Server Events
-            StreamEventType.MCP_SERVER_UP,
-            StreamEventType.MCP_SERVER_DOWN,
-            StreamEventType.MCP_TOOL_ENABLED,
-            StreamEventType.MCP_TOOL_DISABLED,
+            EventType.MCP_SERVER_UP,
+            EventType.MCP_SERVER_DOWN,
+            EventType.MCP_TOOL_ENABLED,
+            EventType.MCP_TOOL_DISABLED,
             
             # LLM Events
-            StreamEventType.CONTENT,
-            StreamEventType.USAGE,
-            StreamEventType.ERROR,
-            StreamEventType.FINISH,
+            EventType.CONTENT,
+            EventType.USAGE,
+            EventType.ERROR,
+            EventType.FINISH,
         ]
 
     # Tool Chaining Event Handlers

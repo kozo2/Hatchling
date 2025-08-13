@@ -15,7 +15,7 @@ from mcp.types import CallToolResult
 from hatchling.mcp_utils.manager import mcp_manager
 from hatchling.core.logging.logging_manager import logging_manager
 from hatchling.config.settings import AppSettings
-from hatchling.core.llm.event_system import EventPublisher, StreamEventType
+from hatchling.core.llm.event_system import EventPublisher, EventType
 from hatchling.core.llm.data_structures import ToolCallParsedResult
 
 @dataclass
@@ -113,7 +113,7 @@ class MCPToolExecution:
         self.current_tool_call_iteration += 1
 
         # Publish tool call dispatched event
-        self._event_publisher.publish(StreamEventType.MCP_TOOL_CALL_DISPATCHED, parsed_tool_call.to_dict())
+        self._event_publisher.publish(EventType.MCP_TOOL_CALL_DISPATCHED, parsed_tool_call.to_dict())
 
         try:
             # Process the tool call using MCPManager
@@ -129,14 +129,14 @@ class MCPToolExecution:
                     result=tool_response,
                     error=None
                 )
-                self._event_publisher.publish(StreamEventType.MCP_TOOL_CALL_RESULT, result_obj.to_dict())
+                self._event_publisher.publish(EventType.MCP_TOOL_CALL_RESULT, result_obj.to_dict())
             else:
                 result_obj = ToolCallExecutionResult(
                     **parsed_tool_call.to_dict(),
                     result=tool_response,
                     error="Tool execution failed or returned no valid response"
                 )
-                self._event_publisher.publish(StreamEventType.MCP_TOOL_CALL_ERROR, result_obj.to_dict())
+                self._event_publisher.publish(EventType.MCP_TOOL_CALL_ERROR, result_obj.to_dict())
 
         except Exception as e:
             self.logger.error(f"Error executing tool: {e}")
@@ -148,7 +148,7 @@ class MCPToolExecution:
                 ),
                 error=str(e)
             )
-            self._event_publisher.publish(StreamEventType.MCP_TOOL_CALL_ERROR, result_obj.to_dict())
+            self._event_publisher.publish(EventType.MCP_TOOL_CALL_ERROR, result_obj.to_dict())
 
     def execute_tool_sync(self, parsed_tool_call: ToolCallParsedResult) -> None:
         """Synchronous wrapper for execute_tool that handles async execution internally.

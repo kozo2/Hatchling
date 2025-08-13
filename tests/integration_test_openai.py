@@ -44,7 +44,7 @@ from hatchling.core.llm.event_system import (
     UsageStatsSubscriber,
     ErrorHandlerSubscriber,
     EventPublisher,
-    StreamEventType,
+    EventType,
     StreamEvent
 )
 from Hatchling.hatchling.mcp_utils.mcp_tool_lifecycle_subscriber import ToolLifecycleSubscriber
@@ -78,7 +78,7 @@ class TestStreamToolCallSubscriber(EventSubscriber):
             event (StreamEvent): The streaming event to process
         """
 
-        if event.type == StreamEventType.LLM_TOOL_CALL_REQUEST:
+        if event.type == EventType.LLM_TOOL_CALL_REQUEST:
             # OpenAI-style: first chunk has 'type' == 'function', then subsequent have type None and 'arguments' fragments
             index = event.data["index"]
             if index not in self._tool_call_buffers:
@@ -92,14 +92,14 @@ class TestStreamToolCallSubscriber(EventSubscriber):
             else:
                 # Collect fragments
                 self._tool_call_buffers[index]["function"]["arguments"] += event.data["function"]["arguments"]
-        elif event.type == StreamEventType.CONTENT:
+        elif event.type == EventType.CONTENT:
             content = event.data.get("content", "")
             role = event.data.get("role", "assistant")
             print(f"Content from {role}: {content}")
-        elif event.type == StreamEventType.USAGE:
+        elif event.type == EventType.USAGE:
             usage = event.data.get("usage", {})
             print(f"Usage stats: {usage}")
-        elif event.type == StreamEventType.FINISH:
+        elif event.type == EventType.FINISH:
             # Convert the reconstructed arguments to a JSON dictionary
             for index, tool_call in self._tool_call_buffers.items():
                 tool_call["function"]["arguments"] = json.loads(tool_call["function"]["arguments"])
@@ -112,9 +112,9 @@ class TestStreamToolCallSubscriber(EventSubscriber):
         """Return list of events this subscriber is interested in.
         
         Returns:
-            list: List of StreamEventType values this subscriber handles
+            list: List of EventType values this subscriber handles
         """
-        return [StreamEventType.LLM_TOOL_CALL_REQUEST, StreamEventType.CONTENT, StreamEventType.USAGE, StreamEventType.FINISH]
+        return [EventType.LLM_TOOL_CALL_REQUEST, EventType.CONTENT, EventType.USAGE, EventType.FINISH]
 
 
 class TestOpenAIProviderIntegration(unittest.TestCase):
@@ -307,7 +307,7 @@ class TestOpenAIProviderIntegration(unittest.TestCase):
             "tool_info": tool_info  # Changed from mcp_tool_info to tool_info
         }
         event = StreamEvent(
-            type=StreamEventType.MCP_TOOL_ENABLED,
+            type=EventType.MCP_TOOL_ENABLED,
             data=event_data,
             provider=ELLMProvider.OPENAI,
             request_id=None,
@@ -321,7 +321,7 @@ class TestOpenAIProviderIntegration(unittest.TestCase):
         self.provider.publisher.subscribe(tool_call_subscriber)
         mcp_activity_mock_publisher = EventPublisher()
         mcp_activity_mock_publisher.subscribe(tls)
-        mcp_activity_mock_publisher.publish(StreamEventType.MCP_TOOL_ENABLED, event.data)
+        mcp_activity_mock_publisher.publish(EventType.MCP_TOOL_ENABLED, event.data)
 
         enabled_tools = tls.get_enabled_tools()
         self.assertIn(tool_name, enabled_tools, f"Tool '{tool_name}' should be enabled after event")
@@ -360,7 +360,7 @@ class TestOpenAIProviderIntegration(unittest.TestCase):
 
         # Simulate disabling the tool
         disable_event = StreamEvent(
-            type=StreamEventType.MCP_TOOL_DISABLED,
+            type=EventType.MCP_TOOL_DISABLED,
             data={
                 "tool_name": tool_name,
                 "reason": "FROM_USER_DISABLED"
@@ -369,7 +369,7 @@ class TestOpenAIProviderIntegration(unittest.TestCase):
             request_id=None,
             timestamp=time.time()
         )
-        mcp_activity_mock_publisher.publish(StreamEventType.MCP_TOOL_DISABLED, disable_event.data)
+        mcp_activity_mock_publisher.publish(EventType.MCP_TOOL_DISABLED, disable_event.data)
         enabled_tools_after = tls.get_enabled_tools()
         self.assertNotIn(tool_name, enabled_tools_after, 
                         f"Tool '{tool_name}' should be disabled after disable event")
