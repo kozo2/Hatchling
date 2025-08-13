@@ -43,7 +43,7 @@ from hatchling.core.llm.streaming_management import (
     ContentPrinterSubscriber,
     UsageStatsSubscriber,
     ErrorHandlerSubscriber,
-    StreamPublisher,
+    EventPublisher,
     StreamEventType,
     StreamEvent
 )
@@ -319,7 +319,7 @@ class TestOpenAIProviderIntegration(unittest.TestCase):
         tls = self.provider._toolLifecycle_subscriber
         tool_call_subscriber = TestStreamToolCallSubscriber()
         self.provider.publisher.subscribe(tool_call_subscriber)
-        mcp_activity_mock_publisher = StreamPublisher()
+        mcp_activity_mock_publisher = EventPublisher()
         mcp_activity_mock_publisher.subscribe(tls)
         mcp_activity_mock_publisher.publish(StreamEventType.MCP_TOOL_ENABLED, event.data)
 

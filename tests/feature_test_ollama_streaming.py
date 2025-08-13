@@ -14,7 +14,7 @@ from hatchling.config.settings import AppSettings
 from hatchling.config.ollama_settings import OllamaSettings
 from hatchling.core.llm.providers import ProviderRegistry
 from hatchling.core.llm.streaming_management import (
-    StreamPublisher,
+    EventPublisher,
     ContentPrinterSubscriber,
     UsageStatsSubscriber,
     ErrorHandlerSubscriber

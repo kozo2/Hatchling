@@ -8,9 +8,9 @@ Ensures consistent interaction and feature discovery across different LLM servic
 from abc import ABC, abstractmethod
 from typing import Dict, List, Any, Optional
 
-from hatchling.core.llm.streaming_management import StreamPublisher
+from hatchling.core.llm.event_system import EventPublisher
 from Hatchling.hatchling.mcp_utils.mcp_tool_lifecycle_subscriber import ToolLifecycleSubscriber
-from hatchling.core.llm.streaming_management.stream_subscribers import StreamEvent
+from hatchling.core.llm.event_system.stream_subscribers import StreamEvent
 from hatchling.core.llm.data_structures import ToolCallParsedResult
 from hatchling.config.settings import AppSettings
 from hatchling.mcp_utils.mcp_tool_data import MCPToolInfo
@@ -30,7 +30,7 @@ class LLMProvider(ABC):
                                             If None, uses the singleton instance.
         """
         self._settings = settings or AppSettings.get_instance()
-        self._stream_publisher : Optional[StreamPublisher] = None
+        self._event_publisher : Optional[EventPublisher] = None
         self._toolLifecycle_subscriber: Optional[ToolLifecycleSubscriber] = None
 
     @property
@@ -54,13 +54,13 @@ class LLMProvider(ABC):
         pass
     
     @property
-    def publisher(self) -> StreamPublisher:
+    def publisher(self) -> EventPublisher:
         """Return the stream event publisher for this provider.
         
         Returns:
-            StreamPublisher: The publisher for streaming events.
+            EventPublisher: The publisher for streaming events.
         """
-        return self._stream_publisher    
+        return self._event_publisher    
 
     @abstractmethod
     def initialize(self) -> None:

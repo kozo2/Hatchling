@@ -160,7 +160,7 @@ class TestToolExecutionRegression(unittest.TestCase):
             )
     
     @regression_test
-    def test_stream_publisher_integration_still_works(self):
+    def test_event_publisher_integration_still_works(self):
         """Test that stream publisher integration still works."""
         # The new interface should have stream_publisher property
         self.assertTrue(hasattr(self.tool_execution, 'stream_publisher'))
@@ -189,7 +189,7 @@ class TestToolExecutionRegression(unittest.TestCase):
     def test_event_publishing_capabilities_still_work(self):
         """Test that event publishing capabilities still work."""
         # Should have internal event publishing method
-        self.assertTrue(hasattr(self.tool_execution, '_stream_publisher'))
+        self.assertTrue(hasattr(self.tool_execution, '_event_publisher'))
         
         # Test that events can be published (basic functionality test)
         publisher = self.tool_execution.stream_publisher
@@ -216,11 +216,11 @@ class TestToolExecutionRegression(unittest.TestCase):
         self.assertEqual(model, "gpt-4")  # From our mock
     
     @regression_test
-    def test_new_stream_publisher_doesnt_break_existing_functionality(self):
-        """Test that the new StreamPublisher doesn't interfere with existing functionality."""
+    def test_new_event_publisher_doesnt_break_existing_functionality(self):
+        """Test that the new EventPublisher doesn't interfere with existing functionality."""
         # Verify the stream publisher exists (new functionality)
         self.assertTrue(hasattr(self.tool_execution, 'stream_publisher'))
-        self.assertTrue(hasattr(self.tool_execution, '_stream_publisher'))
+        self.assertTrue(hasattr(self.tool_execution, '_event_publisher'))
         
         # Verify that having a stream publisher doesn't break basic operations
         test_query = "Test query with publisher"

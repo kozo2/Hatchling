@@ -4,7 +4,6 @@ This module provides the AbstractCommands base class that defines the common str
 and shared functionality for all command handlers in the chat interface.
 """
 
-import logging
 from abc import ABC, abstractmethod
 from typing import Dict, Any, Optional
 

@@ -6,7 +6,7 @@ LLM operations and responses using the publish-subscribe pattern.
 from .event_data import EventType, Event
 from .event_publisher import EventPublisher
 from .event_subscriber import EventSubscriber
-from .event_subscribers import (
+from .event_subscribers_examples import (
     CallableSubscriber,
     ContentPrinterSubscriber,
     ContentAccumulatorSubscriber,

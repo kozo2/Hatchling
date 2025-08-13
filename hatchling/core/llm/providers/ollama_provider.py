@@ -15,9 +15,9 @@ from .registry import ProviderRegistry
 from hatchling.config.settings import AppSettings
 from hatchling.config.llm_settings import ELLMProvider
 from hatchling.mcp_utils.mcp_tool_data import MCPToolInfo
-from hatchling.core.llm.streaming_management.stream_publisher import StreamPublisher
-from hatchling.core.llm.streaming_management.stream_data import StreamEventType
-from hatchling.core.llm.streaming_management.stream_subscribers import StreamEvent
+from hatchling.core.llm.event_system.event_publisher import EventPublisher
+from hatchling.core.llm.event_system.event_data import EventType
+from Hatchling.hatchling.core.llm.event_system.event_subscribers_examples import Event
 from Hatchling.hatchling.mcp_utils.mcp_tool_lifecycle_subscriber import ToolLifecycleSubscriber
 from hatchling.core.llm.data_structures import ToolCallParsedResult
 from hatchling.mcp_utils.manager import mcp_manager
@@ -77,7 +77,7 @@ class OllamaProvider(LLMProvider):
         try:
             self._client = AsyncClient(host=self._settings.ollama.api_base)
             self._toolLifecycle_subscriber = ToolLifecycleSubscriber(ELLMProvider.OLLAMA.value, self.convert_tool)
-            self._stream_publisher = StreamPublisher()
+            self._event_publisher = EventPublisher()
             mcp_manager.publisher.subscribe(self._toolLifecycle_subscriber)
             
             logger.info(f"Successfully connected to Ollama server at {self._settings.ollama.api_base}")
@@ -94,7 +94,7 @@ class OllamaProvider(LLMProvider):
         It will close the AsyncClient connection gracefully.
         """
         mcp_manager.publisher.unsubscribe(self._toolLifecycle_subscriber)
-        self._stream_publisher.clear_subscribers()
+        self._event_publisher.clear_subscribers()
     
     def prepare_chat_payload(
         self,
@@ -242,7 +242,7 @@ class OllamaProvider(LLMProvider):
 
             # Generate a unique request ID for this streaming session
             request_id = str(uuid.uuid4())
-            self._stream_publisher.set_request_id(request_id)
+            self._event_publisher.set_request_id(request_id)
             
             # Stream the response
             response_stream = await self._client.chat(**payload)
@@ -255,8 +255,8 @@ class OllamaProvider(LLMProvider):
             logger.error(error_msg)
             
             # Publish error event
-            self._stream_publisher.publish(
-                StreamEventType.ERROR,
+            self._event_publisher.publish(
+                EventType.ERROR,
                 {
                     "error": {"message": error_msg, "type": "ollama_streaming_error"},
                     "request_id": request_id
@@ -281,16 +281,16 @@ class OllamaProvider(LLMProvider):
                 message = chunk["message"]
                 if "role" in message:
                     # Publish role event
-                    self._stream_publisher.publish(
-                        StreamEventType.ROLE,
+                    self._event_publisher.publish(
+                        EventType.ROLE,
                         {"role": message["role"]}
                     )
                 
                 if "content" in message and message["content"]:
                     content = message["content"]
                     # Publish content event
-                    self._stream_publisher.publish(
-                        StreamEventType.CONTENT,
+                    self._event_publisher.publish(
+                        EventType.CONTENT,
                         {"content": content}
                     )
             
@@ -298,8 +298,8 @@ class OllamaProvider(LLMProvider):
             if chunk.get("done", False):
                 # Publish finish event
                 finish_reason = chunk.get("done_reason", "stop")
-                self._stream_publisher.publish(
-                    StreamEventType.FINISH,
+                self._event_publisher.publish(
+                    EventType.FINISH,
                     {"finish_reason": finish_reason}
                 )
                 
@@ -311,8 +311,8 @@ class OllamaProvider(LLMProvider):
                         "total_tokens": chunk.get("prompt_eval_count", 0) + chunk.get("eval_count", 0)
                     }
                     # Publish usage event
-                    self._stream_publisher.publish(
-                        StreamEventType.USAGE,
+                    self._event_publisher.publish(
+                        EventType.USAGE,
                         {"usage": usage}
                     )
             
@@ -320,8 +320,8 @@ class OllamaProvider(LLMProvider):
             if "message" in chunk and "tool_calls" in chunk["message"]:
                 tool_calls = chunk["message"]["tool_calls"]
                 # Publish tool calls
-                self._stream_publisher.publish(
-                    StreamEventType.LLM_TOOL_CALL_REQUEST,
+                self._event_publisher.publish(
+                    EventType.LLM_TOOL_CALL_REQUEST,
                     {"tool_calls": tool_calls}
                 )
             
@@ -330,8 +330,8 @@ class OllamaProvider(LLMProvider):
             logger.error(error_msg)
             
             # Publish error event
-            self._stream_publisher.publish(
-                StreamEventType.ERROR,{"error": {"message": error_msg, "type": "chunk_parsing_error"}}
+            self._event_publisher.publish(
+                EventType.ERROR,{"error": {"message": error_msg, "type": "chunk_parsing_error"}}
             )
     
 
@@ -367,11 +367,11 @@ class OllamaProvider(LLMProvider):
                 "message": f"Ollama server unavailable: {str(e)}"
             }
 
-    def parse_tool_call(self, event: StreamEvent) -> Optional[ToolCallParsedResult]:
+    def parse_tool_call(self, event: Event) -> Optional[ToolCallParsedResult]:
         """Parse an Ollama tool call event.
 
         Args:
-            event (StreamEvent): The Ollama tool call event.
+            event (Event): The Ollama tool call event.
 
         Returns:
             Optional[ToolCallParsedResult]: Normalized tool call result, or None if parsing fails.

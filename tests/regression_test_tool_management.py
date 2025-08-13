@@ -155,7 +155,7 @@ class TestToolManagementRegression(unittest.TestCase):
     def test_publisher_integration_doesnt_break_existing_functionality(self):
         """Test that publisher integration doesn't break existing functionality."""
         # Should have publisher
-        self.assertTrue(hasattr(self.manager, '_stream_publisher'))
+        self.assertTrue(hasattr(self.manager, '_event_publisher'))
         self.assertTrue(hasattr(self.manager, 'publisher'))
         
         # Publisher should be accessible

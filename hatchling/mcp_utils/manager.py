@@ -10,7 +10,7 @@ from .client import MCPClient
 from .mcp_tool_data import MCPToolInfo, MCPToolStatus, MCPToolStatusReason
 from hatchling.core.logging.logging_manager import logging_manager
 from hatchling.core.llm.streaming_management import (
-    StreamPublisher, 
+    EventPublisher, 
     StreamEventType,
 )
 from hatchling.config.settings import AppSettings
@@ -63,7 +63,7 @@ class MCPManager:
         )
 
         # Event publishing capabilities
-        self._stream_publisher = StreamPublisher()
+        self._event_publisher = EventPublisher()
         
         # Tool management for lifecycle events
         self._managed_tools: Dict[str, MCPToolInfo] = {}  # Tool name -> MCPToolInfo
@@ -73,13 +73,13 @@ class MCPManager:
                                   formatter=logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s'))
 
     @property
-    def publisher(self) -> StreamPublisher:
-        """Access to the StreamPublisher for MCP lifecycle events.
+    def publisher(self) -> EventPublisher:
+        """Access to the EventPublisher for MCP lifecycle events.
         
         Returns:
-            StreamPublisher: The publisher for MCP-related events.
+            EventPublisher: The publisher for MCP-related events.
         """
-        return self._stream_publisher
+        return self._event_publisher
     
     @property
     def is_connected(self) -> bool:
@@ -102,7 +102,7 @@ class MCPManager:
             "server_path": server_path,
             **additional_data
         }
-        self._stream_publisher.publish(event_type, event_data)
+        self._event_publisher.publish(event_type, event_data)
         self.logger.debug(f"Published {event_type.value} event for server: {server_path}")
     
     def _publish_tool_event(self, event_type: StreamEventType, tool_name: str, 
@@ -121,7 +121,7 @@ class MCPManager:
             **additional_data
         }
 
-        self._stream_publisher.publish(event_type, event_data)
+        self._event_publisher.publish(event_type, event_data)
         self.logger.debug(f"Published {event_type.value} event for tool: {tool_name}")
 
     def validate_server_paths(self, server_paths: List[str]) -> List[str]:

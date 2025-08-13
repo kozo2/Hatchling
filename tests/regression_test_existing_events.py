@@ -19,7 +19,7 @@ from tests.test_decorators import regression_test
 from hatchling.core.llm.streaming_management import (
     StreamEventType,
     StreamEvent,
-    StreamPublisher,
+    EventPublisher,
     ContentPrinterSubscriber,
     UsageStatsSubscriber,
     ErrorHandlerSubscriber
@@ -30,7 +30,7 @@ class TestExistingEventHandling(unittest.TestCase):
     
     def setUp(self):
         """Set up test fixtures before each test method."""
-        self.publisher = StreamPublisher()
+        self.publisher = EventPublisher()
     
     def tearDown(self):
         """Clean up after each test method."""

@@ -30,33 +30,33 @@ from tests.test_decorators import slow_test, integration_test, requires_external
 from hatchling.config.llm_settings import ELLMProvider
 from hatchling.core.llm.providers.registry import ProviderRegistry
 from hatchling.core.llm.providers.ollama_provider import OllamaProvider
-from hatchling.core.llm.streaming_management import (
-    StreamSubscriber,
+from hatchling.core.llm.event_system import (
+    EventSubscriber,
     ContentPrinterSubscriber,
     UsageStatsSubscriber,
     ErrorHandlerSubscriber,
-    StreamPublisher,
-    StreamEventType,
-    StreamEvent
+    EventPublisher,
+    EventType,
+    Event
 )
 from Hatchling.hatchling.mcp_utils.mcp_tool_lifecycle_subscriber import ToolLifecycleSubscriber
 from hatchling.mcp_utils.mcp_tool_data import MCPToolInfo, MCPToolStatus, MCPToolStatusReason
 
 logger = logging.getLogger("integration_test_ollama")
 
-class TestStreamToolCallSubscriber(StreamSubscriber):
+class TestStreamToolCallSubscriber(EventSubscriber):
     """Test subscriber for streaming tool calls."""
 
     def on_event(self, event: StreamEvent) -> None:
         """Handle incoming stream events."""
-        if event.type == StreamEventType.LLM_TOOL_CALL_REQUEST:
+        if event.type == EventType.LLM_TOOL_CALL_REQUEST:
             tool_calls = event.data.get("tool_calls", [])
             print(f"Received tool calls: {tool_calls}")
-        elif event.type == StreamEventType.CONTENT:
+        elif event.type == EventType.CONTENT:
             content = event.data.get("content", "")
             role = event.data.get("role", "assistant")
             print(f"Content from {role}: {content}")
-        elif event.type == StreamEventType.USAGE:
+        elif event.type == EventType.USAGE:
             usage = event.data.get("usage", {})
             print(f"Usage stats: {usage}")
         else:
@@ -66,9 +66,9 @@ class TestStreamToolCallSubscriber(StreamSubscriber):
         """Return list of events this subscriber is interested in.
         
         Returns:
-            list: List of StreamEventType values this subscriber handles
+            list: List of EventType values this subscriber handles
         """
-        return [StreamEventType.LLM_TOOL_CALL_REQUEST, StreamEventType.CONTENT, StreamEventType.USAGE]
+        return [EventType.LLM_TOOL_CALL_REQUEST, EventType.CONTENT, EventType.USAGE]
 
 
 class TestOllamaProviderSync(unittest.TestCase):
@@ -175,7 +175,7 @@ class TestOllamaProviderSync(unittest.TestCase):
             }
         
         tls = ToolLifecycleSubscriber("ollama", mock_convert_tool)
-        publisher = StreamPublisher()
+        publisher = EventPublisher()
         publisher.subscribe(tls)
 
         # Enable two tools
@@ -194,13 +194,13 @@ class TestOllamaProviderSync(unittest.TestCase):
                 "tool_info": tool_info  # Changed from mcp_tool_info to tool_info
             }
             event = StreamEvent(
-                type=StreamEventType.MCP_TOOL_ENABLED,
+                type=EventType.MCP_TOOL_ENABLED,
                 data=event_data,
                 provider=ELLMProvider.OLLAMA,
                 request_id=None,
                 timestamp=time.time()
             )
-            publisher.publish(StreamEventType.MCP_TOOL_ENABLED, event.data)
+            publisher.publish(EventType.MCP_TOOL_ENABLED, event.data)
 
         enabled = tls.get_enabled_tools()
         self.assertEqual(len(enabled), 2)
@@ -209,7 +209,7 @@ class TestOllamaProviderSync(unittest.TestCase):
 
         # Disable one tool
         disable_event = StreamEvent(
-            type=StreamEventType.MCP_TOOL_DISABLED,
+            type=EventType.MCP_TOOL_DISABLED,
             data={
                 "tool_name": "tool_0",
                 "reason": "FROM_USER_DISABLED"
@@ -218,7 +218,7 @@ class TestOllamaProviderSync(unittest.TestCase):
             request_id=None,
             timestamp=time.time()
         )
-        publisher.publish(StreamEventType.MCP_TOOL_DISABLED, disable_event.data)
+        publisher.publish(EventType.MCP_TOOL_DISABLED, disable_event.data)
         enabled = tls.get_enabled_tools()
         self.assertNotIn("tool_0", enabled)
         self.assertIn("tool_1", enabled)
@@ -306,7 +306,7 @@ class TestOllamaProviderIntegration(unittest.IsolatedAsyncioTestCase):
             "tool_info": tool_info  # Changed from mcp_tool_info to tool_info
         }
         event = StreamEvent(
-            type=StreamEventType.MCP_TOOL_ENABLED,
+            type=EventType.MCP_TOOL_ENABLED,
             data=event_data,
             provider=ELLMProvider.OLLAMA,
             request_id=None,
@@ -318,9 +318,9 @@ class TestOllamaProviderIntegration(unittest.IsolatedAsyncioTestCase):
         tls = self.provider._toolLifecycle_subscriber
         tool_call_subscriber = TestStreamToolCallSubscriber()
         self.provider.publisher.subscribe(tool_call_subscriber)
-        mcp_activity_mock_publisher = StreamPublisher()
+        mcp_activity_mock_publisher = EventPublisher()
         mcp_activity_mock_publisher.subscribe(tls)
-        mcp_activity_mock_publisher.publish(StreamEventType.MCP_TOOL_ENABLED, event.data)
+        mcp_activity_mock_publisher.publish(EventType.MCP_TOOL_ENABLED, event.data)
 
         enabled_tools = tls.get_enabled_tools()
         self.assertIn(tool_name, enabled_tools)
@@ -355,7 +355,7 @@ class TestOllamaProviderIntegration(unittest.IsolatedAsyncioTestCase):
 
         # Simulate disabling the tool
         disable_event = StreamEvent(
-            type=StreamEventType.MCP_TOOL_DISABLED,
+            type=EventType.MCP_TOOL_DISABLED,
             data={
                 "tool_name": tool_name,
                 "reason": "FROM_USER_DISABLED"
@@ -364,7 +364,7 @@ class TestOllamaProviderIntegration(unittest.IsolatedAsyncioTestCase):
             request_id=None,
             timestamp=time.time()
         )
-        mcp_activity_mock_publisher.publish(StreamEventType.MCP_TOOL_DISABLED, disable_event.data)
+        mcp_activity_mock_publisher.publish(EventType.MCP_TOOL_DISABLED, disable_event.data)
         enabled_tools_after = tls.get_enabled_tools()
         self.assertNotIn(tool_name, enabled_tools_after)
 

@@ -14,7 +14,7 @@ from hatchling.config.settings import AppSettings
 from hatchling.core.llm.providers import ProviderRegistry
 from hatchling.core.llm.streaming_management.stream_subscriber import StreamSubscriber
 from hatchling.core.llm.streaming_management.stream_data import StreamEventType, StreamEvent
-from hatchling.core.llm.streaming_management.stream_publisher import StreamPublisher
+from hatchling.core.llm.streaming_management.stream_publisher import EventPublisher
 from hatchling.core.llm.data_structures import ToolCallParsedResult
 from hatchling.core.llm.tool_management.tool_result_collector_subscriber import ToolResultCollectorSubscriber
 from hatchling.mcp_utils.mcp_tool_execution import ToolCallExecutionResult
@@ -47,7 +47,7 @@ class ToolChainingSubscriber(StreamSubscriber):
         self.logger = logging_manager.get_session("ToolChainingSubscriber")
         
         # Create publisher for tool chaining events
-        self.publisher = StreamPublisher()  # Default provider for chaining events
+        self.publisher = EventPublisher()  # Default provider for chaining events
         
         # Chain tracking for event publishing
         self.tool_result_collector = ToolResultCollectorSubscriber()
