@@ -39,7 +39,7 @@ from hatchling.core.llm.streaming_management import (
     StreamEventType,
     StreamEvent
 )
-from hatchling.core.llm.streaming_management.tool_lifecycle_subscriber import ToolLifecycleSubscriber
+from Hatchling.hatchling.mcp_utils.mcp_tool_lifecycle_subscriber import ToolLifecycleSubscriber
 from hatchling.mcp_utils.mcp_tool_data import MCPToolInfo, MCPToolStatus, MCPToolStatusReason
 
 logger = logging.getLogger("integration_test_ollama")

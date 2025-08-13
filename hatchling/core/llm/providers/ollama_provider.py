@@ -18,7 +18,7 @@ from hatchling.mcp_utils.mcp_tool_data import MCPToolInfo
 from hatchling.core.llm.streaming_management.stream_publisher import StreamPublisher
 from hatchling.core.llm.streaming_management.stream_data import StreamEventType
 from hatchling.core.llm.streaming_management.stream_subscribers import StreamEvent
-from hatchling.core.llm.streaming_management.tool_lifecycle_subscriber import ToolLifecycleSubscriber
+from Hatchling.hatchling.mcp_utils.mcp_tool_lifecycle_subscriber import ToolLifecycleSubscriber
 from hatchling.core.llm.data_structures import ToolCallParsedResult
 from hatchling.mcp_utils.manager import mcp_manager
 

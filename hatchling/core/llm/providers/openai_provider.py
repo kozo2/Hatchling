@@ -19,7 +19,7 @@ from hatchling.config.llm_settings import ELLMProvider
 from hatchling.mcp_utils import mcp_manager
 from hatchling.mcp_utils.mcp_tool_data import MCPToolInfo
 from hatchling.core.llm.streaming_management import StreamPublisher, StreamEventType
-from hatchling.core.llm.streaming_management.tool_lifecycle_subscriber import ToolLifecycleSubscriber
+from Hatchling.hatchling.mcp_utils.mcp_tool_lifecycle_subscriber import ToolLifecycleSubscriber
 from hatchling.core.llm.streaming_management.stream_subscribers import StreamEvent
 from hatchling.core.llm.data_structures import ToolCallParsedResult
 
