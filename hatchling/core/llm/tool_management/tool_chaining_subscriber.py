@@ -16,8 +16,8 @@ from hatchling.core.llm.providers import ProviderRegistry
 from hatchling.core.llm.streaming_management.stream_subscriber import StreamSubscriber
 from hatchling.core.llm.streaming_management.stream_data import StreamEventType, StreamEvent
 from hatchling.core.llm.streaming_management.stream_publisher import StreamPublisher
+from hatchling.core.llm.data_structures import ToolCallParsedResult
 from hatchling.core.llm.tool_management.tool_result_collector_subscriber import ToolResultCollectorSubscriber
-from hatchling.core.llm.tool_management import ToolCallParsedResult
 from hatchling.mcp_utils.mcp_tool_execution import ToolCallExecutionResult
 from hatchling.core.chat.message_history_registry import MessageHistoryRegistry
 from hatchling.core.logging.logging_manager import logging_manager

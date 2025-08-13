@@ -10,7 +10,10 @@ from typing import Dict, List, Any, Optional
 
 from hatchling.core.llm.streaming_management import StreamPublisher
 from hatchling.core.llm.streaming_management.tool_lifecycle_subscriber import ToolLifecycleSubscriber
+from hatchling.core.llm.streaming_management.stream_subscribers import StreamEvent
+from hatchling.core.llm.data_structures import ToolCallParsedResult
 from hatchling.config.settings import AppSettings
+from hatchling.mcp_utils.mcp_tool_data import MCPToolInfo
 
 class LLMProvider(ABC):
     """Abstract base class for LLM providers.
@@ -161,5 +164,38 @@ class LLMProvider(ABC):
 
         Returns:
             dict: Health status information (should include 'available' and 'message').
+        """
+        pass
+
+    @abstractmethod
+    def parse_tool_call(self, event: StreamEvent) -> Optional[ToolCallParsedResult]:
+        """Parse a tool call event into a standardized format.
+
+        Args:
+            event (StreamEvent): The raw tool call event from the LLM provider.
+
+        Returns:
+            Optional[ToolCallParsedResult]: Normalized representation of the tool call, 
+                                          or None if the event cannot be parsed.
+
+        Raises:
+            ValueError: If the event cannot be parsed as a valid tool call.
+        """
+        pass
+
+    @abstractmethod
+    def convert_tool(self, tool_info: MCPToolInfo) -> Dict[str, Any]:
+        """Convert an MCP tool to provider-specific format.
+
+        Args:
+            tool_info (MCPToolInfo): MCP tool information to convert. This is expected
+                                   to be an in/out parameter whose provider_format 
+                                   field will be set to the converted tool format.
+
+        Returns:
+            Dict[str, Any]: Tool in provider-specific format.
+
+        Raises:
+            Exception: If tool conversion fails.
         """
         pass

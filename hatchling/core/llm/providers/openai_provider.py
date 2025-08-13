@@ -6,6 +6,7 @@ for OpenAI's API using the official openai Python client.
 
 import logging
 import uuid
+import json
 from typing import Dict, Any, List, Optional, AsyncIterator, Union
 from httpx import AsyncClient
 
@@ -16,8 +17,11 @@ from .registry import ProviderRegistry
 from hatchling.config.settings import AppSettings
 from hatchling.config.llm_settings import ELLMProvider
 from hatchling.mcp_utils import mcp_manager
+from hatchling.mcp_utils.mcp_tool_data import MCPToolInfo
 from hatchling.core.llm.streaming_management import StreamPublisher, StreamEventType
 from hatchling.core.llm.streaming_management.tool_lifecycle_subscriber import ToolLifecycleSubscriber
+from hatchling.core.llm.streaming_management.stream_subscribers import StreamEvent
+from hatchling.core.llm.data_structures import ToolCallParsedResult
 
 logger = logging.getLogger(__name__)
 
@@ -93,7 +97,7 @@ class OpenAIProvider(LLMProvider):
             self._client = AsyncOpenAI(**client_kwargs, http_client=self._http_client)
 
             self._stream_publisher = StreamPublisher()
-            self._toolLifecycle_subscriber = ToolLifecycleSubscriber(self._settings.llm.provider_name)
+            self._toolLifecycle_subscriber = ToolLifecycleSubscriber(self._settings.llm.provider_name, self.convert_tool)
             mcp_manager.publisher.subscribe(self._toolLifecycle_subscriber)
 
             logger.info("Successfully connected to OpenAI API")
@@ -412,3 +416,94 @@ class OpenAIProvider(LLMProvider):
                 "available": False,
                 "message": f"OpenAI API unavailable: {str(e)}"
             }
+
+    def parse_tool_call(self, event: StreamEvent) -> Optional[ToolCallParsedResult]:
+        """Parse an OpenAI tool call event.
+
+        Args:
+            event (StreamEvent): The OpenAI tool call event.
+
+        Returns:
+            Optional[ToolCallParsedResult]: Normalized tool call result, or None if parsing fails.
+
+        Raises:
+            ValueError: If the event cannot be parsed as a valid OpenAI tool call.
+        """
+        if event.provider != self.provider_enum:
+            raise ValueError(f"Event provider {event.provider} does not match OpenAI provider {self.provider_enum}")
+
+        try:
+            data = event.data
+            
+            # Handle OpenAI's deprecated function_call format
+            if "function_call" in data and data.get("deprecated", False):
+                function_call = data["function_call"]
+                return ToolCallParsedResult(
+                    tool_call_id="function_call",
+                    function_name=function_call.get("name", ""),
+                    arguments=self._parse_tool_call_arguments(function_call.get("arguments", "{}"))
+                )
+            
+            # Handle modern tool_call format (single complete tool call)
+            if "tool_call" in data:
+                tool_call = data["tool_call"]
+                return ToolCallParsedResult(
+                    tool_call_id=tool_call.get("id", "unknown"),
+                    function_name=tool_call.get("function", {}).get("name", ""),
+                    arguments=self._parse_tool_call_arguments(tool_call.get("function", {}).get("arguments", "{}"))
+                )
+            
+            raise ValueError("No valid tool call data found in OpenAI event")
+            
+        except Exception as e:
+            logger.error(f"Error parsing OpenAI tool call: {e}")
+            raise ValueError(f"Failed to parse OpenAI tool call: {e}")
+
+    def _parse_tool_call_arguments(self, args_str: str) -> Dict[str, Any]:
+        """Parse tool call arguments from JSON string to dictionary.
+        
+        Args:
+            args_str (str): JSON string of arguments.
+            
+        Returns:
+            Dict[str, Any]: Parsed arguments as a dictionary.
+        """
+        if not args_str:
+            return {}
+            
+        try:
+            return json.loads(args_str)
+        except json.JSONDecodeError:
+            logger.warning(f"Failed to parse OpenAI tool call arguments: {args_str}")
+            return {"_raw": args_str}
+
+    def convert_tool(self, tool_info: MCPToolInfo) -> Dict[str, Any]:
+        """Convert an MCP tool to OpenAI function format.
+        
+        Args:
+            tool_info (MCPToolInfo): MCP tool information to convert. This is an in/out
+                                   parameter whose provider_format field will be set 
+                                   to the converted tool format.
+            
+        Returns:
+            Dict[str, Any]: Tool in OpenAI function format.
+        """
+        try:
+            openai_tool = {
+                "type": "function",
+                "function": {
+                    "name": tool_info.name,
+                    "description": tool_info.description,
+                    "parameters": tool_info.schema
+                }
+            }
+            
+            # Cache the converted format in the tool info
+            tool_info.provider_format = openai_tool
+            
+            logger.debug(f"Converted tool {tool_info.name} to OpenAI format")
+            return openai_tool
+            
+        except Exception as e:
+            logger.error(f"Failed to convert tool {tool_info.name} to OpenAI format: {e}")
+            return {}

@@ -1,10 +1,9 @@
 import logging
-from typing import Dict, List
+from typing import Dict, List, Callable, Any
 
 from .stream_data import StreamEvent, StreamEventType
 from .stream_subscriber import StreamSubscriber
 from hatchling.mcp_utils import MCPToolInfo, MCPToolStatus, MCPToolStatusReason
-from hatchling.core.llm.tool_management import MCPToolAdapterRegistry
 
 
 class ToolLifecycleSubscriber(StreamSubscriber):
@@ -16,15 +15,16 @@ class ToolLifecycleSubscriber(StreamSubscriber):
     to get enabled tools for use in LLM payloads.
     """
     
-    def __init__(self, provider_name: str):
+    def __init__(self, provider_name: str, convert_tool_func: Callable[[MCPToolInfo], Dict[str, Any]]):
         """Initialize the tool lifecycle subscriber.
         
         Args:
             provider_name (str): Name of the LLM provider using this subscriber.
+            convert_tool_func (Callable): Function to convert MCP tools to provider-specific format.
         """
         self.provider_name = provider_name
         self._tool_cache: Dict[str, MCPToolInfo] = {}
-        self._mcp_tool_adapter = MCPToolAdapterRegistry.get_adapter(provider_name)
+        self._convert_tool_func = convert_tool_func
         self.logger = logging.getLogger(f"{self.__class__.__name__}[{provider_name}]")
     
     def on_event(self, event: StreamEvent) -> None:
@@ -134,7 +134,7 @@ class ToolLifecycleSubscriber(StreamSubscriber):
             # Tool info is an in/out parameter in convert_tool
             # Hence, the provider_format field will be set
             # to the converted tool format
-            self._mcp_tool_adapter.convert_tool(tool_info)
+            self._convert_tool_func(tool_info)
 
             self._tool_cache[tool_name] = tool_info
             self.logger.debug(f"Tool enabled: {tool_name}")
