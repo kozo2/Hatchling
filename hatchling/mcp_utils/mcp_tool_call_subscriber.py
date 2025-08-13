@@ -7,7 +7,7 @@ and dispatches them to MCPToolExecution for processing.
 from collections import deque
 from json import dumps as json_dumps
 
-from hatchling.core.llm.streaming_management import EventSubscriber, StreamEvent, StreamEventType
+from hatchling.core.llm.event_system import EventSubscriber, StreamEvent, StreamEventType
 from hatchling.core.llm.data_structures import ToolCallParsedResult
 from hatchling.core.llm.providers.registry import ProviderRegistry
 from hatchling.core.logging.logging_manager import logging_manager

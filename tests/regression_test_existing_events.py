@@ -16,7 +16,7 @@ sys.path.insert(0, str(Path(__file__).parent.parent))
 
 from tests.test_decorators import regression_test
 
-from hatchling.core.llm.streaming_management import (
+from hatchling.core.llm.event_system import (
     StreamEventType,
     StreamEvent,
     EventPublisher,

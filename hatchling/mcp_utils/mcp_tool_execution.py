@@ -15,7 +15,7 @@ from mcp.types import CallToolResult
 from hatchling.mcp_utils.manager import mcp_manager
 from hatchling.core.logging.logging_manager import logging_manager
 from hatchling.config.settings import AppSettings
-from hatchling.core.llm.streaming_management import EventPublisher, StreamEventType
+from hatchling.core.llm.event_system import EventPublisher, StreamEventType
 from hatchling.core.llm.data_structures import ToolCallParsedResult
 
 @dataclass

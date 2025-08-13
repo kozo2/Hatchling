@@ -38,7 +38,7 @@ from hatchling.config.llm_settings import ELLMProvider
 from Hatchling.hatchling.mcp_utils.mcp_tool_lifecycle_subscriber import ToolLifecycleSubscriber
 from hatchling.core.llm.providers.registry import ProviderRegistry
 from hatchling.mcp_utils.mcp_tool_data import MCPToolInfo, MCPToolStatus, MCPToolStatusReason
-from hatchling.core.llm.streaming_management import (
+from hatchling.core.llm.event_system import (
     EventSubscriber,
     ContentPrinterSubscriber,
     UsageStatsSubscriber,

@@ -21,7 +21,7 @@ from tests.test_decorators import feature_test
 from hatchling.config.settings import AppSettings
 from hatchling.config.openai_settings import OpenAISettings
 from hatchling.core.llm.providers.openai_provider import OpenAIProvider
-from hatchling.core.llm.streaming_management import (
+from hatchling.core.llm.event_system import (
     EventPublisher,
     ContentPrinterSubscriber, 
     UsageStatsSubscriber, 

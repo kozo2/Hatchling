@@ -196,7 +196,7 @@ class TestToolExecutionRegression(unittest.TestCase):
         
         # Should not raise an exception when publishing events
         try:
-            from hatchling.core.llm.streaming_management import StreamEventType
+            from hatchling.core.llm.event_system import StreamEventType
             publisher.publish(StreamEventType.MCP_TOOL_CALL_DISPATCHED, {"test": "data"})
         except Exception as e:
             self.fail(f"Event publishing should not raise exception: {e}")

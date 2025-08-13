@@ -9,7 +9,7 @@ from hatch import HatchEnvironmentManager
 from .client import MCPClient
 from .mcp_tool_data import MCPToolInfo, MCPToolStatus, MCPToolStatusReason
 from hatchling.core.logging.logging_manager import logging_manager
-from hatchling.core.llm.streaming_management import (
+from hatchling.core.llm.event_system import (
     EventPublisher, 
     StreamEventType,
 )

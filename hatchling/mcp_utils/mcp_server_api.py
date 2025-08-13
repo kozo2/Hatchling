@@ -13,7 +13,7 @@ import time
 from hatchling.mcp_utils.manager import mcp_manager, MCPToolInfo, MCPToolStatus
 from hatchling.mcp_utils.mcp_tool_data import MCPToolStatusReason
 from hatchling.core.logging.logging_manager import logging_manager
-from hatchling.core.llm.streaming_management import StreamEventType
+from hatchling.core.llm.event_system import StreamEventType
 
 
 class MCPServerStatus(Enum):

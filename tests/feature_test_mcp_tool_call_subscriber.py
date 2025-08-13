@@ -12,7 +12,7 @@ from unittest.mock import MagicMock
 
 from tests.test_decorators import feature_test, requires_api_key
 
-from hatchling.core.llm.streaming_management import StreamEvent, StreamEventType
+from hatchling.core.llm.event_system import StreamEvent, StreamEventType
 
 from hatchling.mcp_utils.mcp_tool_execution import MCPToolExecution
 from hatchling.mcp_utils.mcp_tool_call_subscriber import MCPToolCallSubscriber
