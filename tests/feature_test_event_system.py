@@ -23,7 +23,7 @@ class TestEventSystem(unittest.TestCase):
     @feature_test
     def test_stream_event_type_enum(self):
         """Test that EventType enum contains expected values."""
-        from hatchling.core.llm.event_system.stream_data import EventType
+        from hatchling.core.llm.event_system.event_data import EventType
 
         # LLM Response Events
         self.assertEqual(EventType.CONTENT.value, "content",
@@ -80,7 +80,7 @@ class TestEventSystem(unittest.TestCase):
     @feature_test
     def test_stream_event_creation(self):
         """Test Event data structure creation and properties."""
-        from hatchling.core.llm.event_system.stream_data import Event, EventType
+        from hatchling.core.llm.event_system.event_data import Event, EventType
         from hatchling.config.llm_settings import ELLMProvider
 
         # Create a test event
@@ -131,7 +131,7 @@ class TestEventSystem(unittest.TestCase):
     @feature_test
     def test_event_system_integration(self):
         """Test integration between different event system components."""
-        from hatchling.core.llm.event_system.stream_data import Event, EventType
+        from hatchling.core.llm.event_system.event_data import Event, EventType
         from hatchling.mcp_utils.mcp_tool_data import MCPToolInfo, MCPToolStatus, MCPToolStatusReason
         from hatchling.config.llm_settings import ELLMProvider
 

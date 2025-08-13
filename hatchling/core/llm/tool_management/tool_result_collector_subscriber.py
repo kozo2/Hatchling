@@ -11,7 +11,7 @@ from collections import deque
 from hatchling.core.logging.logging_manager import logging_manager
 
 from hatchling.core.llm.event_system.event_subscriber import EventSubscriber
-from hatchling.core.llm.event_system.stream_data import Event, EventType
+from hatchling.core.llm.event_system.event_data import Event, EventType
 
 from hatchling.core.llm.data_structures import ToolCallParsedResult
 from hatchling.mcp_utils.mcp_tool_execution import ToolCallExecutionResult

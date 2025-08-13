@@ -25,13 +25,13 @@ class TestMCPToolCallSubscriberRegistry(unittest.TestCase):
 
     def setUp(self):
         self.mock_tool_execution = MagicMock(spec=MCPToolExecution)
-        self.mock_tool_execution.stream_publisher = MagicMock()
-        self.mock_tool_execution.stream_publisher.publish = MagicMock()
+        self.mock_tool_execution.event_publisher = MagicMock()
+        self.mock_tool_execution.event_publisher.publish = MagicMock()
         
         # Configure execute_tool_sync to simulate the real behavior of publishing MCP_TOOL_CALL_DISPATCHED
         def mock_execute_tool_sync(parsed_tool_call):
             # Simulate what the real execute_tool_sync -> execute_tool would do
-            self.mock_tool_execution.stream_publisher.publish(
+            self.mock_tool_execution.event_publisher.publish(
                 EventType.MCP_TOOL_CALL_DISPATCHED, 
                 parsed_tool_call.to_dict()
             )
@@ -66,8 +66,8 @@ class TestMCPToolCallSubscriberRegistry(unittest.TestCase):
         subscriber = MCPToolCallSubscriber(self.mock_tool_execution)
         subscriber.on_event(ollama_event)
 
-        self.mock_tool_execution.stream_publisher.publish.assert_called_once()
-        args = self.mock_tool_execution.stream_publisher.publish.call_args[0]
+        self.mock_tool_execution.event_publisher.publish.assert_called_once()
+        args = self.mock_tool_execution.event_publisher.publish.call_args[0]
         self.assertEqual(args[0], EventType.MCP_TOOL_CALL_DISPATCHED)
         self.assertEqual(args[1]["function_name"], "get_weather")
         self.assertEqual(args[1]["tool_call_id"], "tool_123")
@@ -120,11 +120,11 @@ class TestMCPToolCallSubscriberRegistry(unittest.TestCase):
         )
 
         # Reset the mock to clear the first call
-        self.mock_tool_execution.stream_publisher.publish.reset_mock()
+        self.mock_tool_execution.event_publisher.publish.reset_mock()
         subscriber.on_event(continuation_event)
 
-        self.mock_tool_execution.stream_publisher.publish.assert_called_once()
-        args = self.mock_tool_execution.stream_publisher.publish.call_args[0]
+        self.mock_tool_execution.event_publisher.publish.assert_called_once()
+        args = self.mock_tool_execution.event_publisher.publish.call_args[0]
         self.assertEqual(args[0], EventType.MCP_TOOL_CALL_DISPATCHED)
         self.assertEqual(args[1]["function_name"], "")  # No function name in continuation
         self.assertEqual(args[1]["tool_call_id"], "unknown")  # No ID in continuation  

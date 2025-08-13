@@ -7,7 +7,7 @@ import unittest
 import time
 from unittest.mock import MagicMock, patch
 from hatchling.core.llm.tool_management.tool_chaining_subscriber import ToolChainingSubscriber
-from hatchling.core.llm.event_system.stream_data import EventType, Event
+from hatchling.core.llm.event_system.event_data import EventType, Event
 from tests.test_decorators import feature_test
 
 class TestToolChainingFeature(unittest.TestCase):

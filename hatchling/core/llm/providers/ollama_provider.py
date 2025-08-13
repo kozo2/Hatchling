@@ -10,15 +10,15 @@ import uuid
 from typing import Dict, Any, List, Optional, Union
 from ollama import AsyncClient
 
-from .base import LLMProvider
-from .registry import ProviderRegistry
+from hatchling.core.llm.providers.base import LLMProvider
+from hatchling.core.llm.providers.registry import ProviderRegistry
 from hatchling.config.settings import AppSettings
 from hatchling.config.llm_settings import ELLMProvider
 from hatchling.mcp_utils.mcp_tool_data import MCPToolInfo
 from hatchling.core.llm.event_system.event_publisher import EventPublisher
 from hatchling.core.llm.event_system.event_data import EventType
-from Hatchling.hatchling.core.llm.event_system.event_subscribers_examples import Event
-from Hatchling.hatchling.mcp_utils.mcp_tool_lifecycle_subscriber import ToolLifecycleSubscriber
+from hatchling.core.llm.event_system.event_subscribers_examples import Event
+from hatchling.mcp_utils.mcp_tool_lifecycle_subscriber import ToolLifecycleSubscriber
 from hatchling.core.llm.data_structures import ToolCallParsedResult
 from hatchling.mcp_utils.manager import mcp_manager
 

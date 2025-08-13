@@ -65,7 +65,7 @@ class MCPToolCallSubscriber(EventSubscriber):
 
             if parsed_tool_call:
                 self.logger.info(f"\nParsed tool call: {json_dumps(parsed_tool_call.to_dict(), indent=2)}\n")
-                self.tool_execution.stream_publisher.set_request_id(event.request_id)
+                self.tool_execution.event_publisher.set_request_id(event.request_id)
                 self._recent_request_ids.append(event.request_id)  # Add to rolling buffer
                 self._handle_tool_call_event(parsed_tool_call)
         else:
@@ -84,7 +84,7 @@ class MCPToolCallSubscriber(EventSubscriber):
         except Exception as e:
             self.logger.error(f"Error handling tool call event: {e}")
             
-            self.tool_execution.stream_publisher.publish(
+            self.tool_execution.event_publisher.publish(
                 EventType.MCP_TOOL_CALL_ERROR,
                 {
                     "parsed_tool_call": parsed_tool_call.to_dict(),

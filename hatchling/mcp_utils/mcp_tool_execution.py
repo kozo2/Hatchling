@@ -74,7 +74,7 @@ class MCPToolExecution:
         self.root_tool_query = None  # Track the original user query that started the tool sequence
     
     @property
-    def stream_publisher(self) -> EventPublisher:
+    def event_publisher(self) -> EventPublisher:
         """Get the stream publisher for this tool execution manager.
         
         Returns:
@@ -97,7 +97,7 @@ class MCPToolExecution:
 
         Sends the tool call to the MCPManager for execution and publishes events
         for tool call dispatched, progress, result, and error handling.
-        You can subscribe to `stream_publisher` of this class to receive
+        You can subscribe to `event_publisher` of this class to receive
         MCP_TOOL_CALL_DISPATCHED, MCP_TOOL_CALL_PROGRESS, MCP_TOOL_CALL_RESULT, and MCP_TOOL_CALL_ERROR events.
         That will allow you to react to tool calls in real-time and handle them accordingly.
 

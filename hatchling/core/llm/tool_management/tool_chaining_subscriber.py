@@ -13,8 +13,8 @@ from typing import List
 from hatchling.config.settings import AppSettings
 from hatchling.core.llm.providers import ProviderRegistry
 from hatchling.core.llm.event_system.event_subscriber import EventSubscriber
-from hatchling.core.llm.event_system.stream_data import EventType, Event
-from hatchling.core.llm.event_system.stream_publisher import EventPublisher
+from hatchling.core.llm.event_system.event_data import EventType, Event
+from hatchling.core.llm.event_system.event_publisher import EventPublisher
 from hatchling.core.llm.data_structures import ToolCallParsedResult
 from hatchling.core.llm.tool_management.tool_result_collector_subscriber import ToolResultCollectorSubscriber
 from hatchling.mcp_utils.mcp_tool_execution import ToolCallExecutionResult

@@ -12,15 +12,15 @@ from httpx import AsyncClient
 
 from openai import AsyncOpenAI
 
-from .base import LLMProvider
-from .registry import ProviderRegistry
+from hatchling.core.llm.providers.base import LLMProvider
+from hatchling.core.llm.providers.registry import ProviderRegistry
 from hatchling.config.settings import AppSettings
 from hatchling.config.llm_settings import ELLMProvider
 from hatchling.mcp_utils import mcp_manager
 from hatchling.mcp_utils.mcp_tool_data import MCPToolInfo
 from hatchling.core.llm.event_system import EventPublisher, EventType
-from Hatchling.hatchling.mcp_utils.mcp_tool_lifecycle_subscriber import ToolLifecycleSubscriber
-from Hatchling.hatchling.core.llm.event_system.event_subscribers_examples import Event
+from hatchling.mcp_utils.mcp_tool_lifecycle_subscriber import ToolLifecycleSubscriber
+from hatchling.core.llm.event_system.event_subscribers_examples import Event
 from hatchling.core.llm.data_structures import ToolCallParsedResult
 
 logger = logging.getLogger(__name__)

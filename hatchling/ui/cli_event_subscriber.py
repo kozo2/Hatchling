@@ -43,7 +43,7 @@ class UIStateManager:
         self.flags = flag
 
 from hatchling.core.llm.event_system.event_subscriber import EventSubscriber
-from hatchling.core.llm.event_system.stream_data import Event, EventType
+from hatchling.core.llm.event_system.event_data import Event, EventType
 from hatchling.core.logging.logging_manager import logging_manager
 from prompt_toolkit import print_formatted_text as print_pt
 

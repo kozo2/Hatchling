@@ -39,7 +39,7 @@ from hatchling.core.llm.event_system import (
     EventType,
     Event
 )
-from Hatchling.hatchling.mcp_utils.mcp_tool_lifecycle_subscriber import ToolLifecycleSubscriber
+from hatchling.mcp_utils.mcp_tool_lifecycle_subscriber import ToolLifecycleSubscriber
 from hatchling.mcp_utils.mcp_tool_data import MCPToolInfo, MCPToolStatus, MCPToolStatusReason
 
 logger = logging.getLogger("integration_test_ollama")
@@ -165,7 +165,7 @@ class TestOllamaProviderSync(unittest.TestCase):
         
         # Create a mock convert_tool function
         def mock_convert_tool(tool_info):
-            return {
+            provider_format = {
                 "type": "function",
                 "function": {
                     "name": tool_info.name,
@@ -173,6 +173,9 @@ class TestOllamaProviderSync(unittest.TestCase):
                     "parameters": tool_info.schema
                 }
             }
+            # Set the provider_format field on the tool_info object
+            tool_info.provider_format = provider_format
+            return provider_format
         
         tls = ToolLifecycleSubscriber("ollama", mock_convert_tool)
         publisher = EventPublisher()

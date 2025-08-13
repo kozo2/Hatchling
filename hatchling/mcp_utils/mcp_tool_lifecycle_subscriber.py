@@ -1,8 +1,8 @@
 import logging
 from typing import Dict, List, Callable, Any
 
-from ..core.llm.event_system.stream_data import Event, EventType
-from ..core.llm.event_system.event_subscriber import EventSubscriber
+from hatchling.core.llm.event_system.event_data import Event, EventType
+from hatchling.core.llm.event_system.event_subscriber import EventSubscriber
 from hatchling.mcp_utils import MCPToolInfo, MCPToolStatus, MCPToolStatusReason
 
 
