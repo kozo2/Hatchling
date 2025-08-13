@@ -8,8 +8,7 @@ answer the original query, enabling multi-step tool usage workflows.
 import asyncio
 import time
 import uuid
-from dataclasses import dataclass, field
-from typing import List, Optional
+from typing import List
 
 from hatchling.config.settings import AppSettings
 from hatchling.core.llm.providers import ProviderRegistry
@@ -22,17 +21,6 @@ from hatchling.mcp_utils.mcp_tool_execution import ToolCallExecutionResult
 from hatchling.core.chat.message_history_registry import MessageHistoryRegistry
 from hatchling.core.logging.logging_manager import logging_manager
 from hatchling.mcp_utils.mcp_tool_execution import MCPToolExecution
-
-@dataclass
-class ChainStatus:
-    """Status information for tool chaining."""
-    tool_chain_id: str
-    initial_query: str
-    current_iteration: int = 0
-    max_iterations: int = 0
-    current_tool: Optional[ToolCallParsedResult] = None
-    start_time: float = field(default_factory=time.time)
-    is_active: bool = True
 
 class ToolChainingSubscriber(StreamSubscriber):
     """Manages automatic tool calling chains with intelligent continuation logic.

@@ -69,15 +69,6 @@ class TokenStats:
     start_time: float = None
     end_time: float = None
 
-
-@dataclass
-class LLMStatus:
-    """LLM provider and model information."""
-    
-    provider_name: str = "Unknown"
-    model_name: str = "Unknown"
-    api_base: str = "Unknown"
-
 class CLIEventSubscriber(StreamSubscriber):
     """CLI Event Subscriber for managing UI state based on stream events.
     
