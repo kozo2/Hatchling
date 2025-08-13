@@ -162,7 +162,19 @@ class TestOllamaProviderSync(unittest.TestCase):
     @requires_external_service("ollama")
     def test_tool_lifecycle_subscriber_cache(self):
         """Test ToolLifecycleSubscriber cache and event handling in isolation."""
-        tls = ToolLifecycleSubscriber("ollama")
+        
+        # Create a mock convert_tool function
+        def mock_convert_tool(tool_info):
+            return {
+                "type": "function",
+                "function": {
+                    "name": tool_info.name,
+                    "description": tool_info.description,
+                    "parameters": tool_info.schema
+                }
+            }
+        
+        tls = ToolLifecycleSubscriber("ollama", mock_convert_tool)
         publisher = StreamPublisher()
         publisher.subscribe(tls)
 
@@ -302,8 +314,8 @@ class TestOllamaProviderIntegration(unittest.IsolatedAsyncioTestCase):
         )
 
         # Create and subscribe ToolLifecycleSubscriber
-        tls = ToolLifecycleSubscriber("ollama")
-        self.provider._toolLifecycle_subscriber = tls
+        # Use the provider's existing ToolLifecycleSubscriber instead of creating a new one
+        tls = self.provider._toolLifecycle_subscriber
         tool_call_subscriber = TestStreamToolCallSubscriber()
         self.provider.publisher.subscribe(tool_call_subscriber)
         mcp_activity_mock_publisher = StreamPublisher()

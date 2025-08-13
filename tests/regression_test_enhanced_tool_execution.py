@@ -135,7 +135,7 @@ class TestToolExecutionRegression(unittest.TestCase):
     
     async def test_execute_tool_argument_handling_still_works(self):
         """Test that execute_tool handles arguments correctly through ToolCallParsedResult."""
-        from hatchling.core.llm.tool_management import ToolCallParsedResult
+        from hatchling.core.llm.data_structures import ToolCallParsedResult
         
         # Create a ToolCallParsedResult with test data
         tool_call = ToolCallParsedResult(
