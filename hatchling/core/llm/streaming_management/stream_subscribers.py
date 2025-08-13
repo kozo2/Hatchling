@@ -1,7 +1,8 @@
 """Publisher-Subscriber pattern for LLM streaming responses.
 
-This module provides a flexible publish-subscribe system that allows different
-components to subscribe to specific events from LLM streaming responses.
+This module provides a example implementation of subscribers.
+They are mainly used in the tests, and are not flexible enough
+for production code.
 """
 
 import logging
