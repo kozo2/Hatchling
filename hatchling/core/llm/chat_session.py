@@ -54,10 +54,10 @@ class ChatSession:
             _provider.publisher.subscribe(self.history)
 
         # Subscribe the tool chaining to the tool executer    
-        self.tool_execution.stream_publisher.subscribe(self._tool_chaining_subscriber)
+        self.tool_execution.event_publisher.subscribe(self._tool_chaining_subscriber)
         
         # Subscribe message history to tool execution events
-        self.tool_execution.stream_publisher.subscribe(self.history)
+        self.tool_execution.event_publisher.subscribe(self.history)
     
     def register_subscriber(self, subscriber) -> None:
         """Register a subscriber to all relevant publishers.
@@ -66,7 +66,7 @@ class ChatSession:
         without tight coupling to backend logic.
         
         Args:
-            subscriber: The subscriber to register (must implement StreamSubscriber interface).
+            subscriber: The subscriber to register (must implement EventSubscriber interface).
         """
         # Subscribe to all LLM provider publishers
         for _provider_enum in ProviderRegistry.list_providers():
@@ -74,7 +74,7 @@ class ChatSession:
             _provider.publisher.subscribe(subscriber)
         
         # Subscribe to tool execution events
-        self.tool_execution.stream_publisher.subscribe(subscriber)
+        self.tool_execution.event_publisher.subscribe(subscriber)
         self._tool_chaining_subscriber.publisher.subscribe(subscriber)
         
         self.logger.debug(f"Registered subscriber {type(subscriber).__name__} to all publishers")

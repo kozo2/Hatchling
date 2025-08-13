@@ -52,7 +52,7 @@ class TestToolExecutionRegression(unittest.TestCase):
         self.assertTrue(hasattr(self.tool_execution, 'current_tool_call_iteration'))
         self.assertTrue(hasattr(self.tool_execution, 'tool_call_start_time'))
         self.assertTrue(hasattr(self.tool_execution, 'root_tool_query'))
-        self.assertTrue(hasattr(self.tool_execution, 'stream_publisher'))
+        self.assertTrue(hasattr(self.tool_execution, 'event_publisher'))
     
     @regression_test
     def test_mcp_manager_integration_still_works(self):
@@ -160,13 +160,13 @@ class TestToolExecutionRegression(unittest.TestCase):
             )
     
     @regression_test
-    def test_stream_publisher_integration_still_works(self):
+    def test_event_publisher_integration_still_works(self):
         """Test that stream publisher integration still works."""
-        # The new interface should have stream_publisher property
-        self.assertTrue(hasattr(self.tool_execution, 'stream_publisher'))
+        # The new interface should have event_publisher property
+        self.assertTrue(hasattr(self.tool_execution, 'event_publisher'))
         
         # Should be able to access the publisher
-        publisher = self.tool_execution.stream_publisher
+        publisher = self.tool_execution.event_publisher
         self.assertIsNotNone(publisher)
         
         # Should have the necessary methods for event publishing
@@ -189,15 +189,15 @@ class TestToolExecutionRegression(unittest.TestCase):
     def test_event_publishing_capabilities_still_work(self):
         """Test that event publishing capabilities still work."""
         # Should have internal event publishing method
-        self.assertTrue(hasattr(self.tool_execution, '_stream_publisher'))
+        self.assertTrue(hasattr(self.tool_execution, '_event_publisher'))
         
         # Test that events can be published (basic functionality test)
-        publisher = self.tool_execution.stream_publisher
+        publisher = self.tool_execution.event_publisher
         
         # Should not raise an exception when publishing events
         try:
-            from hatchling.core.llm.streaming_management import StreamEventType
-            publisher.publish(StreamEventType.MCP_TOOL_CALL_DISPATCHED, {"test": "data"})
+            from hatchling.core.llm.event_system import EventType
+            publisher.publish(EventType.MCP_TOOL_CALL_DISPATCHED, {"test": "data"})
         except Exception as e:
             self.fail(f"Event publishing should not raise exception: {e}")
     
@@ -216,11 +216,11 @@ class TestToolExecutionRegression(unittest.TestCase):
         self.assertEqual(model, "gpt-4")  # From our mock
     
     @regression_test
-    def test_new_stream_publisher_doesnt_break_existing_functionality(self):
-        """Test that the new StreamPublisher doesn't interfere with existing functionality."""
+    def test_new_event_publisher_doesnt_break_existing_functionality(self):
+        """Test that the new EventPublisher doesn't interfere with existing functionality."""
         # Verify the stream publisher exists (new functionality)
-        self.assertTrue(hasattr(self.tool_execution, 'stream_publisher'))
-        self.assertTrue(hasattr(self.tool_execution, '_stream_publisher'))
+        self.assertTrue(hasattr(self.tool_execution, 'event_publisher'))
+        self.assertTrue(hasattr(self.tool_execution, '_event_publisher'))
         
         # Verify that having a stream publisher doesn't break basic operations
         test_query = "Test query with publisher"

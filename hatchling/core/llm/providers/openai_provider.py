@@ -12,15 +12,15 @@ from httpx import AsyncClient
 
 from openai import AsyncOpenAI
 
-from .base import LLMProvider
-from .registry import ProviderRegistry
+from hatchling.core.llm.providers.base import LLMProvider
+from hatchling.core.llm.providers.registry import ProviderRegistry
 from hatchling.config.settings import AppSettings
 from hatchling.config.llm_settings import ELLMProvider
 from hatchling.mcp_utils import mcp_manager
 from hatchling.mcp_utils.mcp_tool_data import MCPToolInfo
-from hatchling.core.llm.streaming_management import StreamPublisher, StreamEventType
-from hatchling.core.llm.streaming_management.tool_lifecycle_subscriber import ToolLifecycleSubscriber
-from hatchling.core.llm.streaming_management.stream_subscribers import StreamEvent
+from hatchling.core.llm.event_system import EventPublisher, EventType
+from hatchling.mcp_utils.mcp_tool_lifecycle_subscriber import ToolLifecycleSubscriber
+from hatchling.core.llm.event_system.event_subscribers_examples import Event
 from hatchling.core.llm.data_structures import ToolCallParsedResult
 
 logger = logging.getLogger(__name__)
@@ -96,7 +96,7 @@ class OpenAIProvider(LLMProvider):
             self._http_client = AsyncClient(timeout=self._settings.openai.timeout)
             self._client = AsyncOpenAI(**client_kwargs, http_client=self._http_client)
 
-            self._stream_publisher = StreamPublisher()
+            self._event_publisher = EventPublisher()
             self._toolLifecycle_subscriber = ToolLifecycleSubscriber(self._settings.llm.provider_name, self.convert_tool)
             mcp_manager.publisher.subscribe(self._toolLifecycle_subscriber)
 
@@ -113,7 +113,7 @@ class OpenAIProvider(LLMProvider):
         This method should be called to clean up resources when done.
         """
         mcp_manager.publisher.unsubscribe(self._toolLifecycle_subscriber)
-        self._stream_publisher.clear_subscribers()
+        self._event_publisher.clear_subscribers()
         if self._http_client:
             await self._http_client.aclose()
             self._http_client = None
@@ -234,7 +234,7 @@ class OpenAIProvider(LLMProvider):
 
             # Generate a unique request ID for this streaming session
             request_id = str(uuid.uuid4())
-            self._stream_publisher.set_request_id(request_id)
+            self._event_publisher.set_request_id(request_id)
             
             # Stream the response
             response_stream = await self._client.chat.completions.create(**payload)
@@ -247,7 +247,7 @@ class OpenAIProvider(LLMProvider):
             logger.error(error_msg)
             
             # Publish error event
-            self._stream_publisher.publish(StreamEventType.ERROR, {
+            self._event_publisher.publish(EventType.ERROR, {
                 "error": {
                     "message": error_msg,
                     "type": "openai_streaming_error"
@@ -267,7 +267,7 @@ class OpenAIProvider(LLMProvider):
         try:
             # Handle final usage chunk (has no choices but includes usage data)
             if not chunk.choices and chunk.usage:
-                self._stream_publisher.publish(StreamEventType.USAGE, {
+                self._event_publisher.publish(EventType.USAGE, {
                     "usage": {
                         "completion_tokens": chunk.usage.completion_tokens,
                         "prompt_tokens": chunk.usage.prompt_tokens,
@@ -298,21 +298,21 @@ class OpenAIProvider(LLMProvider):
                 metadata["model"] = chunk.model
 
             # if metadata:
-            #     self._stream_publisher.publish(StreamEventType.METADATA, metadata)
+            #     self._event_publisher.publish(EventType.METADATA, metadata)
 
             # Handle different types of delta content
             if delta.role:
-                self._stream_publisher.publish(StreamEventType.ROLE, {
+                self._event_publisher.publish(EventType.ROLE, {
                     "role": delta.role
                 })
 
             if delta.content:
-                self._stream_publisher.publish(StreamEventType.CONTENT, {
+                self._event_publisher.publish(EventType.CONTENT, {
                     "content": delta.content
                 })
 
             # if delta.refusal:
-            #     self._stream_publisher.publish(StreamEventType.REFUSAL, {
+            #     self._event_publisher.publish(EventType.REFUSAL, {
             #         "refusal": delta.refusal
             #     })
 
@@ -350,7 +350,7 @@ class OpenAIProvider(LLMProvider):
             else:
                 if self._tool_call_streaming:
                     for tool_call_data in self._tool_call_accumulator.values():
-                        self._stream_publisher.publish(StreamEventType.LLM_TOOL_CALL_REQUEST, {
+                        self._event_publisher.publish(EventType.LLM_TOOL_CALL_REQUEST, {
                             "tool_call": tool_call_data
                         })
                     # Reset accumulator and flag
@@ -365,20 +365,20 @@ class OpenAIProvider(LLMProvider):
                 if delta.function_call.arguments:
                     function_call_data["arguments"] = delta.function_call.arguments
 
-                self._stream_publisher.publish(StreamEventType.LLM_TOOL_CALL_REQUEST, {
+                self._event_publisher.publish(EventType.LLM_TOOL_CALL_REQUEST, {
                     "function_call": function_call_data,
                     "deprecated": True
                 })
             
             # Handle finish reason
             if choice.finish_reason:
-                self._stream_publisher.publish(StreamEventType.FINISH, {
+                self._event_publisher.publish(EventType.FINISH, {
                     "finish_reason": choice.finish_reason
                 })
                 
         except Exception as e:
             logger.error(f"Error parsing chunk: {str(e)}")
-            self._stream_publisher.publish(StreamEventType.ERROR, {
+            self._event_publisher.publish(EventType.ERROR, {
                 "error": {
                     "message": f"Failed to parse chunk: {str(e)}",
                     "type": "chunk_parsing_error"
@@ -417,11 +417,11 @@ class OpenAIProvider(LLMProvider):
                 "message": f"OpenAI API unavailable: {str(e)}"
             }
 
-    def parse_tool_call(self, event: StreamEvent) -> Optional[ToolCallParsedResult]:
+    def parse_tool_call(self, event: Event) -> Optional[ToolCallParsedResult]:
         """Parse an OpenAI tool call event.
 
         Args:
-            event (StreamEvent): The OpenAI tool call event.
+            event (Event): The OpenAI tool call event.
 
         Returns:
             Optional[ToolCallParsedResult]: Normalized tool call result, or None if parsing fails.

@@ -4,8 +4,7 @@ This module provides commands for interacting with the Hatch package manager,
 including environment management, package operations, and template creation.
 """
 
-import logging
-from typing import Tuple, Dict, Any, List, Optional
+from typing import Dict, Any
 from pathlib import Path
 
 from prompt_toolkit import print_formatted_text

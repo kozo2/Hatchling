@@ -22,49 +22,49 @@ class TestEventSystem(unittest.TestCase):
 
     @feature_test
     def test_stream_event_type_enum(self):
-        """Test that StreamEventType enum contains expected values."""
-        from hatchling.core.llm.streaming_management.stream_data import StreamEventType
+        """Test that EventType enum contains expected values."""
+        from hatchling.core.llm.event_system.event_data import EventType
 
         # LLM Response Events
-        self.assertEqual(StreamEventType.CONTENT.value, "content",
+        self.assertEqual(EventType.CONTENT.value, "content",
                         "CONTENT event type should have correct value")
-        self.assertEqual(StreamEventType.ROLE.value, "role",
+        self.assertEqual(EventType.ROLE.value, "role",
                         "ROLE event type should have correct value")
-        self.assertEqual(StreamEventType.FINISH.value, "finish",
+        self.assertEqual(EventType.FINISH.value, "finish",
                         "FINISH event type should have correct value")
-        self.assertEqual(StreamEventType.USAGE.value, "usage",
+        self.assertEqual(EventType.USAGE.value, "usage",
                         "USAGE event type should have correct value")
-        self.assertEqual(StreamEventType.ERROR.value, "error",
+        self.assertEqual(EventType.ERROR.value, "error",
                         "ERROR event type should have correct value")
 
         # MCP Lifecycle Events
-        self.assertEqual(StreamEventType.MCP_SERVER_UP.value, "mcp_server_up",
+        self.assertEqual(EventType.MCP_SERVER_UP.value, "mcp_server_up",
                         "MCP_SERVER_UP event type should have correct value")
-        self.assertEqual(StreamEventType.MCP_SERVER_DOWN.value, "mcp_server_down",
+        self.assertEqual(EventType.MCP_SERVER_DOWN.value, "mcp_server_down",
                         "MCP_SERVER_DOWN event type should have correct value")
-        self.assertEqual(StreamEventType.MCP_TOOL_ENABLED.value, "mcp_tool_enabled",
+        self.assertEqual(EventType.MCP_TOOL_ENABLED.value, "mcp_tool_enabled",
                         "MCP_TOOL_ENABLED event type should have correct value")
-        self.assertEqual(StreamEventType.MCP_TOOL_DISABLED.value, "mcp_tool_disabled",
+        self.assertEqual(EventType.MCP_TOOL_DISABLED.value, "mcp_tool_disabled",
                         "MCP_TOOL_DISABLED event type should have correct value")
 
         # Tool Execution Events
-        self.assertEqual(StreamEventType.LLM_TOOL_CALL_REQUEST.value, "llm_tool_call_request",
+        self.assertEqual(EventType.LLM_TOOL_CALL_REQUEST.value, "llm_tool_call_request",
                         "LLM_TOOL_CALL_REQUEST event type should have correct value")
-        self.assertEqual(StreamEventType.MCP_TOOL_CALL_DISPATCHED.value, "mcp_tool_call_dispatched",
+        self.assertEqual(EventType.MCP_TOOL_CALL_DISPATCHED.value, "mcp_tool_call_dispatched",
                         "MCP_TOOL_CALL_DISPATCHED event type should have correct value")
-        self.assertEqual(StreamEventType.MCP_TOOL_CALL_RESULT.value, "mcp_tool_call_result",
+        self.assertEqual(EventType.MCP_TOOL_CALL_RESULT.value, "mcp_tool_call_result",
                         "MCP_TOOL_CALL_RESULT event type should have correct value")
-        self.assertEqual(StreamEventType.MCP_TOOL_CALL_ERROR.value, "mcp_tool_call_error",
+        self.assertEqual(EventType.MCP_TOOL_CALL_ERROR.value, "mcp_tool_call_error",
                         "MCP_TOOL_CALL_ERROR event type should have correct value")
 
         # Tool Chaining Events
-        self.assertEqual(StreamEventType.TOOL_CHAIN_START.value, "tool_chain_start",
+        self.assertEqual(EventType.TOOL_CHAIN_START.value, "tool_chain_start",
                         "TOOL_CHAIN_START event type should have correct value")
-        self.assertEqual(StreamEventType.TOOL_CHAIN_END.value, "tool_chain_end",
+        self.assertEqual(EventType.TOOL_CHAIN_END.value, "tool_chain_end",
                         "TOOL_CHAIN_END event type should have correct value")
-        self.assertEqual(StreamEventType.TOOL_CHAIN_ITERATION_START.value, "tool_chain_iteration_start",
+        self.assertEqual(EventType.TOOL_CHAIN_ITERATION_START.value, "tool_chain_iteration_start",
                         "TOOL_CHAIN_ITERATION_START event type should have correct value")
-        self.assertEqual(StreamEventType.TOOL_CHAIN_ITERATION_END.value, "tool_chain_iteration_end",
+        self.assertEqual(EventType.TOOL_CHAIN_ITERATION_END.value, "tool_chain_iteration_end",
                         "TOOL_CHAIN_ITERATION_END event type should have correct value")
 
     @feature_test
@@ -79,20 +79,20 @@ class TestEventSystem(unittest.TestCase):
 
     @feature_test
     def test_stream_event_creation(self):
-        """Test StreamEvent data structure creation and properties."""
-        from hatchling.core.llm.streaming_management.stream_data import StreamEvent, StreamEventType
+        """Test Event data structure creation and properties."""
+        from hatchling.core.llm.event_system.event_data import Event, EventType
         from hatchling.config.llm_settings import ELLMProvider
 
         # Create a test event
         event_data = {"content": "Test content"}
-        event = StreamEvent(
-            type=StreamEventType.CONTENT,
+        event = Event(
+            type=EventType.CONTENT,
             data=event_data,
             provider=ELLMProvider.OPENAI,
             request_id="test-request-123"
         )
 
-        self.assertEqual(event.type, StreamEventType.CONTENT,
+        self.assertEqual(event.type, EventType.CONTENT,
                         "Event type should be set correctly")
         self.assertEqual(event.data, event_data,
                         "Event data should be set correctly")
@@ -131,7 +131,7 @@ class TestEventSystem(unittest.TestCase):
     @feature_test
     def test_event_system_integration(self):
         """Test integration between different event system components."""
-        from hatchling.core.llm.streaming_management.stream_data import StreamEvent, StreamEventType
+        from hatchling.core.llm.event_system.event_data import Event, EventType
         from hatchling.mcp_utils.mcp_tool_data import MCPToolInfo, MCPToolStatus, MCPToolStatusReason
         from hatchling.config.llm_settings import ELLMProvider
 
@@ -146,8 +146,8 @@ class TestEventSystem(unittest.TestCase):
         )
 
         # Create an event that might use this tool info
-        event = StreamEvent(
-            type=StreamEventType.MCP_TOOL_ENABLED,
+        event = Event(
+            type=EventType.MCP_TOOL_ENABLED,
             data={
                 "tool_name": tool_info.name,
                 "tool_info": tool_info
@@ -155,7 +155,7 @@ class TestEventSystem(unittest.TestCase):
             provider=ELLMProvider.OPENAI
         )
 
-        self.assertEqual(event.type, StreamEventType.MCP_TOOL_ENABLED,
+        self.assertEqual(event.type, EventType.MCP_TOOL_ENABLED,
                         "Event should have correct type")
         self.assertEqual(event.data["tool_name"], "integration_test_tool",
                         "Event should contain correct tool name")
@@ -174,16 +174,16 @@ def run_event_system_feature_tests() -> bool:
 if __name__ == "__main__":
     success = run_event_system_feature_tests()
     sys.exit(0 if success else 1)
-    self.assertTrue(hasattr(StreamEventType, event_name),
+    self.assertTrue(hasattr(EventType, event_name),
                     f"Missing MCP tool event: {event_name}")
-    event_type = getattr(StreamEventType, event_name)
+    event_type = getattr(EventType, event_name)
     self.assertEqual(event_type.value, event_value,
                     f"Event {event_name} should have value {event_value}")
     
     @feature_test
     def test_tool_execution_events_defined(self):
         """Test that tool execution events are properly defined."""
-        from hatchling.core.llm.streaming_management.stream_subscribers import StreamEventType
+        from hatchling.core.llm.event_system.event_subscribers_examples import EventType
         
         required_execution_events = [
             ('MCP_TOOL_CALL_DISPATCHED', 'mcp_tool_call_dispatched'),
@@ -193,9 +193,9 @@ if __name__ == "__main__":
         ]
         
         for event_name, event_value in required_execution_events:
-            self.assertTrue(hasattr(StreamEventType, event_name),
+            self.assertTrue(hasattr(EventType, event_name),
                            f"Missing tool execution event: {event_name}")
-            event_type = getattr(StreamEventType, event_name)
+            event_type = getattr(EventType, event_name)
             self.assertEqual(event_type.value, event_value,
                            f"Event {event_name} should have value {event_value}")
 
@@ -235,19 +235,19 @@ if __name__ == "__main__":
 
     @feature_test
     def test_stream_event_creation(self):
-        """Test that StreamEvent objects can be created correctly."""
-        from hatchling.core.llm.streaming_management.stream_subscribers import StreamEvent, StreamEventType
+        """Test that Event objects can be created correctly."""
+        from hatchling.core.llm.event_system.event_data import Event, EventType
         from hatchling.core.llm.providers.base import ELLMProvider
         
         # Test creating a basic stream event
-        event = StreamEvent(
-            type=StreamEventType.CONTENT,
+        event = Event(
+            type=EventType.CONTENT,
             data={"content": "test content"},
             provider=ELLMProvider.OLLAMA,
             request_id="test_request_123"
         )
         
-        self.assertEqual(event.type, StreamEventType.CONTENT,
+        self.assertEqual(event.type, EventType.CONTENT,
                         "Event should store type correctly")
         self.assertEqual(event.data["content"], "test content",
                         "Event should store data correctly")
@@ -261,25 +261,25 @@ if __name__ == "__main__":
     @feature_test
     def test_event_type_comprehensive_coverage(self):
         """Test that all necessary event types are available."""
-        from hatchling.core.llm.streaming_management.stream_subscribers import StreamEventType
+        from hatchling.core.llm.event_system.event_subscribers_examples import EventType
         
         # Core streaming events
         core_events = ['CONTENT', 'FINISH', 'ERROR', 'USAGE_STATS']
         for event in core_events:
-            self.assertTrue(hasattr(StreamEventType, event),
+            self.assertTrue(hasattr(EventType, event),
                            f"Missing core event type: {event}")
         
         # Tool call events
         tool_events = ['LLM_TOOL_CALL_REQUEST', 'MCP_TOOL_CALL_DISPATCHED', 
                       'MCP_TOOL_CALL_RESULT', 'MCP_TOOL_CALL_ERROR']
         for event in tool_events:
-            self.assertTrue(hasattr(StreamEventType, event),
+            self.assertTrue(hasattr(EventType, event),
                            f"Missing tool call event type: {event}")
         
         # MCP lifecycle events
         mcp_events = ['MCP_SERVER_UP', 'MCP_SERVER_DOWN', 'MCP_TOOL_ENABLED', 'MCP_TOOL_DISABLED']
         for event in mcp_events:
-            self.assertTrue(hasattr(StreamEventType, event),
+            self.assertTrue(hasattr(EventType, event),
                            f"Missing MCP lifecycle event type: {event}")
 
 

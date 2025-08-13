@@ -16,10 +16,10 @@ sys.path.insert(0, str(Path(__file__).parent.parent))
 
 from tests.test_decorators import regression_test
 
-from hatchling.core.llm.streaming_management import (
-    StreamEventType,
-    StreamEvent,
-    StreamPublisher,
+from hatchling.core.llm.event_system import (
+    EventType,
+    Event,
+    EventPublisher,
     ContentPrinterSubscriber,
     UsageStatsSubscriber,
     ErrorHandlerSubscriber
@@ -30,7 +30,7 @@ class TestExistingEventHandling(unittest.TestCase):
     
     def setUp(self):
         """Set up test fixtures before each test method."""
-        self.publisher = StreamPublisher()
+        self.publisher = EventPublisher()
     
     def tearDown(self):
         """Clean up after each test method."""
@@ -46,36 +46,36 @@ class TestExistingEventHandling(unittest.TestCase):
         ]
         
         for event_name in core_events:
-            self.assertTrue(hasattr(StreamEventType, event_name),
+            self.assertTrue(hasattr(EventType, event_name),
                           f"Core event type {event_name} is missing")
             
             # Test that the enum value is correct
-            event = getattr(StreamEventType, event_name)
-            self.assertIsInstance(event, StreamEventType)
+            event = getattr(EventType, event_name)
+            self.assertIsInstance(event, EventType)
     
     @regression_test
     def test_stream_event_creation_still_works(self):
-        """Test that StreamEvent creation still works with original events."""
+        """Test that Event creation still works with original events."""
         # Test creating various types of events
-        content_event = StreamEvent(
-            type=StreamEventType.CONTENT,
+        content_event = Event(
+            type=EventType.CONTENT,
             data={"content": "Hello world"},
             provider="test_provider"
         )
         
-        self.assertEqual(content_event.type, StreamEventType.CONTENT)
+        self.assertEqual(content_event.type, EventType.CONTENT)
         self.assertEqual(content_event.data["content"], "Hello world")
         self.assertEqual(content_event.provider, "test_provider")
         self.assertIsNotNone(content_event.timestamp)
         
         # Test role event
-        role_event = StreamEvent(
-            type=StreamEventType.ROLE,
+        role_event = Event(
+            type=EventType.ROLE,
             data={"role": "assistant"},
             provider="test_provider"
         )
         
-        self.assertEqual(role_event.type, StreamEventType.ROLE)
+        self.assertEqual(role_event.type, EventType.ROLE)
         self.assertEqual(role_event.data["role"], "assistant")
     
     @regression_test
@@ -86,12 +86,12 @@ class TestExistingEventHandling(unittest.TestCase):
         
         # Test subscribed events
         subscribed_events = subscriber.get_subscribed_events()
-        self.assertIn(StreamEventType.CONTENT, subscribed_events)
+        self.assertIn(EventType.CONTENT, subscribed_events)
         
         # Test event handling (should not raise exceptions)
         try:
-            content_event = StreamEvent(
-                type=StreamEventType.CONTENT,
+            content_event = Event(
+                type=EventType.CONTENT,
                 data={"content": "Test content"},
                 provider="test_provider"
             )
@@ -111,21 +111,21 @@ class TestExistingEventHandling(unittest.TestCase):
         
         # Test subscribed events
         subscribed_events = subscriber.get_subscribed_events()
-        self.assertIn(StreamEventType.CONTENT, subscribed_events)
-        self.assertIn(StreamEventType.USAGE, subscribed_events)
-        self.assertIn(StreamEventType.FINISH, subscribed_events)
+        self.assertIn(EventType.CONTENT, subscribed_events)
+        self.assertIn(EventType.USAGE, subscribed_events)
+        self.assertIn(EventType.FINISH, subscribed_events)
         
         # Test event handling (should not raise exceptions)
         try:
-            content_event = StreamEvent(
-                type=StreamEventType.CONTENT,
+            content_event = Event(
+                type=EventType.CONTENT,
                 data={"content": "Test content"},
                 provider="test_provider"
             )
             subscriber.on_event(content_event)
             
-            usage_event = StreamEvent(
-                type=StreamEventType.USAGE,
+            usage_event = Event(
+                type=EventType.USAGE,
                 data={
                     "usage": {
                         "total_tokens": 50,
@@ -148,12 +148,12 @@ class TestExistingEventHandling(unittest.TestCase):
         
         # Test subscribed events
         subscribed_events = subscriber.get_subscribed_events()
-        self.assertIn(StreamEventType.ERROR, subscribed_events)
+        self.assertIn(EventType.ERROR, subscribed_events)
         
         # Test event handling (should not raise exceptions)
         try:
-            error_event = StreamEvent(
-                type=StreamEventType.ERROR,
+            error_event = Event(
+                type=EventType.ERROR,
                 data={
                     "error": {
                         "type": "TestError",
@@ -183,15 +183,15 @@ class TestExistingEventHandling(unittest.TestCase):
         # Test publishing to interested subscribers only
         try:
             # This should reach ContentPrinterSubscriber only
-            self.publisher.publish(StreamEventType.CONTENT, {"content": "Test"})
+            self.publisher.publish(EventType.CONTENT, {"content": "Test"})
             
             # This should reach ErrorHandlerSubscriber only  
-            self.publisher.publish(StreamEventType.ERROR, {
+            self.publisher.publish(EventType.ERROR, {
                 "error": {"type": "Test", "message": "Test error"}
             })
             
             # This should reach neither (using USAGE instead of non-existent THINKING)
-            self.publisher.publish(StreamEventType.USAGE, {"usage": {"total_tokens": 10}})
+            self.publisher.publish(EventType.USAGE, {"usage": {"total_tokens": 10}})
             
         except Exception as e:
             self.fail(f"Publisher failed to handle event publishing: {e}")

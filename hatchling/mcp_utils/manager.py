@@ -9,9 +9,9 @@ from hatch import HatchEnvironmentManager
 from .client import MCPClient
 from .mcp_tool_data import MCPToolInfo, MCPToolStatus, MCPToolStatusReason
 from hatchling.core.logging.logging_manager import logging_manager
-from hatchling.core.llm.streaming_management import (
-    StreamPublisher, 
-    StreamEventType,
+from hatchling.core.llm.event_system import (
+    EventPublisher, 
+    EventType,
 )
 from hatchling.config.settings import AppSettings
 
@@ -63,7 +63,7 @@ class MCPManager:
         )
 
         # Event publishing capabilities
-        self._stream_publisher = StreamPublisher()
+        self._event_publisher = EventPublisher()
         
         # Tool management for lifecycle events
         self._managed_tools: Dict[str, MCPToolInfo] = {}  # Tool name -> MCPToolInfo
@@ -73,13 +73,13 @@ class MCPManager:
                                   formatter=logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s'))
 
     @property
-    def publisher(self) -> StreamPublisher:
-        """Access to the StreamPublisher for MCP lifecycle events.
+    def publisher(self) -> EventPublisher:
+        """Access to the EventPublisher for MCP lifecycle events.
         
         Returns:
-            StreamPublisher: The publisher for MCP-related events.
+            EventPublisher: The publisher for MCP-related events.
         """
-        return self._stream_publisher
+        return self._event_publisher
     
     @property
     def is_connected(self) -> bool:
@@ -90,11 +90,11 @@ class MCPManager:
         """
         return bool(self.mcp_clients)
     
-    def _publish_server_event(self, event_type: StreamEventType, server_path: str, **additional_data) -> None:
+    def _publish_server_event(self, event_type: EventType, server_path: str, **additional_data) -> None:
         """Publish a server lifecycle event.
         
         Args:
-            event_type (StreamEventType): Type of server event to publish.
+            event_type (EventType): Type of server event to publish.
             server_path (str): Path to the server that triggered the event.
             **additional_data: Additional data to include in the event.
         """
@@ -102,15 +102,15 @@ class MCPManager:
             "server_path": server_path,
             **additional_data
         }
-        self._stream_publisher.publish(event_type, event_data)
+        self._event_publisher.publish(event_type, event_data)
         self.logger.debug(f"Published {event_type.value} event for server: {server_path}")
     
-    def _publish_tool_event(self, event_type: StreamEventType, tool_name: str, 
+    def _publish_tool_event(self, event_type: EventType, tool_name: str, 
                            tool_info: MCPToolInfo, **additional_data) -> None:
         """Publish a tool lifecycle event.
         
         Args:
-            event_type (StreamEventType): Type of tool event to publish.
+            event_type (EventType): Type of tool event to publish.
             tool_name (str): Name of the tool that triggered the event.
             tool_info (MCPToolInfo): MCP Tool information.
             **additional_data: Additional data to include in the event.
@@ -121,7 +121,7 @@ class MCPManager:
             **additional_data
         }
 
-        self._stream_publisher.publish(event_type, event_data)
+        self._event_publisher.publish(event_type, event_data)
         self.logger.debug(f"Published {event_type.value} event for tool: {tool_name}")
 
     def validate_server_paths(self, server_paths: List[str]) -> List[str]:
@@ -192,7 +192,7 @@ class MCPManager:
                     self.mcp_clients[path] = client
                     
                     # Publish server up event
-                    self._publish_server_event(StreamEventType.MCP_SERVER_UP, path, 
+                    self._publish_server_event(EventType.MCP_SERVER_UP, path, 
                                              tool_count=len(client.tools))
                     
                     # Cache tool mappings and create MCPToolInfo for each tool
@@ -211,10 +211,10 @@ class MCPManager:
                         self._managed_tools[tool_name] = tool_info
                         
                         # Publish tool enabled event
-                        self._publish_tool_event(StreamEventType.MCP_TOOL_ENABLED, tool_name, tool_info)
+                        self._publish_tool_event(EventType.MCP_TOOL_ENABLED, tool_name, tool_info)
                 else:
                     # Publish server unreachable event
-                    self._publish_server_event(StreamEventType.MCP_SERVER_UNREACHABLE, path,
+                    self._publish_server_event(EventType.MCP_SERVER_UNREACHABLE, path,
                                              error="Failed to connect")
             
             if len(self.mcp_clients) > 0:
@@ -246,7 +246,7 @@ class MCPManager:
                             tool_info.reason = MCPToolStatusReason.FROM_SERVER_DOWN
                             
                             # Publish tool disabled event
-                            self._publish_tool_event(StreamEventType.MCP_TOOL_DISABLED, tool_name, tool_info)
+                            self._publish_tool_event(EventType.MCP_TOOL_DISABLED, tool_name, tool_info)
                     
                     # Log task context for debugging
                     if hasattr(client, '_connection_task_id') and client._connection_task_id:
@@ -257,18 +257,18 @@ class MCPManager:
                     try:
                         await asyncio.wait_for(disconnect_task, timeout=10)
                         # Publish server down event on successful disconnect
-                        self._publish_server_event(StreamEventType.MCP_SERVER_DOWN, path)
+                        self._publish_server_event(EventType.MCP_SERVER_DOWN, path)
                     except asyncio.TimeoutError:
                         self.logger.warning(f"Disconnect timeout for {path}")
                         disconnection_errors = True
                         # Publish server unreachable event
-                        self._publish_server_event(StreamEventType.MCP_SERVER_UNREACHABLE, path,
+                        self._publish_server_event(EventType.MCP_SERVER_UNREACHABLE, path,
                                                  error="Disconnect timeout")
                     except Exception as e:
                         self.logger.error(f"Error during graceful disconnect for {path}: {e}")
                         disconnection_errors = True
                         # Publish server unreachable event
-                        self._publish_server_event(StreamEventType.MCP_SERVER_UNREACHABLE, path,
+                        self._publish_server_event(EventType.MCP_SERVER_UNREACHABLE, path,
                                                  error=str(e))
                 except Exception as e:
                     self.logger.error(f"Error setting up disconnect for {path}: {e}")
@@ -372,7 +372,7 @@ class MCPManager:
         tool_info.last_updated = time.time()
         
         # Publish event
-        self._publish_tool_event(StreamEventType.MCP_TOOL_ENABLED, tool_name, tool_info)
+        self._publish_tool_event(EventType.MCP_TOOL_ENABLED, tool_name, tool_info)
         
         self.logger.info(f"Enabled tool: {tool_name}")
         return True
@@ -405,7 +405,7 @@ class MCPManager:
         tool_info.last_updated = time.time()
         
         # Publish event
-        self._publish_tool_event(StreamEventType.MCP_TOOL_DISABLED, tool_name, tool_info)
+        self._publish_tool_event(EventType.MCP_TOOL_DISABLED, tool_name, tool_info)
         
         self.logger.info(f"Disabled tool: {tool_name}")
         return True
@@ -450,7 +450,7 @@ class MCPManager:
         except ConnectionError:
             # mark the server as unreachable
             self.logger.error(f"Failed to execute tool '{tool_name}' - server {client.server_path} is unreachable")
-            self._publish_server_event(StreamEventType.MCP_SERVER_UNREACHABLE, client.server_path,
+            self._publish_server_event(EventType.MCP_SERVER_UNREACHABLE, client.server_path,
                                       error="Failed to execute tool")
     
     async def get_citations_for_session(self) -> Dict[str, Dict[str, str]]:

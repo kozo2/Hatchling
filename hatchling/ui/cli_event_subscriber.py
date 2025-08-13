@@ -42,8 +42,8 @@ class UIStateManager:
     def set_only(self, flag: UIStateFlags):
         self.flags = flag
 
-from hatchling.core.llm.streaming_management.stream_subscriber import StreamSubscriber
-from hatchling.core.llm.streaming_management.stream_data import StreamEvent, StreamEventType
+from hatchling.core.llm.event_system.event_subscriber import EventSubscriber
+from hatchling.core.llm.event_system.event_data import Event, EventType
 from hatchling.core.logging.logging_manager import logging_manager
 from prompt_toolkit import print_formatted_text as print_pt
 
@@ -67,7 +67,7 @@ class TokenStats:
     start_time: float = None
     end_time: float = None
 
-class CLIEventSubscriber(StreamSubscriber):
+class CLIEventSubscriber(EventSubscriber):
     """CLI Event Subscriber for managing UI state based on stream events.
     
     This subscriber maintains state for all UI elements:
@@ -101,111 +101,111 @@ class CLIEventSubscriber(StreamSubscriber):
         # UI state flags manager
         self.ui_state = UIStateManager()
 
-    def on_event(self, event: StreamEvent) -> None:
+    def on_event(self, event: Event) -> None:
         """Handle stream events and update UI state.
         
         Args:
-            event (StreamEvent): The event to handle.
+            event (Event): The event to handle.
         """
 
         try:
             # Tool Chaining Events
-            if event.type == StreamEventType.TOOL_CHAIN_START:
+            if event.type == EventType.TOOL_CHAIN_START:
                 self.logger.debug(f"Handling TOOL_CHAIN_START event: {event.data}")
                 self._handle_tool_chain_start(event)
-            elif event.type == StreamEventType.TOOL_CHAIN_ITERATION_START:
+            elif event.type == EventType.TOOL_CHAIN_ITERATION_START:
                 self._handle_tool_chain_iteration_start(event)
-            elif event.type == StreamEventType.TOOL_CHAIN_ITERATION_END:
+            elif event.type == EventType.TOOL_CHAIN_ITERATION_END:
                 self._handle_tool_chain_iteration_end(event)
-            elif event.type == StreamEventType.TOOL_CHAIN_END:
+            elif event.type == EventType.TOOL_CHAIN_END:
                 self.logger.debug(f"Handling TOOL_CHAIN_END event: {event.data}")
                 self._handle_tool_chain_end(event)
-            elif event.type == StreamEventType.TOOL_CHAIN_LIMIT_REACHED:
+            elif event.type == EventType.TOOL_CHAIN_LIMIT_REACHED:
                 self.logger.debug(f"Handling TOOL_CHAIN_LIMIT_REACHED event: {event.data}")
                 self._handle_tool_chain_limit_reached(event)
-            elif event.type == StreamEventType.TOOL_CHAIN_ERROR:
+            elif event.type == EventType.TOOL_CHAIN_ERROR:
                 self.logger.debug(f"Handling TOOL_CHAIN_ERROR event: {event.data}")
                 self._handle_tool_chain_error(event)
             
             # Tool Execution Events
-            elif event.type == StreamEventType.LLM_TOOL_CALL_REQUEST:
+            elif event.type == EventType.LLM_TOOL_CALL_REQUEST:
                 self.logger.debug(f"Handling LLM_TOOL_CALL_REQUEST event: {event.data}")
                 self._handle_llm_tool_call_request(event)
-            elif event.type == StreamEventType.MCP_TOOL_CALL_DISPATCHED:
+            elif event.type == EventType.MCP_TOOL_CALL_DISPATCHED:
                 self.logger.debug(f"Handling MCP_TOOL_CALL_DISPATCHED event: {event.data}")
                 self._handle_mcp_tool_call_dispatched(event)
-            elif event.type == StreamEventType.MCP_TOOL_CALL_RESULT:
+            elif event.type == EventType.MCP_TOOL_CALL_RESULT:
                 self.logger.debug(f"Handling MCP_TOOL_CALL_RESULT event: {event.data}")
                 self._handle_mcp_tool_call_result(event)
-            elif event.type == StreamEventType.MCP_TOOL_CALL_ERROR:
+            elif event.type == EventType.MCP_TOOL_CALL_ERROR:
                 self.logger.debug(f"Handling MCP_TOOL_CALL_ERROR event: {event.data}")
                 self._handle_mcp_tool_call_error(event)
             
             # MCP Server Events
-            elif event.type == StreamEventType.MCP_SERVER_UP:
+            elif event.type == EventType.MCP_SERVER_UP:
                 self.logger.debug(f"Handling MCP_SERVER_UP event: {event.data}")
                 self._handle_mcp_server_up(event)
-            elif event.type == StreamEventType.MCP_SERVER_DOWN:
+            elif event.type == EventType.MCP_SERVER_DOWN:
                 self.logger.debug(f"Handling MCP_SERVER_DOWN event: {event.data}")
                 self._handle_mcp_server_down(event)
-            elif event.type == StreamEventType.MCP_TOOL_ENABLED:
+            elif event.type == EventType.MCP_TOOL_ENABLED:
                 self.logger.debug(f"Handling MCP_TOOL_ENABLED event: {event.data}")
                 self._handle_mcp_tool_enabled(event)
-            elif event.type == StreamEventType.MCP_TOOL_DISABLED:
+            elif event.type == EventType.MCP_TOOL_DISABLED:
                 self.logger.debug(f"Handling MCP_TOOL_DISABLED event: {event.data}")
                 self._handle_mcp_tool_disabled(event)
             
             # LLM Events
-            elif event.type == StreamEventType.CONTENT:
+            elif event.type == EventType.CONTENT:
                 #self.logger.debug(f"Handling CONTENT event: {event.data}")
                 self._handle_content(event)
-            elif event.type == StreamEventType.USAGE:
+            elif event.type == EventType.USAGE:
                 self.logger.debug(f"Handling USAGE event: {event.data}")
                 self._handle_usage(event)
-            elif event.type == StreamEventType.ERROR:
+            elif event.type == EventType.ERROR:
                 self.logger.debug(f"Handling ERROR event: {event.data}")
                 self._handle_error(event)
-            elif event.type == StreamEventType.FINISH:
+            elif event.type == EventType.FINISH:
                 self.logger.debug(f"Handling FINISH event: {event.data}")
                 self._handle_finish(event)
             
         except Exception as e:
             self.logger.error(f"Error handling event {event.type.value}: {e}")
 
-    def get_subscribed_events(self) -> List[StreamEventType]:
+    def get_subscribed_events(self) -> List[EventType]:
         """Return list of event types this subscriber is interested in.
         
         Returns:
-            List[StreamEventType]: Event types for UI updates.
+            List[EventType]: Event types for UI updates.
         """
         return [
             # Tool Chaining Events
-            StreamEventType.TOOL_CHAIN_START,
-            StreamEventType.TOOL_CHAIN_END,
-            StreamEventType.TOOL_CHAIN_LIMIT_REACHED,
-            StreamEventType.TOOL_CHAIN_ERROR,
+            EventType.TOOL_CHAIN_START,
+            EventType.TOOL_CHAIN_END,
+            EventType.TOOL_CHAIN_LIMIT_REACHED,
+            EventType.TOOL_CHAIN_ERROR,
             
             # Tool Execution Events
-            StreamEventType.LLM_TOOL_CALL_REQUEST,
-            StreamEventType.MCP_TOOL_CALL_DISPATCHED,
-            StreamEventType.MCP_TOOL_CALL_RESULT,
-            StreamEventType.MCP_TOOL_CALL_ERROR,
+            EventType.LLM_TOOL_CALL_REQUEST,
+            EventType.MCP_TOOL_CALL_DISPATCHED,
+            EventType.MCP_TOOL_CALL_RESULT,
+            EventType.MCP_TOOL_CALL_ERROR,
             
             # MCP Server Events
-            StreamEventType.MCP_SERVER_UP,
-            StreamEventType.MCP_SERVER_DOWN,
-            StreamEventType.MCP_TOOL_ENABLED,
-            StreamEventType.MCP_TOOL_DISABLED,
+            EventType.MCP_SERVER_UP,
+            EventType.MCP_SERVER_DOWN,
+            EventType.MCP_TOOL_ENABLED,
+            EventType.MCP_TOOL_DISABLED,
             
             # LLM Events
-            StreamEventType.CONTENT,
-            StreamEventType.USAGE,
-            StreamEventType.ERROR,
-            StreamEventType.FINISH,
+            EventType.CONTENT,
+            EventType.USAGE,
+            EventType.ERROR,
+            EventType.FINISH,
         ]
 
     # Tool Chaining Event Handlers
-    def _handle_tool_chain_start(self, event: StreamEvent) -> None:
+    def _handle_tool_chain_start(self, event: Event) -> None:
         """Handle tool chain start event."""
         data = event.data
         self.ui_state.set(UIStateFlags.TOOL_CHAIN_ACTIVE)
@@ -220,7 +220,7 @@ class CLIEventSubscriber(StreamSubscriber):
             f"Tool chaining started for initial query: {initial_query}\n" +
             f" {data.get('max_iterations', 0)} iterations allowed.")
 
-    def _handle_tool_chain_iteration_start(self, event: StreamEvent) -> None:
+    def _handle_tool_chain_iteration_start(self, event: Event) -> None:
         """Handle tool chain iteration event."""
         data = event.data
         self._set_info(
@@ -230,7 +230,7 @@ class CLIEventSubscriber(StreamSubscriber):
         self.ui_state.set(UIStateFlags.TOOL_CHAIN_ACTIVE)
         self.ui_state.clear(UIStateFlags.USER_INPUT_READY)
 
-    def _handle_tool_chain_iteration_end(self, event: StreamEvent) -> None:
+    def _handle_tool_chain_iteration_end(self, event: Event) -> None:
         """Handle tool chain iteration event."""
         data = event.data
         self._set_info(
@@ -238,7 +238,7 @@ class CLIEventSubscriber(StreamSubscriber):
             f"Step {data.get('iteration', -1)}/{data.get('max_iterations', 0)}:\n" +
             f"Result of {data.get('tool_name', 'unknown')} processed by the LLM.")
 
-    def _handle_tool_chain_end(self, event: StreamEvent) -> None:
+    def _handle_tool_chain_end(self, event: Event) -> None:
         """Handle tool chain end event."""
         data = event.data
         
@@ -267,7 +267,7 @@ class CLIEventSubscriber(StreamSubscriber):
 
         self._handle_finish(event)
 
-    def _handle_tool_chain_limit_reached(self, event: StreamEvent) -> None:
+    def _handle_tool_chain_limit_reached(self, event: Event) -> None:
         """Handle tool chain limit reached event."""
         data = event.data
         self._set_info(
@@ -276,7 +276,7 @@ class CLIEventSubscriber(StreamSubscriber):
         )
         self.logger.debug(f"Tool chain limit reached - TOOL_CHAIN_ACTIVE cleared")
 
-    def _handle_tool_chain_error(self, event: StreamEvent) -> None:
+    def _handle_tool_chain_error(self, event: Event) -> None:
         """Handle tool chain error event."""
         data = event.data
         self._set_error(
@@ -287,7 +287,7 @@ class CLIEventSubscriber(StreamSubscriber):
         self.logger.debug(f"Tool chain error - TOOL_CHAIN_ACTIVE cleared")
 
     # Tool Execution Event Handlers
-    def _handle_llm_tool_call_request(self, event: StreamEvent) -> None:
+    def _handle_llm_tool_call_request(self, event: Event) -> None:
         """Handle LLM tool call request event."""
         data = event.data
         # Set tool is running
@@ -300,7 +300,7 @@ class CLIEventSubscriber(StreamSubscriber):
         )
 
 
-    def _handle_mcp_tool_call_dispatched(self, event: StreamEvent) -> None:
+    def _handle_mcp_tool_call_dispatched(self, event: Event) -> None:
         """Handle MCP tool call dispatched event."""
         data = event.data
         self._set_info(
@@ -309,7 +309,7 @@ class CLIEventSubscriber(StreamSubscriber):
             f"{', '.join([f'{k}={v}' for k, v in data.get('arguments', {}).items()])}"
         )
 
-    def _handle_mcp_tool_call_result(self, event: StreamEvent) -> None:
+    def _handle_mcp_tool_call_result(self, event: Event) -> None:
         """Handle MCP tool call result event."""
         data = event.data
         # Truncate result if too long
@@ -321,7 +321,7 @@ class CLIEventSubscriber(StreamSubscriber):
             f"Tool {data.get('function_name', 'unknown')} result: {result}"
         )
 
-    def _handle_mcp_tool_call_error(self, event: StreamEvent) -> None:
+    def _handle_mcp_tool_call_error(self, event: Event) -> None:
         """Handle MCP tool call error event."""
         data = event.data
         tool_name = data.get("function_name", "unknown")
@@ -339,7 +339,7 @@ class CLIEventSubscriber(StreamSubscriber):
         #       in the code flow. 
 
     # MCP Server Event Handlers
-    def _handle_mcp_server_up(self, event: StreamEvent) -> None:
+    def _handle_mcp_server_up(self, event: Event) -> None:
         """Handle MCP server up event."""
         data = event.data
         self.server_status.servers_up += 1
@@ -347,7 +347,7 @@ class CLIEventSubscriber(StreamSubscriber):
         server_path = data.get("server_path", "unknown")
         self._set_info(f"MCP server connected: {Path(server_path).name}")
 
-    def _handle_mcp_server_down(self, event: StreamEvent) -> None:
+    def _handle_mcp_server_down(self, event: Event) -> None:
         """Handle MCP server down event."""
         data = event.data
         self.server_status.servers_up -= 1
@@ -355,7 +355,7 @@ class CLIEventSubscriber(StreamSubscriber):
         server_path = data.get("server_path", "unknown")
         self._set_info(f"MCP server disconnected: {Path(server_path).name}")
 
-    def _handle_mcp_tool_enabled(self, event: StreamEvent) -> None:
+    def _handle_mcp_tool_enabled(self, event: Event) -> None:
         """Handle MCP tool enabled event."""
         data = event.data
         self.server_status.tools_enabled += 1
@@ -364,7 +364,7 @@ class CLIEventSubscriber(StreamSubscriber):
                        f"\tDescription: {tool_info.description}\n" +
                        f"\tParameters: {', '.join([f'{k}={v}' for k, v in tool_info.schema.items()])}")
 
-    def _handle_mcp_tool_disabled(self, event: StreamEvent) -> None:
+    def _handle_mcp_tool_disabled(self, event: Event) -> None:
         """Handle MCP tool disabled event."""
         data = event.data
         self.server_status.tools_enabled -= 1
@@ -374,11 +374,11 @@ class CLIEventSubscriber(StreamSubscriber):
         self._set_info(f"Tool disabled: {tool_info.name} ({Path(tool_info.server_path).name})")
 
     # LLM Event Handlers
-    def _handle_usage(self, event: StreamEvent) -> None:
+    def _handle_usage(self, event: Event) -> None:
         """Handle usage statistics event.
 
         Args:
-            event (StreamEvent): The event to handle.
+            event (Event): The event to handle.
         """
         usage_data = event.data.get("usage", {})
         self.token_stats.total_current = usage_data.get("total_tokens", 0)
@@ -387,11 +387,11 @@ class CLIEventSubscriber(StreamSubscriber):
         self.token_stats.completion_tokens = usage_data.get("completion_tokens", 0)
         # Optionally, print or log stats here if needed
 
-    def _handle_content(self, event: StreamEvent) -> None:
+    def _handle_content(self, event: Event) -> None:
         """Handle content event by accumulating content.
 
         Args:
-            event (StreamEvent): The event to handle.
+            event (Event): The event to handle.
         """
         self.ui_state.clear(UIStateFlags.USER_INPUT_READY)
         self.ui_state.set(UIStateFlags.CONTENT_STREAMING)
@@ -399,11 +399,11 @@ class CLIEventSubscriber(StreamSubscriber):
         content = event.data.get("content", "")
         print_pt(content, end="", flush=True)
 
-    def _handle_finish(self, event: StreamEvent) -> None:
+    def _handle_finish(self, event: Event) -> None:
         """Handle finish event.
 
         Args:
-            event (StreamEvent): The event to handle.
+            event (Event): The event to handle.
         """
         if self.token_stats.start_time and not self.token_stats.end_time:
             self.token_stats.end_time = event.timestamp
@@ -416,7 +416,7 @@ class CLIEventSubscriber(StreamSubscriber):
                 self.ui_state.set(UIStateFlags.USER_INPUT_READY)
                 self.logger.debug("All content apparently finished, USER_INPUT_READY set")
 
-    def _handle_error(self, event: StreamEvent) -> None:
+    def _handle_error(self, event: Event) -> None:
         """Handle error event."""
         data = event.data
         error = data.get("error", "Unknown error")

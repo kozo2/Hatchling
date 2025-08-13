@@ -15,7 +15,7 @@ from mcp.types import CallToolResult
 from hatchling.mcp_utils.manager import mcp_manager
 from hatchling.core.logging.logging_manager import logging_manager
 from hatchling.config.settings import AppSettings
-from hatchling.core.llm.streaming_management import StreamPublisher, StreamEventType
+from hatchling.core.llm.event_system import EventPublisher, EventType
 from hatchling.core.llm.data_structures import ToolCallParsedResult
 
 @dataclass
@@ -66,7 +66,7 @@ class MCPToolExecution:
         logging_manager.set_log_level(logging.DEBUG)
         
         # Initialize event publisher
-        self._stream_publisher = StreamPublisher()
+        self._event_publisher = EventPublisher()
         
         # Tool calling control properties
         self.current_tool_call_iteration = 0
@@ -74,13 +74,13 @@ class MCPToolExecution:
         self.root_tool_query = None  # Track the original user query that started the tool sequence
     
     @property
-    def stream_publisher(self) -> StreamPublisher:
+    def event_publisher(self) -> EventPublisher:
         """Get the stream publisher for this tool execution manager.
         
         Returns:
-            StreamPublisher: The stream publisher instance.
+            EventPublisher: The stream publisher instance.
         """
-        return self._stream_publisher
+        return self._event_publisher
 
     def reset_for_new_query(self, query: str) -> None:
         """Reset tool execution state for a new user query.
@@ -97,7 +97,7 @@ class MCPToolExecution:
 
         Sends the tool call to the MCPManager for execution and publishes events
         for tool call dispatched, progress, result, and error handling.
-        You can subscribe to `stream_publisher` of this class to receive
+        You can subscribe to `event_publisher` of this class to receive
         MCP_TOOL_CALL_DISPATCHED, MCP_TOOL_CALL_PROGRESS, MCP_TOOL_CALL_RESULT, and MCP_TOOL_CALL_ERROR events.
         That will allow you to react to tool calls in real-time and handle them accordingly.
 
@@ -113,7 +113,7 @@ class MCPToolExecution:
         self.current_tool_call_iteration += 1
 
         # Publish tool call dispatched event
-        self._stream_publisher.publish(StreamEventType.MCP_TOOL_CALL_DISPATCHED, parsed_tool_call.to_dict())
+        self._event_publisher.publish(EventType.MCP_TOOL_CALL_DISPATCHED, parsed_tool_call.to_dict())
 
         try:
             # Process the tool call using MCPManager
@@ -129,14 +129,14 @@ class MCPToolExecution:
                     result=tool_response,
                     error=None
                 )
-                self._stream_publisher.publish(StreamEventType.MCP_TOOL_CALL_RESULT, result_obj.to_dict())
+                self._event_publisher.publish(EventType.MCP_TOOL_CALL_RESULT, result_obj.to_dict())
             else:
                 result_obj = ToolCallExecutionResult(
                     **parsed_tool_call.to_dict(),
                     result=tool_response,
                     error="Tool execution failed or returned no valid response"
                 )
-                self._stream_publisher.publish(StreamEventType.MCP_TOOL_CALL_ERROR, result_obj.to_dict())
+                self._event_publisher.publish(EventType.MCP_TOOL_CALL_ERROR, result_obj.to_dict())
 
         except Exception as e:
             self.logger.error(f"Error executing tool: {e}")
@@ -148,7 +148,7 @@ class MCPToolExecution:
                 ),
                 error=str(e)
             )
-            self._stream_publisher.publish(StreamEventType.MCP_TOOL_CALL_ERROR, result_obj.to_dict())
+            self._event_publisher.publish(EventType.MCP_TOOL_CALL_ERROR, result_obj.to_dict())
 
     def execute_tool_sync(self, parsed_tool_call: ToolCallParsedResult) -> None:
         """Synchronous wrapper for execute_tool that handles async execution internally.

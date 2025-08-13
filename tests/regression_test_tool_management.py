@@ -16,7 +16,7 @@ sys.path.insert(0, str(Path(__file__).parent.parent))
 from tests.test_decorators import regression_test
 
 from hatchling.mcp_utils.manager import MCPManager
-from hatchling.core.llm.streaming_management import StreamEventType
+from hatchling.core.llm.event_system import EventType
 
 
 class TestToolManagementRegression(unittest.TestCase):
@@ -155,7 +155,7 @@ class TestToolManagementRegression(unittest.TestCase):
     def test_publisher_integration_doesnt_break_existing_functionality(self):
         """Test that publisher integration doesn't break existing functionality."""
         # Should have publisher
-        self.assertTrue(hasattr(self.manager, '_stream_publisher'))
+        self.assertTrue(hasattr(self.manager, '_event_publisher'))
         self.assertTrue(hasattr(self.manager, 'publisher'))
         
         # Publisher should be accessible
@@ -183,7 +183,7 @@ class TestToolManagementRegression(unittest.TestCase):
         
         # These should be callable but not break anything
         try:
-            self.manager._publish_server_event(StreamEventType.MCP_SERVER_UP, "/test/path")
+            self.manager._publish_server_event(EventType.MCP_SERVER_UP, "/test/path")
             # Skip testing _publish_tool_event as it requires MCPToolInfo parameter
             # which would make this test too complex for a regression test
         except Exception as e:

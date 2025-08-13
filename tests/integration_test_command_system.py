@@ -22,9 +22,9 @@ sys.path.insert(0, str(Path(__file__).parent.parent))
 # Import test decorators
 from tests.test_decorators import integration_test
 
-from hatchling.core.chat.mcp_commands import MCPCommands
-from hatchling.core.chat.model_commands import ModelCommands
-from hatchling.core.chat.chat_command_handler import ChatCommandHandler
+from hatchling.ui.mcp_commands import MCPCommands
+from hatchling.ui.model_commands import ModelCommands
+from hatchling.ui.chat_command_handler import ChatCommandHandler
 from hatchling.core.llm.chat_session import ChatSession
 from hatchling.config.settings_registry import SettingsRegistry
 from hatchling.mcp_utils.mcp_tool_data import MCPToolInfo, MCPToolStatus, MCPToolStatusReason

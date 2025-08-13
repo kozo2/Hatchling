@@ -1,6 +1,7 @@
-"""
-Data structures and types for informing and processing streams of events
-from LLM providers.
+"""Data structures and types for informing and processing events in the LLM system.
+
+This module provides event definitions and data structures for the publish-subscribe
+event system used throughout the LLM providers and related components.
 """
 
 
@@ -10,10 +11,10 @@ from enum import Enum
 
 from hatchling.config.llm_settings import ELLMProvider
 
-class StreamEventType(Enum):
-    """Types of events that can be published during streaming.
+class EventType(Enum):
+    """Types of events that can be published in the event system.
     
-    This enum defines all possible event types in the streaming system,
+    This enum defines all possible event types in the event system,
     organized by category for clarity and extensibility.
     
     Event Flow for Tool Chaining:
@@ -156,15 +157,15 @@ class StreamEventType(Enum):
 
 
 @dataclass
-class StreamEvent:
-    """Represents an event in the streaming response.
+class Event:
+    """Represents an event in the system.
     
     This standardized event format allows different LLM providers to publish
     events in a consistent way, regardless of their native response format.
 
     """
     
-    type: StreamEventType
+    type: EventType
     data: Dict[str, Any]
     provider: ELLMProvider
     request_id: Optional[str] = None

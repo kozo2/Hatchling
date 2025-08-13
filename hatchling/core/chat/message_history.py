@@ -6,13 +6,13 @@ including user messages, assistant responses, and tool interactions.
 
 from typing import List, Dict, Any, Optional
 from hatchling.core.logging.logging_manager import logging_manager
-from hatchling.core.llm.streaming_management import StreamSubscriber, StreamEvent, StreamEventType
+from hatchling.core.llm.event_system import EventSubscriber, Event, EventType
 from hatchling.config.llm_settings import ELLMProvider
 
 from hatchling.core.llm.data_structures import ToolCallParsedResult
 from hatchling.mcp_utils.mcp_tool_execution import ToolCallExecutionResult
 
-class MessageHistory(StreamSubscriber):
+class MessageHistory(EventSubscriber):
     """Event-driven message history manager with canonical and provider-specific histories.
     
     Maintains a canonical (provider-agnostic) history and dynamically generates
@@ -35,27 +35,27 @@ class MessageHistory(StreamSubscriber):
         
         self.logger = logging_manager.get_session("MessageHistory")
     
-    def get_subscribed_events(self) -> List[StreamEventType]:
+    def get_subscribed_events(self) -> List[EventType]:
         """Return list of event types this subscriber handles.
         
         Returns:
-            List[StreamEventType]: Event types for message history management.
+            List[EventType]: Event types for message history management.
         """
         return [
             # LLM Response Events
-            StreamEventType.CONTENT,
-            StreamEventType.FINISH,
+            EventType.CONTENT,
+            EventType.FINISH,
             # Tool Execution Events
-            StreamEventType.MCP_TOOL_CALL_DISPATCHED,
-            StreamEventType.MCP_TOOL_CALL_RESULT,
-            StreamEventType.MCP_TOOL_CALL_ERROR,
+            EventType.MCP_TOOL_CALL_DISPATCHED,
+            EventType.MCP_TOOL_CALL_RESULT,
+            EventType.MCP_TOOL_CALL_ERROR,
         ]
     
-    def on_event(self, event: StreamEvent) -> None:
+    def on_event(self, event: Event) -> None:
         """Handle stream events and update canonical history.
         
         Args:
-            event (StreamEvent): The event to handle.
+            event (Event): The event to handle.
         """
         try:
             # Check for provider change and regenerate provider history if needed
@@ -64,35 +64,35 @@ class MessageHistory(StreamSubscriber):
                 self._regenerate_provider_history()
                 self.logger.debug(f"Provider changed to {event.provider}, regenerated provider history")
             
-            if event.type == StreamEventType.CONTENT:
+            if event.type == EventType.CONTENT:
                 self._handle_content_event(event)
-            elif event.type == StreamEventType.FINISH:
+            elif event.type == EventType.FINISH:
                 self._handle_finish_event(event)
-            elif event.type == StreamEventType.MCP_TOOL_CALL_DISPATCHED:
+            elif event.type == EventType.MCP_TOOL_CALL_DISPATCHED:
                 self._handle_tool_call_dispatched_event(event)
-            elif event.type == StreamEventType.MCP_TOOL_CALL_RESULT:
+            elif event.type == EventType.MCP_TOOL_CALL_RESULT:
                 self._handle_tool_call_result_event(event)
-            elif event.type == StreamEventType.MCP_TOOL_CALL_ERROR:
+            elif event.type == EventType.MCP_TOOL_CALL_ERROR:
                 self._handle_tool_call_error_event(event)
                 
         except Exception as e:
             self.logger.error(f"Error handling event {event.type}: {e}")
     
-    def _handle_content_event(self, event: StreamEvent) -> None:
+    def _handle_content_event(self, event: Event) -> None:
         """Handle CONTENT events by buffering content for assistant message assembly.
         
         Args:
-            event (StreamEvent): The CONTENT event.
+            event (Event): The CONTENT event.
         """
         content = event.data.get("content", "")
         self._content_buffer += content
         #self.logger.debug(f"Buffered content: {len(content)} chars (total buffer: {len(self._content_buffer)})")
     
-    def _handle_finish_event(self, event: StreamEvent) -> None:
+    def _handle_finish_event(self, event: Event) -> None:
         """Handle FINISH events by finalizing assistant message from buffer.
         
         Args:
-            event (StreamEvent): The FINISH event.
+            event (Event): The FINISH event.
         """
         if self._content_buffer:
             # Add complete assistant message to canonical history
@@ -112,11 +112,11 @@ class MessageHistory(StreamSubscriber):
             self.logger.debug(f"Added assistant message: {len(self._content_buffer)} chars")
             self._content_buffer = ""  # Reset buffer
 
-    def _handle_tool_call_dispatched_event(self, event: StreamEvent) -> None:
+    def _handle_tool_call_dispatched_event(self, event: Event) -> None:
         """Handle MCP_TOOL_CALL_DISPATCHED events by adding tool calls to history.
         
         Args:
-            event (StreamEvent): The MCP_TOOL_CALL_DISPATCHED event.
+            event (Event): The MCP_TOOL_CALL_DISPATCHED event.
         """
         # Create ToolCallParsedResult from event data
         tool_call = ToolCallParsedResult(
@@ -147,11 +147,11 @@ class MessageHistory(StreamSubscriber):
         
         self.logger.debug(f"Added tool call: {tool_call.function_name}")
     
-    def _handle_tool_call_result_event(self, event: StreamEvent) -> None:
+    def _handle_tool_call_result_event(self, event: Event) -> None:
         """Handle MCP_TOOL_CALL_RESULT events by adding tool results to history.
         
         Args:
-            event (StreamEvent): The MCP_TOOL_CALL_RESULT event.
+            event (Event): The MCP_TOOL_CALL_RESULT event.
         """
         # Create ToolCallExecutionResult from event data  
         tool_result = ToolCallExecutionResult(**event.data)
@@ -176,11 +176,11 @@ class MessageHistory(StreamSubscriber):
         
         self.logger.debug(f"Added tool result for: {tool_result.function_name}")
     
-    def _handle_tool_call_error_event(self, event: StreamEvent) -> None:
+    def _handle_tool_call_error_event(self, event: Event) -> None:
         """Handle MCP_TOOL_CALL_ERROR events by adding error results to history.
         
         Args:
-            event (StreamEvent): The MCP_TOOL_CALL_ERROR event.
+            event (Event): The MCP_TOOL_CALL_ERROR event.
         """
         # Create ToolCallExecutionResult with error from event data
         tool_result = ToolCallExecutionResult(**event.data)

@@ -13,7 +13,7 @@ import time
 from hatchling.mcp_utils.manager import mcp_manager, MCPToolInfo, MCPToolStatus
 from hatchling.mcp_utils.mcp_tool_data import MCPToolStatusReason
 from hatchling.core.logging.logging_manager import logging_manager
-from hatchling.core.llm.streaming_management import StreamEventType
+from hatchling.core.llm.event_system import EventType
 
 
 class MCPServerStatus(Enum):
@@ -230,7 +230,7 @@ class MCPServerAPI:
         tool_info.last_updated = time.time()
         
         # Publish event through manager's publisher
-        mcp_manager._publish_tool_event(StreamEventType.MCP_TOOL_ENABLED, tool_name, tool_info)
+        mcp_manager._publish_tool_event(EventType.MCP_TOOL_ENABLED, tool_name, tool_info)
         
         logger.info(f"Enabled tool: {tool_name}")
         return True
@@ -267,7 +267,7 @@ class MCPServerAPI:
         tool_info.last_updated = time.time()
         
         # Publish event through manager's publisher
-        mcp_manager._publish_tool_event(StreamEventType.MCP_TOOL_DISABLED, tool_name, tool_info)
+        mcp_manager._publish_tool_event(EventType.MCP_TOOL_DISABLED, tool_name, tool_info)
         
         logger.info(f"Disabled tool: {tool_name}")
         return True
