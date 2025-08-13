@@ -5,11 +5,9 @@ Commands follow the format 'mcp:action:target' for clarity and consistency.
 """
 
 import json
-from typing import Dict, List, Any, Optional
-from prompt_toolkit import print_formatted_text
-from prompt_toolkit.formatted_text import FormattedText
+from typing import Dict, Any, Optional
 
-from hatchling.core.chat.abstract_commands import AbstractCommands
+from hatchling.ui.abstract_commands import AbstractCommands
 from hatchling.mcp_utils.mcp_server_api import MCPServerAPI
 from hatchling.mcp_utils.mcp_tool_data import MCPToolStatus
 from hatchling.config.i18n import translate

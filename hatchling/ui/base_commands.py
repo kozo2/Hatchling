@@ -5,17 +5,14 @@ for the chat interface, including help, exit, log control and tool management.
 """
 
 import logging
-from typing import Tuple
 
 from prompt_toolkit import print_formatted_text
 from prompt_toolkit.formatted_text import FormattedText
 
 from hatchling import __version__
-from hatchling.core.logging.session_debug_log import SessionDebugLog
-from hatchling.core.logging.logging_manager import logging_manager
-from hatchling.mcp_utils.manager import mcp_manager
-from hatchling.core.chat.abstract_commands import AbstractCommands
 from hatchling.config.i18n import translate
+from hatchling.core.logging.logging_manager import logging_manager
+from hatchling.ui.abstract_commands import AbstractCommands
 
 
 class BaseChatCommands(AbstractCommands):

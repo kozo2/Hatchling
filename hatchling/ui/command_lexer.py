@@ -4,8 +4,7 @@ This module provides a custom lexer that highlights commands, arguments, and val
 as the user types them in the chat interface.
 """
 
-import re
-from typing import Iterator, List, Tuple, Dict, Any
+from typing import List, Tuple, Dict, Any
 
 from prompt_toolkit.lexers import Lexer
 from prompt_toolkit.document import Document

@@ -12,16 +12,16 @@ from prompt_toolkit.styles import Style
 
 from hatchling.core.logging.logging_manager import logging_manager
 
-from hatchling.core.chat.command_completion import CommandCompleter
-from hatchling.core.chat.command_lexer import ChatCommandLexer
+from hatchling.ui.command_completion import CommandCompleter
+from hatchling.ui.command_lexer import ChatCommandLexer
 
 from hatchling.config.settings_registry import SettingsRegistry
 from hatchling.config.settings_registry import SettingsRegistry
-from hatchling.core.chat.base_commands import BaseChatCommands
-from hatchling.core.chat.hatch_commands import HatchCommands
-from hatchling.core.chat.settings_commands import SettingsCommands
-from hatchling.core.chat.mcp_commands import MCPCommands
-from hatchling.core.chat.model_commands import ModelCommands
+from hatchling.ui.base_commands import BaseChatCommands
+from hatchling.ui.hatch_commands import HatchCommands
+from hatchling.ui.settings_commands import SettingsCommands
+from hatchling.ui.mcp_commands import MCPCommands
+from hatchling.ui.model_commands import ModelCommands
 
 from hatchling.mcp_utils.manager import mcp_manager
 from hatchling.config.i18n import translate
