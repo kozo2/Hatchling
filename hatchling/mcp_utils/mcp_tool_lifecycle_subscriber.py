@@ -1,7 +1,7 @@
 import logging
 from typing import Dict, List, Callable, Any
 
-from ..core.llm.event_system.stream_data import StreamEvent, EventType
+from ..core.llm.event_system.stream_data import Event, EventType
 from ..core.llm.event_system.event_subscriber import EventSubscriber
 from hatchling.mcp_utils import MCPToolInfo, MCPToolStatus, MCPToolStatusReason
 
@@ -27,11 +27,11 @@ class ToolLifecycleSubscriber(EventSubscriber):
         self._convert_tool_func = convert_tool_func
         self.logger = logging.getLogger(f"{self.__class__.__name__}[{provider_name}]")
     
-    def on_event(self, event: StreamEvent) -> None:
+    def on_event(self, event: Event) -> None:
         """Handle MCP lifecycle events and update tool cache.
         
         Args:
-            event (StreamEvent): The event to handle.
+            event (Event): The event to handle.
         """
         try:
             if event.type == EventType.MCP_SERVER_UP:
@@ -65,14 +65,14 @@ class ToolLifecycleSubscriber(EventSubscriber):
             EventType.MCP_TOOL_DISABLED
         ]
     
-    def _handle_server_up_event(self, event: StreamEvent) -> None:
+    def _handle_server_up_event(self, event: Event) -> None:
         """Handle server up event."""
         server_path = event.data.get("server_path", "")
         tool_count = event.data.get("tool_count", 0)
         
         self.logger.info(f"Server up: {server_path} with {tool_count} tools")
     
-    def _handle_server_down_event(self, event: StreamEvent) -> None:
+    def _handle_server_down_event(self, event: Event) -> None:
         """Handle server down event."""
         server_path = event.data.get("server_path", "")
         
@@ -86,7 +86,7 @@ class ToolLifecycleSubscriber(EventSubscriber):
         
         self.logger.info(f"Server down: {server_path} - disabled {tools_disabled} tools")
     
-    def _handle_server_unreachable_event(self, event: StreamEvent) -> None:
+    def _handle_server_unreachable_event(self, event: Event) -> None:
         """Handle server unreachable event."""
         server_path = event.data.get("server_path", "")
         error = event.data.get("error", "Unknown error")
@@ -101,7 +101,7 @@ class ToolLifecycleSubscriber(EventSubscriber):
         
         self.logger.warning(f"Server unreachable: {server_path} ({error}) - disabled {tools_disabled} tools")
     
-    def _handle_server_reachable_event(self, event: StreamEvent) -> None:
+    def _handle_server_reachable_event(self, event: Event) -> None:
         """Handle server reachable event."""
         server_path = event.data.get("server_path", "")
         
@@ -118,7 +118,7 @@ class ToolLifecycleSubscriber(EventSubscriber):
         
         self.logger.info(f"Server reachable: {server_path} - re-enabled {tools_enabled} tools")
     
-    def _handle_tool_enabled_event(self, event: StreamEvent) -> None:
+    def _handle_tool_enabled_event(self, event: Event) -> None:
         """Handle tool enabled event."""
         tool_name = event.data.get("tool_name", "")
         
@@ -139,7 +139,7 @@ class ToolLifecycleSubscriber(EventSubscriber):
             self._tool_cache[tool_name] = tool_info
             self.logger.debug(f"Tool enabled: {tool_name}")
     
-    def _handle_tool_disabled_event(self, event: StreamEvent) -> None:
+    def _handle_tool_disabled_event(self, event: Event) -> None:
         """Handle tool disabled event."""
         tool_name = event.data.get("tool_name", "")
         

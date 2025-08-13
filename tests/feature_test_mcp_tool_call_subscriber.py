@@ -12,7 +12,7 @@ from unittest.mock import MagicMock
 
 from tests.test_decorators import feature_test, requires_api_key
 
-from hatchling.core.llm.event_system import StreamEvent, EventType
+from hatchling.core.llm.event_system import Event, EventType
 
 from hatchling.mcp_utils.mcp_tool_execution import MCPToolExecution
 from hatchling.mcp_utils.mcp_tool_call_subscriber import MCPToolCallSubscriber
@@ -41,7 +41,7 @@ class TestMCPToolCallSubscriberRegistry(unittest.TestCase):
     @feature_test
     def test_on_event_ollama(self):
         # Create a mock Ollama tool call event
-        ollama_event = StreamEvent(
+        ollama_event = Event(
             type=EventType.LLM_TOOL_CALL_REQUEST,
             data={
                 "tool_calls": [
@@ -80,7 +80,7 @@ class TestMCPToolCallSubscriberRegistry(unittest.TestCase):
     @requires_api_key
     def test_on_event_openai(self):
         # Create a mock OpenAI tool call event (first chunk)
-        first_event = StreamEvent(
+        first_event = Event(
             type=EventType.LLM_TOOL_CALL_REQUEST,
             data={
                 "tool_call": {
@@ -104,7 +104,7 @@ class TestMCPToolCallSubscriberRegistry(unittest.TestCase):
         subscriber.on_event(first_event)
 
         # Create a mock continuation event
-        continuation_event = StreamEvent(
+        continuation_event = Event(
             type=EventType.LLM_TOOL_CALL_REQUEST,
             data={
                 "tool_call": {

@@ -79,13 +79,13 @@ class TestEventSystem(unittest.TestCase):
 
     @feature_test
     def test_stream_event_creation(self):
-        """Test StreamEvent data structure creation and properties."""
-        from hatchling.core.llm.event_system.stream_data import StreamEvent, EventType
+        """Test Event data structure creation and properties."""
+        from hatchling.core.llm.event_system.stream_data import Event, EventType
         from hatchling.config.llm_settings import ELLMProvider
 
         # Create a test event
         event_data = {"content": "Test content"}
-        event = StreamEvent(
+        event = Event(
             type=EventType.CONTENT,
             data=event_data,
             provider=ELLMProvider.OPENAI,
@@ -131,7 +131,7 @@ class TestEventSystem(unittest.TestCase):
     @feature_test
     def test_event_system_integration(self):
         """Test integration between different event system components."""
-        from hatchling.core.llm.event_system.stream_data import StreamEvent, EventType
+        from hatchling.core.llm.event_system.stream_data import Event, EventType
         from hatchling.mcp_utils.mcp_tool_data import MCPToolInfo, MCPToolStatus, MCPToolStatusReason
         from hatchling.config.llm_settings import ELLMProvider
 
@@ -146,7 +146,7 @@ class TestEventSystem(unittest.TestCase):
         )
 
         # Create an event that might use this tool info
-        event = StreamEvent(
+        event = Event(
             type=EventType.MCP_TOOL_ENABLED,
             data={
                 "tool_name": tool_info.name,
@@ -235,12 +235,12 @@ if __name__ == "__main__":
 
     @feature_test
     def test_stream_event_creation(self):
-        """Test that StreamEvent objects can be created correctly."""
-        from hatchling.core.llm.event_system.event_subscribers_examples import StreamEvent, EventType
+        """Test that Event objects can be created correctly."""
+        from hatchling.core.llm.event_system.event_data import Event, EventType
         from hatchling.core.llm.providers.base import ELLMProvider
         
         # Test creating a basic stream event
-        event = StreamEvent(
+        event = Event(
             type=EventType.CONTENT,
             data={"content": "test content"},
             provider=ELLMProvider.OLLAMA,

@@ -11,7 +11,7 @@ from collections import deque
 from hatchling.core.logging.logging_manager import logging_manager
 
 from hatchling.core.llm.event_system.event_subscriber import EventSubscriber
-from hatchling.core.llm.event_system.stream_data import StreamEvent, EventType
+from hatchling.core.llm.event_system.stream_data import Event, EventType
 
 from hatchling.core.llm.data_structures import ToolCallParsedResult
 from hatchling.mcp_utils.mcp_tool_execution import ToolCallExecutionResult
@@ -60,11 +60,11 @@ class ToolResultCollectorSubscriber(EventSubscriber):
 
         self.logger = logging_manager.get_session("ToolResultCollectorSubscriber")
     
-    def on_event(self, event: StreamEvent) -> None:
+    def on_event(self, event: Event) -> None:
         """Handle tool execution events.
         
         Args:
-            event (StreamEvent): The event received. The `event.data` must be a dictionary
+            event (Event): The event received. The `event.data` must be a dictionary
             matching the data structure of either ToolCallParsedResult or ToolCallExecutionResult:
               - with `event.type` being `EventType.MCP_TOOL_CALL_DISPATCHED`, the `event.data`
               should match the ToolCallParsedResult structure

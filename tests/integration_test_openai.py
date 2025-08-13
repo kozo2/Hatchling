@@ -45,7 +45,7 @@ from hatchling.core.llm.event_system import (
     ErrorHandlerSubscriber,
     EventPublisher,
     EventType,
-    StreamEvent
+    Event
 )
 from Hatchling.hatchling.mcp_utils.mcp_tool_lifecycle_subscriber import ToolLifecycleSubscriber
 from hatchling.core.llm.providers.openai_provider import OpenAIProvider
@@ -71,11 +71,11 @@ class TestStreamToolCallSubscriber(EventSubscriber):
         super().__init__()
         self._tool_call_buffers = {}
 
-    def on_event(self, event: StreamEvent) -> None:
+    def on_event(self, event: Event) -> None:
         """Handle incoming stream events, reconstructing OpenAI-style tool call arguments if fragmented.
         
         Args:
-            event (StreamEvent): The streaming event to process
+            event (Event): The streaming event to process
         """
 
         if event.type == EventType.LLM_TOOL_CALL_REQUEST:
@@ -306,7 +306,7 @@ class TestOpenAIProviderIntegration(unittest.TestCase):
             "tool_name": tool_info.name,
             "tool_info": tool_info  # Changed from mcp_tool_info to tool_info
         }
-        event = StreamEvent(
+        event = Event(
             type=EventType.MCP_TOOL_ENABLED,
             data=event_data,
             provider=ELLMProvider.OPENAI,
@@ -359,7 +359,7 @@ class TestOpenAIProviderIntegration(unittest.TestCase):
                         f"Tool name should remain '{tool_name}'")
 
         # Simulate disabling the tool
-        disable_event = StreamEvent(
+        disable_event = Event(
             type=EventType.MCP_TOOL_DISABLED,
             data={
                 "tool_name": tool_name,

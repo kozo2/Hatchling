@@ -10,7 +10,7 @@ from typing import Dict, List, Any, Optional
 
 from hatchling.core.llm.event_system import EventPublisher
 from Hatchling.hatchling.mcp_utils.mcp_tool_lifecycle_subscriber import ToolLifecycleSubscriber
-from hatchling.core.llm.event_system.event_subscribers_examples import StreamEvent
+from hatchling.core.llm.event_system.event_data import Event
 from hatchling.core.llm.data_structures import ToolCallParsedResult
 from hatchling.config.settings import AppSettings
 from hatchling.mcp_utils.mcp_tool_data import MCPToolInfo
@@ -168,11 +168,11 @@ class LLMProvider(ABC):
         pass
 
     @abstractmethod
-    def parse_tool_call(self, event: StreamEvent) -> Optional[ToolCallParsedResult]:
+    def parse_tool_call(self, event: Event) -> Optional[ToolCallParsedResult]:
         """Parse a tool call event into a standardized format.
 
         Args:
-            event (StreamEvent): The raw tool call event from the LLM provider.
+            event (Event): The raw tool call event from the LLM provider.
 
         Returns:
             Optional[ToolCallParsedResult]: Normalized representation of the tool call, 

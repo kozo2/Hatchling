@@ -7,7 +7,7 @@ and dispatches them to MCPToolExecution for processing.
 from collections import deque
 from json import dumps as json_dumps
 
-from hatchling.core.llm.event_system import EventSubscriber, StreamEvent, EventType
+from hatchling.core.llm.event_system import EventSubscriber, Event, EventType
 from hatchling.core.llm.data_structures import ToolCallParsedResult
 from hatchling.core.llm.providers.registry import ProviderRegistry
 from hatchling.core.logging.logging_manager import logging_manager
@@ -39,7 +39,7 @@ class MCPToolCallSubscriber(EventSubscriber):
         """
         return [EventType.LLM_TOOL_CALL_REQUEST]
     
-    def on_event(self, event: StreamEvent) -> None:
+    def on_event(self, event: Event) -> None:
         """Handle incoming events.
 
         Only the first tool call for each request ID is processed. Subsequent tool calls
@@ -47,7 +47,7 @@ class MCPToolCallSubscriber(EventSubscriber):
         are tracked, preventing memory growth.
         
         Args:
-            event (StreamEvent): The event to handle.
+            event (Event): The event to handle.
         """
         if event.type == EventType.LLM_TOOL_CALL_REQUEST:
             if event.request_id in self._recent_request_ids:
@@ -75,7 +75,7 @@ class MCPToolCallSubscriber(EventSubscriber):
         """Handle LLM_TOOL_CALL_REQUEST events by dispatching to tool execution.
         
         Args:
-            event (StreamEvent): The LLM_TOOL_CALL_REQUEST event to handle.
+            event (Event): The LLM_TOOL_CALL_REQUEST event to handle.
         """
         try:
             # Dispatch the tool call for execution

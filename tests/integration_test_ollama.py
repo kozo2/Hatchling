@@ -47,7 +47,7 @@ logger = logging.getLogger("integration_test_ollama")
 class TestStreamToolCallSubscriber(EventSubscriber):
     """Test subscriber for streaming tool calls."""
 
-    def on_event(self, event: StreamEvent) -> None:
+    def on_event(self, event: Event) -> None:
         """Handle incoming stream events."""
         if event.type == EventType.LLM_TOOL_CALL_REQUEST:
             tool_calls = event.data.get("tool_calls", [])
@@ -193,7 +193,7 @@ class TestOllamaProviderSync(unittest.TestCase):
                 "tool_name": tool_name,
                 "tool_info": tool_info  # Changed from mcp_tool_info to tool_info
             }
-            event = StreamEvent(
+            event = Event(
                 type=EventType.MCP_TOOL_ENABLED,
                 data=event_data,
                 provider=ELLMProvider.OLLAMA,
@@ -208,7 +208,7 @@ class TestOllamaProviderSync(unittest.TestCase):
         self.assertIn("tool_1", enabled)
 
         # Disable one tool
-        disable_event = StreamEvent(
+        disable_event = Event(
             type=EventType.MCP_TOOL_DISABLED,
             data={
                 "tool_name": "tool_0",
@@ -305,7 +305,7 @@ class TestOllamaProviderIntegration(unittest.IsolatedAsyncioTestCase):
             "tool_name": tool_info.name,
             "tool_info": tool_info  # Changed from mcp_tool_info to tool_info
         }
-        event = StreamEvent(
+        event = Event(
             type=EventType.MCP_TOOL_ENABLED,
             data=event_data,
             provider=ELLMProvider.OLLAMA,
@@ -354,7 +354,7 @@ class TestOllamaProviderIntegration(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(payload_with_tools["tools"][0]["function"]["name"], tool_name)
 
         # Simulate disabling the tool
-        disable_event = StreamEvent(
+        disable_event = Event(
             type=EventType.MCP_TOOL_DISABLED,
             data={
                 "tool_name": tool_name,

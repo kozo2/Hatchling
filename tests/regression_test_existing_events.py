@@ -18,7 +18,7 @@ from tests.test_decorators import regression_test
 
 from hatchling.core.llm.event_system import (
     EventType,
-    StreamEvent,
+    Event,
     EventPublisher,
     ContentPrinterSubscriber,
     UsageStatsSubscriber,
@@ -55,9 +55,9 @@ class TestExistingEventHandling(unittest.TestCase):
     
     @regression_test
     def test_stream_event_creation_still_works(self):
-        """Test that StreamEvent creation still works with original events."""
+        """Test that Event creation still works with original events."""
         # Test creating various types of events
-        content_event = StreamEvent(
+        content_event = Event(
             type=EventType.CONTENT,
             data={"content": "Hello world"},
             provider="test_provider"
@@ -69,7 +69,7 @@ class TestExistingEventHandling(unittest.TestCase):
         self.assertIsNotNone(content_event.timestamp)
         
         # Test role event
-        role_event = StreamEvent(
+        role_event = Event(
             type=EventType.ROLE,
             data={"role": "assistant"},
             provider="test_provider"
@@ -90,7 +90,7 @@ class TestExistingEventHandling(unittest.TestCase):
         
         # Test event handling (should not raise exceptions)
         try:
-            content_event = StreamEvent(
+            content_event = Event(
                 type=EventType.CONTENT,
                 data={"content": "Test content"},
                 provider="test_provider"
@@ -117,14 +117,14 @@ class TestExistingEventHandling(unittest.TestCase):
         
         # Test event handling (should not raise exceptions)
         try:
-            content_event = StreamEvent(
+            content_event = Event(
                 type=EventType.CONTENT,
                 data={"content": "Test content"},
                 provider="test_provider"
             )
             subscriber.on_event(content_event)
             
-            usage_event = StreamEvent(
+            usage_event = Event(
                 type=EventType.USAGE,
                 data={
                     "usage": {
@@ -152,7 +152,7 @@ class TestExistingEventHandling(unittest.TestCase):
         
         # Test event handling (should not raise exceptions)
         try:
-            error_event = StreamEvent(
+            error_event = Event(
                 type=EventType.ERROR,
                 data={
                     "error": {

@@ -7,7 +7,7 @@ import unittest
 import time
 from unittest.mock import MagicMock, patch
 from hatchling.core.llm.tool_management.tool_chaining_subscriber import ToolChainingSubscriber
-from hatchling.core.llm.event_system.stream_data import EventType, StreamEvent
+from hatchling.core.llm.event_system.stream_data import EventType, Event
 from tests.test_decorators import feature_test
 
 class TestToolChainingFeature(unittest.TestCase):
@@ -25,7 +25,7 @@ class TestToolChainingFeature(unittest.TestCase):
         self.assertFalse(subscriber.started)
         self.assertEqual(subscriber.chain_link_count, 0)
         event_data = {"tool_call_id": "abc", "function_name": "test_func", "arguments": {}}
-        event = StreamEvent(type=EventType.MCP_TOOL_CALL_DISPATCHED, data=event_data, provider=MagicMock())
+        event = Event(type=EventType.MCP_TOOL_CALL_DISPATCHED, data=event_data, provider=MagicMock())
         subscriber.tool_result_collector.tool_call_queue = [(None, None, event_data)]
         with patch.object(subscriber.publisher, 'publish') as mock_publish:
             subscriber.on_event(event)
@@ -46,7 +46,7 @@ class TestToolChainingFeature(unittest.TestCase):
         tool_call = MagicMock()
         tool_result = MagicMock()
         subscriber.tool_result_collector.get_next_ready_pair = MagicMock(return_value=(tool_call, tool_result))
-        event = StreamEvent(type=EventType.MCP_TOOL_CALL_RESULT, data={}, provider=MagicMock())
+        event = Event(type=EventType.MCP_TOOL_CALL_RESULT, data={}, provider=MagicMock())
         with patch.object(subscriber, 'logger'), \
              patch.object(subscriber, 'check_iteration_end'), \
              patch('asyncio.create_task') as mock_create_task:
