@@ -315,8 +315,8 @@ class TestOpenAIProviderIntegration(unittest.TestCase):
         )
 
         # Create and subscribe ToolLifecycleSubscriber
-        tls = ToolLifecycleSubscriber("openai")
-        self.provider._toolLifecycle_subscriber = tls
+        # Use the provider's existing ToolLifecycleSubscriber instead of creating a new one
+        tls = self.provider._toolLifecycle_subscriber
         tool_call_subscriber = TestStreamToolCallSubscriber()
         self.provider.publisher.subscribe(tool_call_subscriber)
         mcp_activity_mock_publisher = StreamPublisher()
