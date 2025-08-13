@@ -10,7 +10,7 @@ from pathlib import Path
 
 from hatchling.config.settings import AppSettings
 from hatchling.mcp_utils.mcp_tool_data import MCPToolInfo, MCPToolStatusReason
-from hatchling.core.llm.tool_management.tool_call_parse_registry import ToolCallParseRegistry
+from hatchling.core.llm.providers.registry import ProviderRegistry
 
 # TODO: The flag utility should be abstracted for the whole application
 # in order to easily define FSM-like systems
@@ -68,15 +68,6 @@ class TokenStats:
     completion_tokens: int = 0
     start_time: float = None
     end_time: float = None
-
-
-@dataclass
-class LLMStatus:
-    """LLM provider and model information."""
-    
-    provider_name: str = "Unknown"
-    model_name: str = "Unknown"
-    api_base: str = "Unknown"
 
 class CLIEventSubscriber(StreamSubscriber):
     """CLI Event Subscriber for managing UI state based on stream events.
@@ -302,7 +293,8 @@ class CLIEventSubscriber(StreamSubscriber):
         """Handle LLM tool call request event."""
         data = event.data
         # Set tool is running
-        parsed_tool_call = ToolCallParseRegistry.get_strategy(event.provider).parse_tool_call(event)
+        provider = ProviderRegistry.get_provider(event.provider)
+        parsed_tool_call = provider.parse_tool_call(event)
         self._set_info(
             f"[{parsed_tool_call.tool_call_id}]\n" +
             f"Tool call to {parsed_tool_call.function_name} requested with parameters:\n" +

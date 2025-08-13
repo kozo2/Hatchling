@@ -14,9 +14,12 @@ from .base import LLMProvider
 from .registry import ProviderRegistry
 from hatchling.config.settings import AppSettings
 from hatchling.config.llm_settings import ELLMProvider
+from hatchling.mcp_utils.mcp_tool_data import MCPToolInfo
 from hatchling.core.llm.streaming_management.stream_publisher import StreamPublisher
 from hatchling.core.llm.streaming_management.stream_data import StreamEventType
+from hatchling.core.llm.streaming_management.stream_subscribers import StreamEvent
 from hatchling.core.llm.streaming_management.tool_lifecycle_subscriber import ToolLifecycleSubscriber
+from hatchling.core.llm.data_structures import ToolCallParsedResult
 from hatchling.mcp_utils.manager import mcp_manager
 
 logger = logging.getLogger(__name__)
@@ -73,7 +76,7 @@ class OllamaProvider(LLMProvider):
         """
         try:
             self._client = AsyncClient(host=self._settings.ollama.api_base)
-            self._toolLifecycle_subscriber = ToolLifecycleSubscriber(ELLMProvider.OLLAMA.value)
+            self._toolLifecycle_subscriber = ToolLifecycleSubscriber(ELLMProvider.OLLAMA.value, self.convert_tool)
             self._stream_publisher = StreamPublisher()
             mcp_manager.publisher.subscribe(self._toolLifecycle_subscriber)
             
@@ -363,3 +366,81 @@ class OllamaProvider(LLMProvider):
                 "available": False,
                 "message": f"Ollama server unavailable: {str(e)}"
             }
+
+    def parse_tool_call(self, event: StreamEvent) -> Optional[ToolCallParsedResult]:
+        """Parse an Ollama tool call event.
+
+        Args:
+            event (StreamEvent): The Ollama tool call event.
+
+        Returns:
+            Optional[ToolCallParsedResult]: Normalized tool call result, or None if parsing fails.
+
+        Raises:
+            ValueError: If the event cannot be parsed as a valid Ollama tool call.
+        """
+        if event.provider != self.provider_enum:
+            raise ValueError(f"Event provider {event.provider} does not match Ollama provider {self.provider_enum}")
+
+        try:
+            tool_calls = event.data.get("tool_calls", [])
+            if not tool_calls:
+                raise ValueError("No tool calls found in Ollama event")
+                
+            # Process the first tool call (if multiple, we'd need to call parse_tool_call for each)
+            tool_call = tool_calls[0]
+            
+            # Extract standard fields
+            tool_id = tool_call.get("id", str(uuid.uuid4()))  # Use a UUID if no ID is provided
+            function_name = tool_call.get("function", {}).get("name", "")
+            arguments = tool_call.get("function", {}).get("arguments", {})
+            
+            # Ensure arguments is a dictionary
+            if isinstance(arguments, str):
+                try:
+                    arguments = json.loads(arguments)
+                except json.JSONDecodeError:
+                    logger.warning(f"Failed to parse Ollama tool call arguments: {arguments}")
+                    arguments = {"_raw": arguments}
+            
+            return ToolCallParsedResult(
+                tool_call_id=tool_id,
+                function_name=function_name,
+                arguments=arguments
+            )
+            
+        except Exception as e:
+            logger.error(f"Error parsing Ollama tool call: {e}")
+            raise ValueError(f"Failed to parse Ollama tool call: {e}")
+
+    def convert_tool(self, tool_info: MCPToolInfo) -> Dict[str, Any]:
+        """Convert an MCP tool to Ollama function format.
+
+        Args:
+            tool_info (MCPToolInfo): MCP tool information to convert. This is an in/out
+                                   parameter whose provider_format field will be set 
+                                   to the converted tool format.
+            
+        Returns:
+            Dict[str, Any]: Tool in Ollama function format.
+        """
+        try:
+            # Ollama uses a similar format to OpenAI but with some differences
+            ollama_tool = {
+                "type": "function",
+                "function": {
+                    "name": tool_info.name,
+                    "description": tool_info.description,
+                    "parameters": tool_info.schema
+                }
+            }
+            
+            # Cache the converted format in the tool info
+            tool_info.provider_format = ollama_tool
+            
+            logger.debug(f"Converted tool {tool_info.name} to Ollama format")
+            return ollama_tool
+            
+        except Exception as e:
+            logger.error(f"Failed to convert tool {tool_info.name} to Ollama format: {e}")
+            return {}

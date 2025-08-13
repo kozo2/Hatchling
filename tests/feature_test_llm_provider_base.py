@@ -94,6 +94,19 @@ class TestLLMProviderBase(unittest.TestCase):
             
             async def check_health(self):
                 return {"available": True, "message": "OK"}
+            
+            def parse_tool_call(self, event):
+                """Mock implementation of parse_tool_call."""
+                from hatchling.core.llm.data_structures import ToolCallParsedResult
+                return ToolCallParsedResult(
+                    tool_call_id="test_id",
+                    function_name="test_function",
+                    arguments={}
+                )
+            
+            def convert_tool(self, tool_info):
+                """Mock implementation of convert_tool."""
+                return {"type": "function", "function": {"name": tool_info.name}}
         
         # Should be able to instantiate concrete implementation
         test_settings = test_data.get_test_settings()
@@ -138,6 +151,19 @@ class TestLLMProviderBase(unittest.TestCase):
             
             async def check_health(self):
                 return {"available": True, "message": "OK"}
+            
+            def parse_tool_call(self, event):
+                """Mock implementation of parse_tool_call."""
+                from hatchling.core.llm.data_structures import ToolCallParsedResult
+                return ToolCallParsedResult(
+                    tool_call_id="test_id",
+                    function_name="test_function", 
+                    arguments={}
+                )
+            
+            def convert_tool(self, tool_info):
+                """Mock implementation of convert_tool."""
+                return {"type": "function", "function": {"name": tool_info.name}}
 
         provider = OllamaProvider({})
         self.assertEqual(provider.provider_name, "ollama",

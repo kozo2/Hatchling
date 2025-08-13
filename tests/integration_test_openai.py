@@ -35,7 +35,7 @@ from tests.test_decorators import slow_test, requires_api_key, integration_test,
 from hatchling.config.openai_settings import OpenAISettings
 from hatchling.config.settings import AppSettings
 from hatchling.config.llm_settings import ELLMProvider
-from hatchling.core.llm.tool_management.adapters import MCPToolAdapterRegistry
+from hatchling.core.llm.streaming_management.tool_lifecycle_subscriber import ToolLifecycleSubscriber
 from hatchling.core.llm.providers.registry import ProviderRegistry
 from hatchling.mcp_utils.mcp_tool_data import MCPToolInfo, MCPToolStatus, MCPToolStatusReason
 from hatchling.core.llm.streaming_management import (
@@ -149,7 +149,6 @@ class TestOpenAIProviderIntegration(unittest.TestCase):
         try:
             openai_settings = OpenAISettings(api_key=api_key, timeout=30.0)
             app_settings = AppSettings(openai=openai_settings)
-            MCPToolAdapterRegistry.get_adapter("openai")
             self.provider = ProviderRegistry.create_provider(ELLMProvider.OPENAI, app_settings)
             self.loop = asyncio.new_event_loop()
             asyncio.set_event_loop(self.loop)
@@ -316,8 +315,8 @@ class TestOpenAIProviderIntegration(unittest.TestCase):
         )
 
         # Create and subscribe ToolLifecycleSubscriber
-        tls = ToolLifecycleSubscriber("openai")
-        self.provider._toolLifecycle_subscriber = tls
+        # Use the provider's existing ToolLifecycleSubscriber instead of creating a new one
+        tls = self.provider._toolLifecycle_subscriber
         tool_call_subscriber = TestStreamToolCallSubscriber()
         self.provider.publisher.subscribe(tool_call_subscriber)
         mcp_activity_mock_publisher = StreamPublisher()

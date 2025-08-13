@@ -9,8 +9,7 @@ from hatchling.core.logging.logging_manager import logging_manager
 from hatchling.core.llm.streaming_management import StreamSubscriber, StreamEvent, StreamEventType
 from hatchling.config.llm_settings import ELLMProvider
 
-from hatchling.core.llm.tool_management.tool_result_collector_subscriber import ToolCallParsedResult, ToolCallExecutionResultLight
-from hatchling.core.llm.tool_management.tool_call_parse_strategy import ToolCallParsedResult as ToolCallParsedResultImport
+from hatchling.core.llm.data_structures import ToolCallParsedResult
 from hatchling.mcp_utils.mcp_tool_execution import ToolCallExecutionResult
 
 class MessageHistory(StreamSubscriber):
@@ -120,7 +119,7 @@ class MessageHistory(StreamSubscriber):
             event (StreamEvent): The MCP_TOOL_CALL_DISPATCHED event.
         """
         # Create ToolCallParsedResult from event data
-        tool_call = ToolCallParsedResultImport(
+        tool_call = ToolCallParsedResult(
             tool_call_id=event.data.get("tool_call_id", ""),
             function_name=event.data.get("function_name", ""),
             arguments=event.data.get("arguments", {})

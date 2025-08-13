@@ -1,13 +1,7 @@
-"""Tests for MCPToolCallSubscriber with strategy         # Use registry to get the strategy
-        strategy = ToolCallParseRegistry.get_strategy(ELLMProvider.OLLAMA)
-        subscriber = MCPToolCallSubscriber(self.mock_tool_execution)
-        subscriber.on_event(ollama_event)
-
-        self.mock_tool_execution.stream_publisher.publish.assert_called_once()
-        args = self.mock_tool_execution.stream_publisher.publish.call_args[0].
+"""Tests for MCPToolCallSubscriber with provider-based strategy selection.
 
 This module contains integration tests for the MCPToolCallSubscriber
-using different ToolCallParseStrategies.
+using provider methods directly instead of the registry pattern.
 """
 
 import sys
@@ -16,18 +10,18 @@ import unittest
 import time
 from unittest.mock import MagicMock
 
-from tests.test_decorators import feature_test
+from tests.test_decorators import feature_test, requires_api_key
 
 from hatchling.core.llm.streaming_management import StreamEvent, StreamEventType
 
 from hatchling.mcp_utils.mcp_tool_execution import MCPToolExecution
 from hatchling.mcp_utils.mcp_tool_call_subscriber import MCPToolCallSubscriber
-from hatchling.core.llm.tool_management import ToolCallParseRegistry
+from hatchling.core.llm.providers.registry import ProviderRegistry
 from hatchling.config.llm_settings import ELLMProvider
 
 
 class TestMCPToolCallSubscriberRegistry(unittest.TestCase):
-    """Test suite for MCPToolCallSubscriber using the registry-based strategy selection."""
+    """Test suite for MCPToolCallSubscriber using provider-based strategy selection."""
 
     def setUp(self):
         self.mock_tool_execution = MagicMock(spec=MCPToolExecution)
@@ -65,8 +59,10 @@ class TestMCPToolCallSubscriberRegistry(unittest.TestCase):
             timestamp=time.time()
         )
 
-        # Use registry to get the strategy
-        strategy = ToolCallParseRegistry.get_strategy(ELLMProvider.OLLAMA)
+        # Use provider to get the strategy
+        provider = ProviderRegistry.get_provider(ELLMProvider.OLLAMA)
+        parsed_tool_call = provider.parse_tool_call(ollama_event)
+        
         subscriber = MCPToolCallSubscriber(self.mock_tool_execution)
         subscriber.on_event(ollama_event)
 
@@ -81,6 +77,7 @@ class TestMCPToolCallSubscriberRegistry(unittest.TestCase):
         self.mock_tool_execution.execute_tool_sync.assert_called_once()
 
     @feature_test
+    @requires_api_key
     def test_on_event_openai(self):
         # Create a mock OpenAI tool call event (first chunk)
         first_event = StreamEvent(
@@ -101,8 +98,8 @@ class TestMCPToolCallSubscriberRegistry(unittest.TestCase):
             timestamp=time.time()
         )
 
-        # Use registry to get the strategy
-        strategy = ToolCallParseRegistry.get_strategy(ELLMProvider.OPENAI)
+        # Use provider to get the strategy
+        provider = ProviderRegistry.get_provider(ELLMProvider.OPENAI)
         subscriber = MCPToolCallSubscriber(self.mock_tool_execution)
         subscriber.on_event(first_event)
 

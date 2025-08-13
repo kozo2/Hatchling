@@ -13,7 +13,7 @@ from hatchling.core.logging.logging_manager import logging_manager
 from hatchling.core.llm.streaming_management.stream_subscriber import StreamSubscriber
 from hatchling.core.llm.streaming_management.stream_data import StreamEvent, StreamEventType
 
-from .tool_call_parse_strategy import ToolCallParsedResult
+from hatchling.core.llm.data_structures import ToolCallParsedResult
 from hatchling.mcp_utils.mcp_tool_execution import ToolCallExecutionResult
 
 @dataclass

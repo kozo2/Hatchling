@@ -8,7 +8,8 @@ from collections import deque
 from json import dumps as json_dumps
 
 from hatchling.core.llm.streaming_management import StreamSubscriber, StreamEvent, StreamEventType
-from hatchling.core.llm.tool_management import ToolCallParseRegistry, ToolCallParsedResult
+from hatchling.core.llm.data_structures import ToolCallParsedResult
+from hatchling.core.llm.providers.registry import ProviderRegistry
 from hatchling.core.logging.logging_manager import logging_manager
 from .mcp_tool_execution import MCPToolExecution
 
@@ -56,7 +57,8 @@ class MCPToolCallSubscriber(StreamSubscriber):
             
             try:
                 self.logger.debug(f"Received LLM_TOOL_CALL_REQUEST event: {event}")
-                parsed_tool_call = ToolCallParseRegistry.get_strategy(event.provider).parse_tool_call(event)
+                provider = ProviderRegistry.get_provider(event.provider)
+                parsed_tool_call = provider.parse_tool_call(event)
             except Exception as e:
                 self.logger.error(f"Error parsing tool call event: {e}")
                 return
