@@ -1,6 +1,5 @@
 import asyncio
 import sys
-from pathlib import Path
 from hatchling.core.logging.logging_config import configure_logging
 from hatchling.core.logging.logging_manager import logging_manager
 from hatchling.config.settings_registry import SettingsRegistry

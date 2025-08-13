@@ -10,9 +10,9 @@ from prompt_toolkit.key_binding import KeyBindings
 from hatchling.core.logging.logging_manager import logging_manager
 from hatchling.core.llm.providers.registry import ProviderRegistry
 from hatchling.core.llm.chat_session import ChatSession
-from hatchling.core.chat.chat_command_handler import ChatCommandHandler
 from hatchling.config.settings_registry import SettingsRegistry
 from hatchling.mcp_utils.manager import mcp_manager
+from hatchling.ui.chat_command_handler import ChatCommandHandler
 from hatchling.ui.cli_event_subscriber import CLIEventSubscriber
 
 class CLIChat:

@@ -1,9 +1,7 @@
 """CLI Event Subscriber for managing UI state and display."""
 
-
-import logging
-from typing import List, Dict, Any, Optional
-from dataclasses import dataclass, field
+from typing import List, Optional
+from dataclasses import dataclass
 import time
 from enum import IntFlag, auto
 from pathlib import Path
