@@ -18,7 +18,8 @@ services:
       - OPENAI_API_KEY=${OPENAI_API_KEY}
       - OPENAI_MODEL=${OPENAI_MODEL:-gpt-4.1-nano}
       - OPENAI_API_URL=${OPENAI_API_URL:-https://api.openai.com/v1}
-      - OLLAMA_HOST_API=${OLLAMA_HOST_API:-http://localhost:11434/api}
+      - OLLAMA_IP=${OLLAMA_IP:-localhost}
+      - OLLAMA_PORT=${OLLAMA_PORT:-11434}
       - OLLAMA_MODEL=${OLLAMA_MODEL:-llama3.2}
     network_mode: ${NETWORK_MODE}
     tty: true
@@ -43,7 +44,8 @@ services:
       - LLM_PROVIDER=${LLM_PROVIDER:-ollama}
       - OPENAI_MODEL=${OPENAI_MODEL:-gpt-4.1-nano}
       - OPENAI_API_URL=${OPENAI_API_URL:-https://api.openai.com/v1}
-      - OLLAMA_HOST_API=${OLLAMA_HOST_API:-http://localhost:11434/api}
+      - OLLAMA_IP=${OLLAMA_IP:-localhost}
+      - OLLAMA_PORT=${OLLAMA_PORT:-11434}
       - OLLAMA_MODEL=${OLLAMA_MODEL:-llama3.2}
       - DEVELOPMENT_MODE=true
     network_mode: ${NETWORK_MODE}
