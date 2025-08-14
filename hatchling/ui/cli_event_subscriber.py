@@ -292,7 +292,7 @@ class CLIEventSubscriber(EventSubscriber):
         data = event.data
         # Set tool is running
         provider = ProviderRegistry.get_provider(event.provider)
-        parsed_tool_call = provider.parse_tool_call(event)
+        parsed_tool_call = provider.llm_to_hatchling_tool_call(event)
         self._set_info(
             f"[{parsed_tool_call.tool_call_id}]\n" +
             f"Tool call to {parsed_tool_call.function_name} requested with parameters:\n" +

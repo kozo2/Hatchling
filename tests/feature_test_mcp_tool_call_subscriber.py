@@ -61,7 +61,7 @@ class TestMCPToolCallSubscriberRegistry(unittest.TestCase):
 
         # Use provider to get the strategy
         provider = ProviderRegistry.get_provider(ELLMProvider.OLLAMA)
-        parsed_tool_call = provider.parse_tool_call(ollama_event)
+        parsed_tool_call = provider.llm_to_hatchling_tool_call(ollama_event)
         
         subscriber = MCPToolCallSubscriber(self.mock_tool_execution)
         subscriber.on_event(ollama_event)

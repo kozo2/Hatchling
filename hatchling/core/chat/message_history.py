@@ -6,11 +6,11 @@ including user messages, assistant responses, and tool interactions.
 
 from typing import List, Dict, Any, Optional
 from hatchling.core.logging.logging_manager import logging_manager
+from hatchling.core.llm.providers.registry import ProviderRegistry
 from hatchling.core.llm.event_system import EventSubscriber, Event, EventType
 from hatchling.config.llm_settings import ELLMProvider
 
-from hatchling.core.llm.data_structures import ToolCallParsedResult
-from hatchling.mcp_utils.mcp_tool_execution import ToolCallExecutionResult
+from hatchling.core.llm.data_structures import ToolCallParsedResult, ToolCallExecutionResult
 
 class MessageHistory(EventSubscriber):
     """Event-driven message history manager with canonical and provider-specific histories.
@@ -131,17 +131,11 @@ class MessageHistory(EventSubscriber):
             "data": tool_call
         }
         self.canonical_history.append(canonical_entry)
-        
-        # Add to provider-specific history based on current provider
-        # TODO: We should handle this via strategies implemented similar to the tool call parsing strategies
-        # For now, we will assume the last tool call and result are in the format expected
-        if self._current_provider == ELLMProvider.OPENAI:
-            provider_entry = {"role": "assistant", "tool_calls": [tool_call.to_openai_dict()]}
-        elif self._current_provider == ELLMProvider.OLLAMA:
-            provider_entry = {"role": "assistant", "tool_calls": [tool_call.to_ollama_dict()]}
-        else:
-            # Default format
-            provider_entry = {"role": "assistant", "tool_calls": [tool_call.to_dict()]}
+
+        provider_entry = {
+            "role": "assistant",
+            "tool_calls": [ProviderRegistry.get_provider(self._current_provider).hatchling_to_llm_tool_call(tool_call)]
+        }
         
         self.provider_history.append(provider_entry)
         
@@ -162,15 +156,11 @@ class MessageHistory(EventSubscriber):
             "data": tool_result
         }
         self.canonical_history.append(canonical_entry)
-        
-        # Add to provider-specific history based on current provider
-        if self._current_provider == ELLMProvider.OPENAI:
-            provider_entry = {"role": "tool", **tool_result.to_openai_dict()}
-        elif self._current_provider == ELLMProvider.OLLAMA:
-            provider_entry = {"role": "tool", **tool_result.to_ollama_dict()}
-        else:
-            # Default format
-            provider_entry = {"role": "tool", **tool_result.to_dict()}
+
+        provider_entry = {
+            "role": "tool",
+            **ProviderRegistry.get_provider(self._current_provider).hatchling_to_provider_tool_result(tool_result)
+        }
         
         self.provider_history.append(provider_entry)
         
@@ -193,13 +183,10 @@ class MessageHistory(EventSubscriber):
         self.canonical_history.append(canonical_entry)
         
         # Add to provider-specific history based on current provider
-        if self._current_provider == ELLMProvider.OPENAI:
-            provider_entry = {"role": "tool", **tool_result.to_openai_dict()}
-        elif self._current_provider == ELLMProvider.OLLAMA:
-            provider_entry = {"role": "tool", **tool_result.to_ollama_dict()}
-        else:
-            # Default format
-            provider_entry = {"role": "tool", **tool_result.to_dict()}
+        provider_entry = {
+            "role": "tool",
+            **ProviderRegistry.get_provider(self._current_provider).hatchling_to_provider_tool_result(tool_result)
+        }
         
         self.provider_history.append(provider_entry)
         
@@ -218,20 +205,16 @@ class MessageHistory(EventSubscriber):
                 provider_entry = entry["data"]
             elif entry_type == "tool_call":
                 tool_call = entry["data"]
-                if self._current_provider == ELLMProvider.OPENAI:
-                    provider_entry = {"role": "assistant", "tool_calls": [tool_call.to_openai_dict()]}
-                elif self._current_provider == ELLMProvider.OLLAMA:
-                    provider_entry = {"role": "assistant", "tool_calls": [tool_call.to_ollama_dict()]}
-                else:
-                    provider_entry = {"role": "assistant", "tool_calls": [tool_call.to_dict()]}
+                provider_entry = {
+                    "role": "assistant",
+                    "tool_calls": [ProviderRegistry.get_provider(self._current_provider).hatchling_to_llm_tool_call(tool_call)]
+                }
             elif entry_type == "tool_result":
                 tool_result = entry["data"]
-                if self._current_provider == ELLMProvider.OPENAI:
-                    provider_entry = {"role": "tool", **tool_result.to_openai_dict()}
-                elif self._current_provider == ELLMProvider.OLLAMA:
-                    provider_entry = {"role": "tool", **tool_result.to_ollama_dict()}
-                else:
-                    provider_entry = {"role": "tool", **tool_result.to_dict()}
+                provider_entry = {
+                    "role": "tool",
+                    **ProviderRegistry.get_provider(self._current_provider).hatchling_to_provider_tool_result(tool_result)
+                }
             else:
                 continue  # Skip unknown entry types
             
@@ -295,21 +278,19 @@ class MessageHistory(EventSubscriber):
                 temp_history.append(entry["data"])
             elif entry_type == "tool_call":
                 tool_call = entry["data"]
-                if provider == ELLMProvider.OPENAI:
-                    temp_history.append({"role": "assistant", "tool_calls": [tool_call.to_openai_dict()]})
-                elif provider == ELLMProvider.OLLAMA:
-                    temp_history.append({"role": "assistant", "tool_calls": [tool_call.to_ollama_dict()]})
-                else:
-                    temp_history.append({"role": "assistant", "tool_calls": [tool_call.to_dict()]})
+                provider_entry = {
+                    "role": "assistant",
+                    "tool_calls": [ProviderRegistry.get_provider(self._current_provider).hatchling_to_llm_tool_call(tool_call)]
+                }
+                temp_history.append(provider_entry)
             elif entry_type == "tool_result":
                 tool_result = entry["data"]
-                if provider == ELLMProvider.OPENAI:
-                    temp_history.append({"role": "tool", **tool_result.to_openai_dict()})
-                elif provider == ELLMProvider.OLLAMA:
-                    temp_history.append({"role": "tool", **tool_result.to_ollama_dict()})
-                else:
-                    temp_history.append({"role": "tool", **tool_result.to_dict()})
-        
+                provider_entry = {
+                    "role": "tool",
+                    **ProviderRegistry.get_provider(self._current_provider).hatchling_to_provider_tool_result(tool_result)
+                }
+                temp_history.append(provider_entry)
+
         return temp_history
     
     def copy(self) -> 'MessageHistory':

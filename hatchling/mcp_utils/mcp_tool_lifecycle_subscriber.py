@@ -15,16 +15,16 @@ class ToolLifecycleSubscriber(EventSubscriber):
     to get enabled tools for use in LLM payloads.
     """
     
-    def __init__(self, provider_name: str, convert_tool_func: Callable[[MCPToolInfo], Dict[str, Any]]):
+    def __init__(self, provider_name: str, mcp_to_provider_tool_func: Callable[[MCPToolInfo], Dict[str, Any]]):
         """Initialize the tool lifecycle subscriber.
         
         Args:
             provider_name (str): Name of the LLM provider using this subscriber.
-            convert_tool_func (Callable): Function to convert MCP tools to provider-specific format.
+            mcp_to_provider_tool_func (Callable): Function to convert MCP tools to provider-specific format.
         """
         self.provider_name = provider_name
         self._tool_cache: Dict[str, MCPToolInfo] = {}
-        self._convert_tool_func = convert_tool_func
+        self._mcp_to_provider_tool_func = mcp_to_provider_tool_func
         self.logger = logging.getLogger(f"{self.__class__.__name__}[{provider_name}]")
     
     def on_event(self, event: Event) -> None:
@@ -131,10 +131,10 @@ class ToolLifecycleSubscriber(EventSubscriber):
                 return
             
             # Convert tool to provider-specific format
-            # Tool info is an in/out parameter in convert_tool
+            # Tool info is an in/out parameter in mcp_to_provider_tool
             # Hence, the provider_format field will be set
             # to the converted tool format
-            self._convert_tool_func(tool_info)
+            self._mcp_to_provider_tool_func(tool_info)
 
             self._tool_cache[tool_name] = tool_info
             self.logger.debug(f"Tool enabled: {tool_name}")

@@ -21,7 +21,7 @@ from hatchling.mcp_utils.mcp_tool_data import MCPToolInfo
 from hatchling.core.llm.event_system import EventPublisher, EventType
 from hatchling.mcp_utils.mcp_tool_lifecycle_subscriber import ToolLifecycleSubscriber
 from hatchling.core.llm.event_system.event_subscribers_examples import Event
-from hatchling.core.llm.data_structures import ToolCallParsedResult
+from hatchling.core.llm.data_structures import ToolCallParsedResult, ToolCallExecutionResult
 
 logger = logging.getLogger(__name__)
 
@@ -97,7 +97,7 @@ class OpenAIProvider(LLMProvider):
             self._client = AsyncOpenAI(**client_kwargs, http_client=self._http_client)
 
             self._event_publisher = EventPublisher()
-            self._toolLifecycle_subscriber = ToolLifecycleSubscriber(self._settings.llm.provider_name, self.convert_tool)
+            self._toolLifecycle_subscriber = ToolLifecycleSubscriber(self._settings.llm.provider_name, self.mcp_to_provider_tool)
             mcp_manager.publisher.subscribe(self._toolLifecycle_subscriber)
 
             logger.info("Successfully connected to OpenAI API")
@@ -417,7 +417,7 @@ class OpenAIProvider(LLMProvider):
                 "message": f"OpenAI API unavailable: {str(e)}"
             }
 
-    def parse_tool_call(self, event: Event) -> Optional[ToolCallParsedResult]:
+    def llm_to_hatchling_tool_call(self, event: Event) -> Optional[ToolCallParsedResult]:
         """Parse an OpenAI tool call event.
 
         Args:
@@ -441,7 +441,7 @@ class OpenAIProvider(LLMProvider):
                 return ToolCallParsedResult(
                     tool_call_id="function_call",
                     function_name=function_call.get("name", ""),
-                    arguments=self._parse_tool_call_arguments(function_call.get("arguments", "{}"))
+                    arguments=self._llm_to_hatchling_tool_call_arguments(function_call.get("arguments", "{}"))
                 )
             
             # Handle modern tool_call format (single complete tool call)
@@ -450,7 +450,7 @@ class OpenAIProvider(LLMProvider):
                 return ToolCallParsedResult(
                     tool_call_id=tool_call.get("id", "unknown"),
                     function_name=tool_call.get("function", {}).get("name", ""),
-                    arguments=self._parse_tool_call_arguments(tool_call.get("function", {}).get("arguments", "{}"))
+                    arguments=self._llm_to_hatchling_tool_call_arguments(tool_call.get("function", {}).get("arguments", "{}"))
                 )
             
             raise ValueError("No valid tool call data found in OpenAI event")
@@ -459,7 +459,7 @@ class OpenAIProvider(LLMProvider):
             logger.error(f"Error parsing OpenAI tool call: {e}")
             raise ValueError(f"Failed to parse OpenAI tool call: {e}")
 
-    def _parse_tool_call_arguments(self, args_str: str) -> Dict[str, Any]:
+    def _llm_to_hatchling_tool_call_arguments(self, args_str: str) -> Dict[str, Any]:
         """Parse tool call arguments from JSON string to dictionary.
         
         Args:
@@ -476,8 +476,26 @@ class OpenAIProvider(LLMProvider):
         except json.JSONDecodeError:
             logger.warning(f"Failed to parse OpenAI tool call arguments: {args_str}")
             return {"_raw": args_str}
+        
+    def hatchling_to_llm_tool_call(self, tool_call: ToolCallParsedResult) -> Dict[str, Any]:
+        """Convert a Hatchling tool call parsing result back to the OpenAI format.
 
-    def convert_tool(self, tool_info: MCPToolInfo) -> Dict[str, Any]:
+        Args:
+            tool_call (ToolCallParsedResult): The parsed tool call result.
+
+        Returns:
+            Dict[str, Any]: The tool call in OpenAI format.
+        """
+        return {
+            "type": "function",
+            "id": tool_call.tool_call_id,
+            "function": {
+                "name": tool_call.function_name,
+                "arguments": json.dumps(tool_call.arguments)
+            }
+        }
+
+    def mcp_to_provider_tool(self, tool_info: MCPToolInfo) -> Dict[str, Any]:
         """Convert an MCP tool to OpenAI function format.
         
         Args:
@@ -507,3 +525,17 @@ class OpenAIProvider(LLMProvider):
         except Exception as e:
             logger.error(f"Failed to convert tool {tool_info.name} to OpenAI format: {e}")
             return {}
+
+    def hatchling_to_provider_tool_result(self, tool_result: ToolCallExecutionResult) -> Dict[str, Any]:
+        """Convert a Hatchling tool call execution result to the OpenAI format.
+
+        Args:
+            tool_result (ToolCallExecutionResult): The tool call execution result.
+
+        Returns:
+            Dict[str, Any]: The result in OpenAI format.
+        """
+        return {
+            "content": str(tool_result.result.content[0].text) if tool_result.result.content[0].text else "No result",
+            "tool_name": tool_result.function_name
+        }

@@ -95,8 +95,8 @@ class TestLLMProviderBase(unittest.TestCase):
             async def check_health(self):
                 return {"available": True, "message": "OK"}
             
-            def parse_tool_call(self, event):
-                """Mock implementation of parse_tool_call."""
+            def llm_to_hatchling_tool_call(self, event):
+                """Mock implementation of llm_to_hatchling_tool_call."""
                 from hatchling.core.llm.data_structures import ToolCallParsedResult
                 return ToolCallParsedResult(
                     tool_call_id="test_id",
@@ -104,8 +104,8 @@ class TestLLMProviderBase(unittest.TestCase):
                     arguments={}
                 )
             
-            def convert_tool(self, tool_info):
-                """Mock implementation of convert_tool."""
+            def mcp_to_provider_tool(self, tool_info):
+                """Mock implementation of mcp_to_provider_tool."""
                 return {"type": "function", "function": {"name": tool_info.name}}
         
         # Should be able to instantiate concrete implementation
@@ -152,8 +152,8 @@ class TestLLMProviderBase(unittest.TestCase):
             async def check_health(self):
                 return {"available": True, "message": "OK"}
             
-            def parse_tool_call(self, event):
-                """Mock implementation of parse_tool_call."""
+            def llm_to_hatchling_tool_call(self, event):
+                """Mock implementation of llm_to_hatchling_tool_call."""
                 from hatchling.core.llm.data_structures import ToolCallParsedResult
                 return ToolCallParsedResult(
                     tool_call_id="test_id",
@@ -161,8 +161,8 @@ class TestLLMProviderBase(unittest.TestCase):
                     arguments={}
                 )
             
-            def convert_tool(self, tool_info):
-                """Mock implementation of convert_tool."""
+            def mcp_to_provider_tool(self, tool_info):
+                """Mock implementation of mcp_to_provider_tool."""
                 return {"type": "function", "function": {"name": tool_info.name}}
 
         provider = OllamaProvider({})

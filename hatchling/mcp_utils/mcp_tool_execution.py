@@ -4,52 +4,16 @@ This module provides enhanced functionality for handling tool execution requests
 managing tool calling chains, and processing tool results with event-driven architecture.
 """
 
-import json
 import logging
 import time
 import asyncio
-from typing import List, Dict, Tuple, Any, Optional
-from dataclasses import dataclass
 from mcp.types import CallToolResult
 
 from hatchling.mcp_utils.manager import mcp_manager
 from hatchling.core.logging.logging_manager import logging_manager
 from hatchling.config.settings import AppSettings
 from hatchling.core.llm.event_system import EventPublisher, EventType
-from hatchling.core.llm.data_structures import ToolCallParsedResult
-
-@dataclass
-class ToolCallExecutionResult:
-    """Data class to hold the result of a tool call execution."""
-    tool_call_id: str
-    function_name: str
-    arguments: Dict[str, Any]
-    result: Any
-    error: Optional[str] = None
-
-    def to_dict(self) -> Dict[str, Any]:
-        """Convert the result to a dictionary."""
-        return {
-            "tool_call_id": self.tool_call_id,
-            "function_name": self.function_name,
-            "arguments": self.arguments,
-            "result": self.result,
-            "error": self.error
-        }
-    
-    def to_openai_dict(self) -> Dict[str, Any]:
-        """Convert the result to a dictionary suitable for OpenAI API."""
-        return {
-            "tool_call_id": self.tool_call_id,
-            "content": str(self.result.content[0].text) if self.result.content[0].text else "No result",
-        }
-
-    def to_ollama_dict(self) -> Dict[str, Any]:
-        """Convert the result to a dictionary suitable for Ollama API."""
-        return {
-            "content": str(self.result.content[0].text) if self.result.content[0].text else "No result",
-            "tool_name": self.function_name
-        }
+from hatchling.core.llm.data_structures import ToolCallParsedResult, ToolCallExecutionResult
 
 class MCPToolExecution:
     """Manages tool execution and tool calling chains with event publishing."""

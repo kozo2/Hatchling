@@ -19,7 +19,7 @@ from hatchling.core.llm.event_system.event_publisher import EventPublisher
 from hatchling.core.llm.event_system.event_data import EventType
 from hatchling.core.llm.event_system.event_subscribers_examples import Event
 from hatchling.mcp_utils.mcp_tool_lifecycle_subscriber import ToolLifecycleSubscriber
-from hatchling.core.llm.data_structures import ToolCallParsedResult
+from hatchling.core.llm.data_structures import ToolCallParsedResult, ToolCallExecutionResult
 from hatchling.mcp_utils.manager import mcp_manager
 
 logger = logging.getLogger(__name__)
@@ -76,7 +76,7 @@ class OllamaProvider(LLMProvider):
         """
         try:
             self._client = AsyncClient(host=self._settings.ollama.api_base)
-            self._toolLifecycle_subscriber = ToolLifecycleSubscriber(ELLMProvider.OLLAMA.value, self.convert_tool)
+            self._toolLifecycle_subscriber = ToolLifecycleSubscriber(ELLMProvider.OLLAMA.value, self.mcp_to_provider_tool)
             self._event_publisher = EventPublisher()
             mcp_manager.publisher.subscribe(self._toolLifecycle_subscriber)
             
@@ -367,7 +367,7 @@ class OllamaProvider(LLMProvider):
                 "message": f"Ollama server unavailable: {str(e)}"
             }
 
-    def parse_tool_call(self, event: Event) -> Optional[ToolCallParsedResult]:
+    def llm_to_hatchling_tool_call(self, event: Event) -> Optional[ToolCallParsedResult]:
         """Parse an Ollama tool call event.
 
         Args:
@@ -387,7 +387,7 @@ class OllamaProvider(LLMProvider):
             if not tool_calls:
                 raise ValueError("No tool calls found in Ollama event")
                 
-            # Process the first tool call (if multiple, we'd need to call parse_tool_call for each)
+            # Process the first tool call (if multiple, we'd need to call llm_to_hatchling_tool_call for each)
             tool_call = tool_calls[0]
             
             # Extract standard fields
@@ -412,8 +412,26 @@ class OllamaProvider(LLMProvider):
         except Exception as e:
             logger.error(f"Error parsing Ollama tool call: {e}")
             raise ValueError(f"Failed to parse Ollama tool call: {e}")
+        
+    def hatchling_to_llm_tool_call(self, tool_call: ToolCallParsedResult) -> Dict[str, Any]:
+        """Convert an LLM tool call parsing result back to the Ollama format.
 
-    def convert_tool(self, tool_info: MCPToolInfo) -> Dict[str, Any]:
+        Args:
+            tool_call (ToolCallParsedResult): The parsed tool call result.
+
+        Returns:
+            Dict[str, Any]: The tool call in Ollama format.
+        """
+        return {
+            "type": "function",
+            "id": tool_call.tool_call_id,
+            "function": {
+                "name": tool_call.function_name,
+                "arguments": tool_call.arguments
+            }
+        }
+
+    def mcp_to_provider_tool(self, tool_info: MCPToolInfo) -> Dict[str, Any]:
         """Convert an MCP tool to Ollama function format.
 
         Args:
@@ -444,3 +462,18 @@ class OllamaProvider(LLMProvider):
         except Exception as e:
             logger.error(f"Failed to convert tool {tool_info.name} to Ollama format: {e}")
             return {}
+    
+    def hatchling_to_provider_tool_result(self, tool_result: ToolCallExecutionResult) -> Dict[str, Any]:
+        """Convert the result to a dictionary suitable for Ollama API.
+
+        Args:
+            tool_result (ToolCallExecutionResult): The tool call execution result.
+
+        Returns:
+            Dict[str, Any]: The result in Ollama format.
+        """
+
+        return {
+            "content": str(tool_result.result.content[0].text) if tool_result.result.content[0].text else "No result",
+            "tool_name": tool_result.function_name
+        }

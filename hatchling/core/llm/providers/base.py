@@ -11,7 +11,7 @@ from typing import Dict, List, Any, Optional
 from hatchling.core.llm.event_system import EventPublisher
 from hatchling.mcp_utils.mcp_tool_lifecycle_subscriber import ToolLifecycleSubscriber
 from hatchling.core.llm.event_system.event_data import Event
-from hatchling.core.llm.data_structures import ToolCallParsedResult
+from hatchling.core.llm.data_structures import ToolCallParsedResult, ToolCallExecutionResult
 from hatchling.config.settings import AppSettings
 from hatchling.mcp_utils.mcp_tool_data import MCPToolInfo
 
@@ -168,11 +168,14 @@ class LLMProvider(ABC):
         pass
 
     @abstractmethod
-    def parse_tool_call(self, event: Event) -> Optional[ToolCallParsedResult]:
-        """Parse a tool call event into a standardized format.
+    def llm_to_hatchling_tool_call(self, event: Event) -> Optional[ToolCallParsedResult]:
+        """Parse a tool call coming from the LLM provider.
+
+        This operates a translation "LLM-provider-style tool call" -> "Hatchling-style tool call"
+        The event is very likely raised from `_parse_and_publish_chunk`.
 
         Args:
-            event (Event): The raw tool call event from the LLM provider.
+            event (Event): The Hatchling event typed LLM_TOOL_CALL_REQUEST.
 
         Returns:
             Optional[ToolCallParsedResult]: Normalized representation of the tool call, 
@@ -184,18 +187,45 @@ class LLMProvider(ABC):
         pass
 
     @abstractmethod
-    def convert_tool(self, tool_info: MCPToolInfo) -> Dict[str, Any]:
-        """Convert an MCP tool to provider-specific format.
+    def hatchling_to_llm_tool_call(self, tool_call: ToolCallParsedResult) -> Dict[str, Any]:
+        """Convert a Hatchling tool call to LLM provider-specific format.
 
         Args:
-            tool_info (MCPToolInfo): MCP tool information to convert. This is expected
-                                   to be an in/out parameter whose provider_format 
-                                   field will be set to the converted tool format.
+            tool_call (ToolCallParsedResult): The Hatchling tool call to convert.
 
         Returns:
-            Dict[str, Any]: Tool in provider-specific format.
+            Dict[str, Any]: LLM provider-specific representation of the tool call.
+        """
+        pass
+
+    @abstractmethod
+    def mcp_to_provider_tool(self, tool_info: MCPToolInfo) -> Dict[str, Any]:
+        """Convert an MCP tool to provider-specific format.
+
+        Effectively assigns the `provider_format` field of the tool_info to the converted
+        tool format after reading relevant fields such as the name, the description, and
+        the parameters, etc... anything useful for the target provider format.
+
+        Args:
+            tool_info (MCPToolInfo): MCP tool information to convert. This is an in/out
+            parameter whose `provider_format` field will be set to the converted tool format.
+
+        Returns:
+            Dict[str, Any]: Tool with `provider_format` field assigned.
 
         Raises:
             Exception: If tool conversion fails.
+        """
+        pass
+
+    @abstractmethod
+    def hatchling_to_provider_tool_result(self, tool_result: ToolCallExecutionResult) -> Dict[str, Any]:
+        """Convert a Hatchling tool result to LLM provider-specific format.
+
+        Args:
+            tool_result (ToolCallExecutionResult): The Hatchling tool result to convert.
+
+        Returns:
+            Dict[str, Any]: LLM provider-specific representation of the tool result.
         """
         pass
