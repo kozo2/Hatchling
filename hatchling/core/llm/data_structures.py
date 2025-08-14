@@ -4,9 +4,8 @@ This module contains common data structures used across the LLM system
 to avoid circular import dependencies.
 """
 
-from typing import Dict, Any
+from typing import Dict, Any, Optional
 from dataclasses import dataclass
-import json
 
 # TODO: Standardize of dataclasses usage. Where to put them?
 # What to name them? Do we keep them as dataclasses or up to pydantic?
@@ -25,4 +24,38 @@ class ToolCallParsedResult:
             "tool_call_id": self.tool_call_id,
             "function_name": self.function_name,
             "arguments": self.arguments
+        }
+    
+
+@dataclass
+class ToolCallExecutionResult:
+    """Data class to hold the result of a tool call execution."""
+    tool_call_id: str
+    function_name: str
+    arguments: Dict[str, Any]
+    result: Any
+    error: Optional[str] = None
+
+    def to_dict(self) -> Dict[str, Any]:
+        """Convert the result to a dictionary."""
+        return {
+            "tool_call_id": self.tool_call_id,
+            "function_name": self.function_name,
+            "arguments": self.arguments,
+            "result": self.result,
+            "error": self.error
+        }
+    
+    def to_openai_dict(self) -> Dict[str, Any]:
+        """Convert the result to a dictionary suitable for OpenAI API."""
+        return {
+            "tool_call_id": self.tool_call_id,
+            "content": str(self.result.content[0].text) if self.result.content[0].text else "No result",
+        }
+
+    def to_ollama_dict(self) -> Dict[str, Any]:
+        """Convert the result to a dictionary suitable for Ollama API."""
+        return {
+            "content": str(self.result.content[0].text) if self.result.content[0].text else "No result",
+            "tool_name": self.function_name
         }

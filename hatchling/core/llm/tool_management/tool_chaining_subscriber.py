@@ -15,9 +15,8 @@ from hatchling.core.llm.providers import ProviderRegistry
 from hatchling.core.llm.event_system.event_subscriber import EventSubscriber
 from hatchling.core.llm.event_system.event_data import EventType, Event
 from hatchling.core.llm.event_system.event_publisher import EventPublisher
-from hatchling.core.llm.data_structures import ToolCallParsedResult
+from hatchling.core.llm.data_structures import ToolCallParsedResult, ToolCallExecutionResult
 from hatchling.core.llm.tool_management.tool_result_collector_subscriber import ToolResultCollectorSubscriber
-from hatchling.mcp_utils.mcp_tool_execution import ToolCallExecutionResult
 from hatchling.core.chat.message_history_registry import MessageHistoryRegistry
 from hatchling.core.logging.logging_manager import logging_manager
 from hatchling.mcp_utils.mcp_tool_execution import MCPToolExecution

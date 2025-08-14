@@ -10,8 +10,7 @@ from hatchling.core.llm.providers.registry import ProviderRegistry
 from hatchling.core.llm.event_system import EventSubscriber, Event, EventType
 from hatchling.config.llm_settings import ELLMProvider
 
-from hatchling.core.llm.data_structures import ToolCallParsedResult
-from hatchling.mcp_utils.mcp_tool_execution import ToolCallExecutionResult
+from hatchling.core.llm.data_structures import ToolCallParsedResult, ToolCallExecutionResult
 
 class MessageHistory(EventSubscriber):
     """Event-driven message history manager with canonical and provider-specific histories.
