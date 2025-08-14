@@ -1,6 +1,7 @@
 # Documentation Table of Contents
 
 This article is about:
+
 - Complete overview of all available documentation
 - Organized navigation structure for users and developers
 - Quick access to tutorials, guides, and reference materials
@@ -18,6 +19,7 @@ This article is about:
   - [Running Hatchling](./users/tutorials/Installation/running_hatchling.md) - Starting the application
 
 ### User Guides
+
 - [Chat Commands](./users/chat_commands.md) - Available commands and usage
 - [Settings](users/settings.md) - Configuration settings and management
 - [Language Support](users/language_support.md) - Multi-language interface support
@@ -31,23 +33,30 @@ Documentation for maintainers and contributors working on Hatchling's codebase.
 ### Architecture
 
 - [Settings Architecture](devs/settings_architecture.md) - Settings system design and patterns
+- [Event System Architecture](devs/event_system_architecture.md) - Event-driven communication patterns and implementation
 - [i18n Support](devs/i18n_support.md) - Internationalization system architecture
 
 ### Contributing
 
 - [Contributing Languages](devs/contribution_guides/contributing_languages.md) - How to add new language translations
+- [Implementing LLM Providers](devs/contribution_guides/implementing_llm_providers.md) - Complete guide for adding new LLM providers
 
 ## Appendices
 
 ### Reference Materials
+
 - [Glossary](./appendices/glossary.md) - Key terms and definitions
 
 ## Resources
 
 ### Images and Diagrams
+
 - [Logo Resources](../resources/images/Logo/) - Hatchling branding materials
 - [Setup Screenshots](../resources/images/docker-setup/) - Visual guides for Docker setup
 - [CLI Screenshots](../resources/images/running-hatchling/) - Application interface examples
 
 ### Diagrams
+
 - [Architecture Diagrams](../resources/diagrams/) - System architecture documentation
+  - [LLM Provider Architecture](../resources/diagrams/llm_provider_architecture.puml) - Provider system class diagram
+  - [Provider Interaction Sequence](../resources/diagrams/provider_interaction_sequence.puml) - Provider workflow sequence diagram

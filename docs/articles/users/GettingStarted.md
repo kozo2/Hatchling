@@ -1,11 +1,13 @@
 # Getting Started with Hatchling
 
 This article is about:
+
 - Quick introduction to Hatchling's capabilities
 - Essential setup steps for new users
 - First steps to start using Hatchling effectively
 
 You will learn about:
+
 - What Hatchling is and its main features
 - How to get up and running quickly
 - Basic workflow for using MCP tools with LLMs
