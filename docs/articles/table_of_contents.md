@@ -5,17 +5,14 @@ This article is about:
 - Organized navigation structure for users and developers
 - Quick access to tutorials, guides, and reference materials
 
-You will learn about:
-- How to navigate the documentation structure
-- Where to find specific information based on your role
-- Available resources for different use cases
-
 ## For Users
 
 ### Getting Started
+
 - [Getting Started](./users/GettingStarted.md) - Quick introduction and setup overview
 
 ### Tutorials
+
 - [Installation Guide](./users/tutorials/Installation/) - Step-by-step setup instructions
   - [Docker Setup](./users/tutorials/Installation/docker-setup.md) - Docker environment setup
   - [Running Hatchling](./users/tutorials/Installation/running_hatchling.md) - Starting the application
