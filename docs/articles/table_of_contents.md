@@ -15,7 +15,7 @@ This article is about:
 ### Tutorials
 
 - [Installation Guide](./users/tutorials/Installation/) - Step-by-step setup instructions
-  - [Docker Setup](./users/tutorials/Installation/docker-setup.md) - Docker environment setup
+  - [Docker Setup](./users/tutorials/Installation/docker-ollama-setup.md) - Docker environment setup
   - [Running Hatchling](./users/tutorials/Installation/running_hatchling.md) - Starting the application
 
 ### User Guides

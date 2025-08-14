@@ -16,7 +16,7 @@ Hatchling is an interactive CLI-based chat application that integrates local Lar
 
 ## Quick Start
 
-1. **Setup Docker Environment**: Follow the [Docker Setup](./tutorials/Installation/docker-setup.md) instructions to install Docker and configure GPU support.
+1. **Setup Docker Environment**: Follow the [Docker Setup](./tutorials/Installation/docker-ollama-setup.md) instructions to install Docker and configure GPU support.
 
 2. **Run Hatchling**: Follow the [Running Hatchling](./tutorials/Installation/running_hatchling.md) guide to start the application.
 

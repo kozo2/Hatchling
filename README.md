@@ -138,7 +138,7 @@ For detailed information about the versioning system, see [doc/versioning.md](./
 
 ## Installation & Running
 
-1. [Docker setup instructions](./docs/articles/users/tutorials/Installation/docker-setup.md)
+1. [Docker setup instructions](./docs/articles/users/tutorials/Installation/docker-ollama-setup.md)
 
 2. [Running Hatchling](./docs/articles/users/tutorials/Installation/running_hatchling.md)
 

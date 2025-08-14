@@ -1,33 +1,31 @@
-# Docker Setup Instructions
+# Docker & Ollama Setup Instructions
 
 **Previous:** None | **Next:** [Running Hatchling](./running_hatchling.md)
 
 This article is about:
+
 - Setting up Docker Desktop for running Hatchling
 - Configuring GPU support for LLM acceleration
 - Installing and configuring Ollama Docker container
 
-You will learn about:
-- How to install Docker Desktop on different platforms
-- How to enable GPU support for NVIDIA and AMD cards
-- How to pull and verify the Ollama Docker image
-
-This document provides instructions on how to set up and run the project using Docker.
+This document provides instructions on how to set up and run Ollama for deploying and running local LLMs using Docker.
 
 ## Prerequisites
 
 - Docker Desktop: [Install Docker Desktop](https://docs.docker.com/get-docker/)
+   > [!Note]
+   > If you wish to leverage GPUs running on a server, then you must install docker on **both** the GPU server and your local computer that will access the GPU resources. Docker on the GPU server will be used to install Ollama (this guide), and Docker on the local computer will be used to install Hatchling (next guide).
 - On Windows, install Windows Subsystem for Linux (WSL). Latest version is v2: [Official Microsoft Documentation](https://learn.microsoft.com/en-us/windows/wsl/install)
 - GPU Support:
   - For MacOS users with Apple Silicon chips (typically M series), you can **follow the instructions for CPU and ignore the GPU-related sections**
-  - For other OSs (mainly Windows & Linux with dedicated GPUs) we strongly recommend enabling GPU support to increase for LLM output speed:
+  - For Windows & Linux with dedicated GPUs, we strongly recommend enabling GPU support to increase LLM output speed. On the computer with the GPU, do:
     - NVIDIA GPUs: [NVIDIA Container Toolkit Installation](https://docs.nvidia.com/datacenter/cloud-native/container-toolkit/latest/install-guide.html)
-    - AMD GPUs: See instructions below
+    - AMD GPUs: Nothing, you can move on.
 
 ## Setup with Docker Desktop
 
 1. **Install Docker Desktop**:
-   - Download and install Docker Desktop following the official instructions: https://docs.docker.com/get-docker/
+   - Download and install Docker Desktop following the official instructions: <https://docs.docker.com/get-docker/>
 
 2. **On Windows, connect Docker to WSL**:
    ![docker_settings_wsl](../../../../resources/images/docker-setup/docker_settings_position.png)
@@ -36,7 +34,7 @@ This document provides instructions on how to set up and run the project using D
    - Click "Apply & Restart" if you make changes (arrow 5)
 
 3. **For NVIDIA GPU owners, setup GPU Support (nothing to do for AMD GPU owners at this stage)**:
-   - Open a terminal
+   - Open a terminal on the computer with the GPU you want to use (for GPU servers, you likely connect through ssh)
      - On Windows, launch the Linux version that was installed via WSL and that Docker is using. For example, in the previous image, that would be `Ubuntu-24.04`; so, run `wsl -d Ubuntu-24.04` to start Ubuntu.
    - For NVIDIA GPU support, run:
 
@@ -75,10 +73,6 @@ This document provides instructions on how to set up and run the project using D
        - If it does not show up, try closing Docker Desktop (arrow 1, then arrow 2) and launch it again.
        ![closing_docker_desktop](../../../../resources/images/docker-setup/docker_quit_large.png)
      - Alternatively, to check that the image exists, you can run the command `docker images -a`. The output should include a line similar to `ollama/ollama   latest    d42df3fe2285   11 days ago   4.85GB` (May 2025)
-
-## Next Step
-
-[Running Hatchling](./running_hatchling.md)
 
 ## Additional Resources
 
