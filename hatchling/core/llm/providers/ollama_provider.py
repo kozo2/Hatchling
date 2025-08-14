@@ -19,7 +19,7 @@ from hatchling.core.llm.event_system.event_publisher import EventPublisher
 from hatchling.core.llm.event_system.event_data import EventType
 from hatchling.core.llm.event_system.event_subscribers_examples import Event
 from hatchling.mcp_utils.mcp_tool_lifecycle_subscriber import ToolLifecycleSubscriber
-from hatchling.core.llm.data_structures import ToolCallParsedResult
+from hatchling.core.llm.data_structures import ToolCallParsedResult, ToolCallExecutionResult
 from hatchling.mcp_utils.manager import mcp_manager
 
 logger = logging.getLogger(__name__)
@@ -462,3 +462,18 @@ class OllamaProvider(LLMProvider):
         except Exception as e:
             logger.error(f"Failed to convert tool {tool_info.name} to Ollama format: {e}")
             return {}
+    
+    def hatchling_to_provider_tool_result(self, tool_result: ToolCallExecutionResult) -> Dict[str, Any]:
+        """Convert the result to a dictionary suitable for Ollama API.
+
+        Args:
+            tool_result (ToolCallExecutionResult): The tool call execution result.
+
+        Returns:
+            Dict[str, Any]: The result in Ollama format.
+        """
+
+        return {
+            "content": str(tool_result.result.content[0].text) if tool_result.result.content[0].text else "No result",
+            "tool_name": tool_result.function_name
+        }

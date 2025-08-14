@@ -11,7 +11,7 @@ from typing import Dict, List, Any, Optional
 from hatchling.core.llm.event_system import EventPublisher
 from hatchling.mcp_utils.mcp_tool_lifecycle_subscriber import ToolLifecycleSubscriber
 from hatchling.core.llm.event_system.event_data import Event
-from hatchling.core.llm.data_structures import ToolCallParsedResult
+from hatchling.core.llm.data_structures import ToolCallParsedResult, ToolCallExecutionResult
 from hatchling.config.settings import AppSettings
 from hatchling.mcp_utils.mcp_tool_data import MCPToolInfo
 
@@ -215,5 +215,17 @@ class LLMProvider(ABC):
 
         Raises:
             Exception: If tool conversion fails.
+        """
+        pass
+
+    @abstractmethod
+    def hatchling_to_provider_tool_result(self, tool_result: ToolCallExecutionResult) -> Dict[str, Any]:
+        """Convert a Hatchling tool result to LLM provider-specific format.
+
+        Args:
+            tool_result (ToolCallExecutionResult): The Hatchling tool result to convert.
+
+        Returns:
+            Dict[str, Any]: LLM provider-specific representation of the tool result.
         """
         pass

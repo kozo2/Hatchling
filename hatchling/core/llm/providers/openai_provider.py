@@ -21,7 +21,7 @@ from hatchling.mcp_utils.mcp_tool_data import MCPToolInfo
 from hatchling.core.llm.event_system import EventPublisher, EventType
 from hatchling.mcp_utils.mcp_tool_lifecycle_subscriber import ToolLifecycleSubscriber
 from hatchling.core.llm.event_system.event_subscribers_examples import Event
-from hatchling.core.llm.data_structures import ToolCallParsedResult
+from hatchling.core.llm.data_structures import ToolCallParsedResult, ToolCallExecutionResult
 
 logger = logging.getLogger(__name__)
 
@@ -525,3 +525,17 @@ class OpenAIProvider(LLMProvider):
         except Exception as e:
             logger.error(f"Failed to convert tool {tool_info.name} to OpenAI format: {e}")
             return {}
+
+    def hatchling_to_provider_tool_result(self, tool_result: ToolCallExecutionResult) -> Dict[str, Any]:
+        """Convert a Hatchling tool call execution result to the OpenAI format.
+
+        Args:
+            tool_result (ToolCallExecutionResult): The tool call execution result.
+
+        Returns:
+            Dict[str, Any]: The result in OpenAI format.
+        """
+        return {
+            "content": str(tool_result.result.content[0].text) if tool_result.result.content[0].text else "No result",
+            "tool_name": tool_result.function_name
+        }

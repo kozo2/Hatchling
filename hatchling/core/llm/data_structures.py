@@ -45,17 +45,3 @@ class ToolCallExecutionResult:
             "result": self.result,
             "error": self.error
         }
-    
-    def to_openai_dict(self) -> Dict[str, Any]:
-        """Convert the result to a dictionary suitable for OpenAI API."""
-        return {
-            "tool_call_id": self.tool_call_id,
-            "content": str(self.result.content[0].text) if self.result.content[0].text else "No result",
-        }
-
-    def to_ollama_dict(self) -> Dict[str, Any]:
-        """Convert the result to a dictionary suitable for Ollama API."""
-        return {
-            "content": str(self.result.content[0].text) if self.result.content[0].text else "No result",
-            "tool_name": self.function_name
-        }
