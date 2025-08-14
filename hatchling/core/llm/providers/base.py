@@ -168,7 +168,7 @@ class LLMProvider(ABC):
         pass
 
     @abstractmethod
-    def parse_tool_call(self, event: Event) -> Optional[ToolCallParsedResult]:
+    def llm_to_hatchling_tool_call(self, event: Event) -> Optional[ToolCallParsedResult]:
         """Parse a tool call coming from the LLM provider.
 
         This operates a translation "LLM-provider-style tool call" -> "Hatchling-style tool call"

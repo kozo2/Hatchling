@@ -62,8 +62,8 @@ def create_test_provider_class(name="test"):
         async def check_health(self):
             return {"available": True, "message": f"{name} OK"}
         
-        def parse_tool_call(self, event):
-            """Mock implementation of parse_tool_call."""
+        def llm_to_hatchling_tool_call(self, event):
+            """Mock implementation of llm_to_hatchling_tool_call."""
             from hatchling.core.llm.data_structures import ToolCallParsedResult
             return ToolCallParsedResult(
                 tool_call_id="test_id",

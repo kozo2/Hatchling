@@ -58,7 +58,7 @@ class MCPToolCallSubscriber(EventSubscriber):
             try:
                 self.logger.debug(f"Received LLM_TOOL_CALL_REQUEST event: {event}")
                 provider = ProviderRegistry.get_provider(event.provider)
-                parsed_tool_call = provider.parse_tool_call(event)
+                parsed_tool_call = provider.llm_to_hatchling_tool_call(event)
             except Exception as e:
                 self.logger.error(f"Error parsing tool call event: {e}")
                 return

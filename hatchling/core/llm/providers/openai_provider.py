@@ -417,7 +417,7 @@ class OpenAIProvider(LLMProvider):
                 "message": f"OpenAI API unavailable: {str(e)}"
             }
 
-    def parse_tool_call(self, event: Event) -> Optional[ToolCallParsedResult]:
+    def llm_to_hatchling_tool_call(self, event: Event) -> Optional[ToolCallParsedResult]:
         """Parse an OpenAI tool call event.
 
         Args:
@@ -441,7 +441,7 @@ class OpenAIProvider(LLMProvider):
                 return ToolCallParsedResult(
                     tool_call_id="function_call",
                     function_name=function_call.get("name", ""),
-                    arguments=self._parse_tool_call_arguments(function_call.get("arguments", "{}"))
+                    arguments=self._llm_to_hatchling_tool_call_arguments(function_call.get("arguments", "{}"))
                 )
             
             # Handle modern tool_call format (single complete tool call)
@@ -450,7 +450,7 @@ class OpenAIProvider(LLMProvider):
                 return ToolCallParsedResult(
                     tool_call_id=tool_call.get("id", "unknown"),
                     function_name=tool_call.get("function", {}).get("name", ""),
-                    arguments=self._parse_tool_call_arguments(tool_call.get("function", {}).get("arguments", "{}"))
+                    arguments=self._llm_to_hatchling_tool_call_arguments(tool_call.get("function", {}).get("arguments", "{}"))
                 )
             
             raise ValueError("No valid tool call data found in OpenAI event")
@@ -459,7 +459,7 @@ class OpenAIProvider(LLMProvider):
             logger.error(f"Error parsing OpenAI tool call: {e}")
             raise ValueError(f"Failed to parse OpenAI tool call: {e}")
 
-    def _parse_tool_call_arguments(self, args_str: str) -> Dict[str, Any]:
+    def _llm_to_hatchling_tool_call_arguments(self, args_str: str) -> Dict[str, Any]:
         """Parse tool call arguments from JSON string to dictionary.
         
         Args:

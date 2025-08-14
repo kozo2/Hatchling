@@ -367,7 +367,7 @@ class OllamaProvider(LLMProvider):
                 "message": f"Ollama server unavailable: {str(e)}"
             }
 
-    def parse_tool_call(self, event: Event) -> Optional[ToolCallParsedResult]:
+    def llm_to_hatchling_tool_call(self, event: Event) -> Optional[ToolCallParsedResult]:
         """Parse an Ollama tool call event.
 
         Args:
@@ -387,7 +387,7 @@ class OllamaProvider(LLMProvider):
             if not tool_calls:
                 raise ValueError("No tool calls found in Ollama event")
                 
-            # Process the first tool call (if multiple, we'd need to call parse_tool_call for each)
+            # Process the first tool call (if multiple, we'd need to call llm_to_hatchling_tool_call for each)
             tool_call = tool_calls[0]
             
             # Extract standard fields
