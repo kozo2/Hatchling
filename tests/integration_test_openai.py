@@ -69,7 +69,6 @@ class TestStreamToolCallSubscriber(EventSubscriber):
     def __init__(self):
         """Initialize the subscriber with empty tool call buffers."""
         super().__init__()
-        self._tool_call_buffers = {}
 
     def on_event(self, event: Event) -> None:
         """Handle incoming stream events, reconstructing OpenAI-style tool call arguments if fragmented.
@@ -80,18 +79,8 @@ class TestStreamToolCallSubscriber(EventSubscriber):
 
         if event.type == EventType.LLM_TOOL_CALL_REQUEST:
             # OpenAI-style: first chunk has 'type' == 'function', then subsequent have type None and 'arguments' fragments
-            index = event.data["index"]
-            if index not in self._tool_call_buffers:
-                self._tool_call_buffers[index] = {
-                    "id": event.data["id"],
-                    "function": {
-                        "name": event.data["function"]["name"],
-                        "arguments": ""
-                    }
-                }
-            else:
-                # Collect fragments
-                self._tool_call_buffers[index]["function"]["arguments"] += event.data["function"]["arguments"]
+            tool_call = event.data.get("tool_call", {})
+            print(f"Received tool call: {tool_call}")
         elif event.type == EventType.CONTENT:
             content = event.data.get("content", "")
             role = event.data.get("role", "assistant")
@@ -99,12 +88,6 @@ class TestStreamToolCallSubscriber(EventSubscriber):
         elif event.type == EventType.USAGE:
             usage = event.data.get("usage", {})
             print(f"Usage stats: {usage}")
-        elif event.type == EventType.FINISH:
-            # Convert the reconstructed arguments to a JSON dictionary
-            for index, tool_call in self._tool_call_buffers.items():
-                tool_call["function"]["arguments"] = json.loads(tool_call["function"]["arguments"])
-            # Print the final tool call buffers
-            print(f"Stream finished: {json.dumps(self._tool_call_buffers, indent=2)}")
         else:
             logger.warning(f"Unexpected event type: {event.type}")
     
