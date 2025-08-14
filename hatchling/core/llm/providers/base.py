@@ -187,6 +187,18 @@ class LLMProvider(ABC):
         pass
 
     @abstractmethod
+    def hatchling_to_llm_tool_call(self, tool_call: ToolCallParsedResult) -> Dict[str, Any]:
+        """Convert a Hatchling tool call to LLM provider-specific format.
+
+        Args:
+            tool_call (ToolCallParsedResult): The Hatchling tool call to convert.
+
+        Returns:
+            Dict[str, Any]: LLM provider-specific representation of the tool call.
+        """
+        pass
+
+    @abstractmethod
     def mcp_to_provider_tool(self, tool_info: MCPToolInfo) -> Dict[str, Any]:
         """Convert an MCP tool to provider-specific format.
 

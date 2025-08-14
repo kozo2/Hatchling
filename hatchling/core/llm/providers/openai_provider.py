@@ -476,6 +476,24 @@ class OpenAIProvider(LLMProvider):
         except json.JSONDecodeError:
             logger.warning(f"Failed to parse OpenAI tool call arguments: {args_str}")
             return {"_raw": args_str}
+        
+    def hatchling_to_llm_tool_call(self, tool_call: ToolCallParsedResult) -> Dict[str, Any]:
+        """Convert a Hatchling tool call parsing result back to the OpenAI format.
+
+        Args:
+            tool_call (ToolCallParsedResult): The parsed tool call result.
+
+        Returns:
+            Dict[str, Any]: The tool call in OpenAI format.
+        """
+        return {
+            "type": "function",
+            "id": tool_call.tool_call_id,
+            "function": {
+                "name": tool_call.function_name,
+                "arguments": json.dumps(tool_call.arguments)
+            }
+        }
 
     def mcp_to_provider_tool(self, tool_info: MCPToolInfo) -> Dict[str, Any]:
         """Convert an MCP tool to OpenAI function format.

@@ -26,25 +26,3 @@ class ToolCallParsedResult:
             "function_name": self.function_name,
             "arguments": self.arguments
         }
-    
-    def to_ollama_dict(self) -> Dict[str, Any]:
-        """Convert the parse result to Ollama format."""
-        return {
-            "type": "function",
-            "id": self.tool_call_id,
-            "function": {
-                "name": self.function_name,
-                "arguments": self.arguments
-            }
-        }
-    
-    def to_openai_dict(self) -> Dict[str, Any]:
-        """Convert the parse result to OpenAI format."""
-        return {
-            "type": "function",
-            "id": self.tool_call_id,
-            "function": {
-                "name": self.function_name,
-                "arguments": json.dumps(self.arguments)
-            }
-        }

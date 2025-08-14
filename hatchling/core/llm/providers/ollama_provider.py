@@ -412,6 +412,24 @@ class OllamaProvider(LLMProvider):
         except Exception as e:
             logger.error(f"Error parsing Ollama tool call: {e}")
             raise ValueError(f"Failed to parse Ollama tool call: {e}")
+        
+    def hatchling_to_llm_tool_call(self, tool_call: ToolCallParsedResult) -> Dict[str, Any]:
+        """Convert an LLM tool call parsing result back to the Ollama format.
+
+        Args:
+            tool_call (ToolCallParsedResult): The parsed tool call result.
+
+        Returns:
+            Dict[str, Any]: The tool call in Ollama format.
+        """
+        return {
+            "type": "function",
+            "id": tool_call.tool_call_id,
+            "function": {
+                "name": tool_call.function_name,
+                "arguments": tool_call.arguments
+            }
+        }
 
     def mcp_to_provider_tool(self, tool_info: MCPToolInfo) -> Dict[str, Any]:
         """Convert an MCP tool to Ollama function format.
