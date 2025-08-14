@@ -169,10 +169,13 @@ class LLMProvider(ABC):
 
     @abstractmethod
     def parse_tool_call(self, event: Event) -> Optional[ToolCallParsedResult]:
-        """Parse a tool call event into a standardized format.
+        """Parse a tool call coming from the LLM provider.
+
+        This operates a translation "LLM-provider-style tool call" -> "Hatchling-style tool call"
+        The event is very likely raised from `_parse_and_publish_chunk`.
 
         Args:
-            event (Event): The raw tool call event from the LLM provider.
+            event (Event): The Hatchling event typed LLM_TOOL_CALL_REQUEST.
 
         Returns:
             Optional[ToolCallParsedResult]: Normalized representation of the tool call, 
@@ -184,16 +187,19 @@ class LLMProvider(ABC):
         pass
 
     @abstractmethod
-    def convert_tool(self, tool_info: MCPToolInfo) -> Dict[str, Any]:
+    def mcp_to_provider_tool(self, tool_info: MCPToolInfo) -> Dict[str, Any]:
         """Convert an MCP tool to provider-specific format.
 
+        Effectively assigns the `provider_format` field of the tool_info to the converted
+        tool format after reading relevant fields such as the name, the description, and
+        the parameters, etc... anything useful for the target provider format.
+
         Args:
-            tool_info (MCPToolInfo): MCP tool information to convert. This is expected
-                                   to be an in/out parameter whose provider_format 
-                                   field will be set to the converted tool format.
+            tool_info (MCPToolInfo): MCP tool information to convert. This is an in/out
+            parameter whose `provider_format` field will be set to the converted tool format.
 
         Returns:
-            Dict[str, Any]: Tool in provider-specific format.
+            Dict[str, Any]: Tool with `provider_format` field assigned.
 
         Raises:
             Exception: If tool conversion fails.

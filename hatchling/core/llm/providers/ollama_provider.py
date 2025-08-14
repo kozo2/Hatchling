@@ -76,7 +76,7 @@ class OllamaProvider(LLMProvider):
         """
         try:
             self._client = AsyncClient(host=self._settings.ollama.api_base)
-            self._toolLifecycle_subscriber = ToolLifecycleSubscriber(ELLMProvider.OLLAMA.value, self.convert_tool)
+            self._toolLifecycle_subscriber = ToolLifecycleSubscriber(ELLMProvider.OLLAMA.value, self.mcp_to_provider_tool)
             self._event_publisher = EventPublisher()
             mcp_manager.publisher.subscribe(self._toolLifecycle_subscriber)
             
@@ -413,7 +413,7 @@ class OllamaProvider(LLMProvider):
             logger.error(f"Error parsing Ollama tool call: {e}")
             raise ValueError(f"Failed to parse Ollama tool call: {e}")
 
-    def convert_tool(self, tool_info: MCPToolInfo) -> Dict[str, Any]:
+    def mcp_to_provider_tool(self, tool_info: MCPToolInfo) -> Dict[str, Any]:
         """Convert an MCP tool to Ollama function format.
 
         Args:

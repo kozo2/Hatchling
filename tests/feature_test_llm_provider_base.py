@@ -104,8 +104,8 @@ class TestLLMProviderBase(unittest.TestCase):
                     arguments={}
                 )
             
-            def convert_tool(self, tool_info):
-                """Mock implementation of convert_tool."""
+            def mcp_to_provider_tool(self, tool_info):
+                """Mock implementation of mcp_to_provider_tool."""
                 return {"type": "function", "function": {"name": tool_info.name}}
         
         # Should be able to instantiate concrete implementation
@@ -161,8 +161,8 @@ class TestLLMProviderBase(unittest.TestCase):
                     arguments={}
                 )
             
-            def convert_tool(self, tool_info):
-                """Mock implementation of convert_tool."""
+            def mcp_to_provider_tool(self, tool_info):
+                """Mock implementation of mcp_to_provider_tool."""
                 return {"type": "function", "function": {"name": tool_info.name}}
 
         provider = OllamaProvider({})

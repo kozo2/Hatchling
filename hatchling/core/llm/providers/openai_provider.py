@@ -97,7 +97,7 @@ class OpenAIProvider(LLMProvider):
             self._client = AsyncOpenAI(**client_kwargs, http_client=self._http_client)
 
             self._event_publisher = EventPublisher()
-            self._toolLifecycle_subscriber = ToolLifecycleSubscriber(self._settings.llm.provider_name, self.convert_tool)
+            self._toolLifecycle_subscriber = ToolLifecycleSubscriber(self._settings.llm.provider_name, self.mcp_to_provider_tool)
             mcp_manager.publisher.subscribe(self._toolLifecycle_subscriber)
 
             logger.info("Successfully connected to OpenAI API")
@@ -477,7 +477,7 @@ class OpenAIProvider(LLMProvider):
             logger.warning(f"Failed to parse OpenAI tool call arguments: {args_str}")
             return {"_raw": args_str}
 
-    def convert_tool(self, tool_info: MCPToolInfo) -> Dict[str, Any]:
+    def mcp_to_provider_tool(self, tool_info: MCPToolInfo) -> Dict[str, Any]:
         """Convert an MCP tool to OpenAI function format.
         
         Args:

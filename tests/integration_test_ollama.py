@@ -163,8 +163,8 @@ class TestOllamaProviderSync(unittest.TestCase):
     def test_tool_lifecycle_subscriber_cache(self):
         """Test ToolLifecycleSubscriber cache and event handling in isolation."""
         
-        # Create a mock convert_tool function
-        def mock_convert_tool(tool_info):
+        # Create a mock mcp_to_provider_tool function
+        def mock_mcp_to_provider_tool(tool_info):
             provider_format = {
                 "type": "function",
                 "function": {
@@ -177,7 +177,7 @@ class TestOllamaProviderSync(unittest.TestCase):
             tool_info.provider_format = provider_format
             return provider_format
         
-        tls = ToolLifecycleSubscriber("ollama", mock_convert_tool)
+        tls = ToolLifecycleSubscriber("ollama", mock_mcp_to_provider_tool)
         publisher = EventPublisher()
         publisher.subscribe(tls)
 
