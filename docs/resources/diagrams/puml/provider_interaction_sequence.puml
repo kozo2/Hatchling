@@ -1,0 +1,64 @@
+@startuml provider_interaction_sequence
+!theme plain
+
+participant "Client" as C
+participant "ProviderRegistry" as R
+participant "YourProvider" as P
+participant "EventPublisher" as E
+participant "ToolLifecycle\nSubscriber" as T
+participant "External API" as API
+
+== Provider Registration ==
+C -> R: @ProviderRegistry.register(ELLMProvider.YOUR_PROVIDER)
+R -> R: Store provider class mapping
+
+== Provider Initialization ==
+C -> R: get_provider(ELLMProvider.YOUR_PROVIDER)
+R -> P: create instance
+P -> P: initialize()
+P -> API: establish connection
+P -> R: return provider instance
+R -> C: return provider
+
+== Chat Request with Tools ==
+C -> P: prepare_chat_payload(messages, model)
+P -> P: build base payload
+C -> P: add_tools_to_payload(payload)
+P -> T: get_enabled_tools()
+T -> P: return available tools
+P -> P: mcp_to_provider_tool() for each
+P -> C: return payload with tools
+
+== Streaming Response ==
+C -> P: stream_chat_response(payload)
+P -> API: send request
+loop for each chunk
+  API -> P: response chunk
+  P -> P: _parse_and_publish_chunk(chunk)
+  alt chunk contains content
+    P -> E: publish(EventType.CONTENT, content=...)
+  else chunk contains tool call
+    P -> E: publish(EventType.ROLE, tool_call=...)
+  else chunk contains tool call
+    P -> E: publish(EventType.USAGE, tool_call=...)
+  else chunk contains tool call
+    P -> E: publish(EventType.LLM_TOOL_CALL_REQUEST, tool_call=...)
+  else chunk signals error
+    P -> E: publish(EventType.ERROR, error=...)
+  end
+  P -> C: yield chunk
+end
+
+== Tool Call Processing ==
+note over C, API
+See developer documentation for full tool call processing which includes a custom tool call chaining sequence.
+Tool chaining involves multiple event subscribers, deduplication, execution, result collection, and chaining logic.
+For the complete sequence, see the developer documentation and the diagram 'tool_chaining_events_sequence_v2.puml'.
+end note
+
+== Cleanup ==
+C -> P: close()
+P -> API: close connections
+P -> P: cleanup resources
+
+@enduml
