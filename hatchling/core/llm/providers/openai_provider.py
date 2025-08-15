@@ -544,6 +544,6 @@ class OpenAIProvider(LLMProvider):
             Dict[str, Any]: The result in OpenAI format.
         """
         return {
+            "tool_call_id": tool_result.tool_call_id,
             "content": str(tool_result.result.content[0].text) if tool_result.result.content[0].text else "No result",
-            "tool_name": tool_result.function_name
         }
