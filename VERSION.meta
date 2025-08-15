@@ -4,7 +4,7 @@
 
 MAJOR=0
 MINOR=4
-PATCH=0
+PATCH=1
 DEV_NUMBER=13
-BUILD_NUMBER=
-BRANCH=dev
+BUILD_NUMBER=0
+BRANCH=fix/assignment-of-openai-api-key
