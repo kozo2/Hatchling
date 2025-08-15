@@ -6,12 +6,6 @@ This article is about:
 - Switching between available languages
 - Language-specific settings and preferences
 
-You will learn about:
-
-- How to change the interface language
-- Available languages and their coverage
-- Language-related settings management
-
 ## Overview
 
 Hatchling provides multi-language support for the user interface, allowing you to use the application in your preferred language. Language switching happens immediately without requiring a restart.

@@ -1,18 +1,14 @@
 # Running Hatchling
 
-**Previous:** [Docker Setup](./docker-setup.md) | **Next:** [Chat Commands](../../chat_commands.md)
+**Previous:** [Docker Setup](./docker-ollama-setup.md) | **Next:** [Chat Commands](../../chat_commands.md)
 
 This article is about:
+
 - Starting and configuring Ollama Docker containers
 - Building and running Hatchling with Docker Compose
 - Configuration options for optimal performance
 
-You will learn about:
-- How to start Ollama with CPU or GPU support
-- How to configure Hatchling environment variables
-- How to verify GPU detection and model downloads
-
-This section assumes you have followed the [docker setup](./docker-setup.md).
+This section assumes you have followed the [docker & Ollama setup](./docker-ollama-setup.md).
 
 In this guide, you will:
 
@@ -23,36 +19,36 @@ In this guide, you will:
 
 ### Using CPU or GPU for the LLM
 
-* Windows/Linux **CPU only** & MacOS **on Apple Silicon**:
+- Windows/Linux **CPU only** & MacOS **on Apple Silicon**:
 
   ```bash
-  docker run -d -v ollama:/root/.ollama -p 11434:11434 --name   ollama ollama/ollama
+  docker run -d -v ollama:/root/.ollama -p 11434:11434 --name ollama ollama/ollama
   ```
 
-* Windows/Linux **NVIDIA GPU support**:
+- Windows/Linux **NVIDIA GPU support**:
 
   ```bash
   docker run -d --gpus=all -v ollama:/root/.ollama -p 11434:11434 --name ollama ollama/ollama
   ```
 
-* Windows/Linux **AMD GPU support**:
+- Windows/Linux **AMD GPU support**:
 
   ```bash
-  docker run -d --device /dev/kfd --device /dev/dri -v ollama:/  root/.ollama -p 11434:11434 --name ollama ollama/ollama:rocm
+  docker run -d --device /dev/kfd --device /dev/dri -v ollama:/root/.ollama -p 11434:11434 --name ollama ollama/ollama:rocm
   ```
 
 ### Checking that GPU support is enabled  as expected
 
-* Go to the `Containers` tab in Docker Desktop (arrow 1) and select your Ollama container
+- Go to the `Containers` tab in Docker Desktop (arrow 1) and select your Ollama container
 ![docker_desktop_find_container](../../../../resources/images/docker-setup/docker_find_container.png)
-  * Check the logs and search for a message indicating GPU detection, similar to:
+  - Check the logs and search for a message indicating GPU detection, similar to:
 
     ```txt
     msg="inference compute" id=GPU-a826c853-a49e-a55d-da4d-804bfe10cdcf  library=cuda variant=v12 compute=8.6 driver=12.7 name="NVIDIA GeForce RTX 3070 Laptop GPU" total="8.0 GiB" available="7.0 GiB"
     ```
 
     ![docker_desktop_find_container_log](../../../../resources/images/docker-setup/docker_find_container_log.png)
-* Alternatively, run the command `docker logs ollama` and search for the message in the output.
+- Alternatively, run the command `docker logs ollama` and search for the message in the output.
 
 For more detailed instructions and options, refer to the [official Ollama Docker documentation](https://github.com/ollama/ollama/blob/main/docs/docker.md).
 
@@ -62,14 +58,14 @@ For more detailed instructions and options, refer to the [official Ollama Docker
 
 At this step, you will be downloading the content of Hatchling. Currently, we are only using GitHub's interface to install Hatchling.
 
-* Open a terminal
-* Navigate to a directory where you want Hatchling to be:
+- [Open a terminal](../../../appendices/open_a_terminal.md)
+- Navigate to a directory where you want Hatchling to be:
 
   ```bash
   cd path/to/the/directory/you/want
   ```
 
-* Then, use Git, to retrieve the source code
+- Then, use Git, to retrieve the source code
 
   ```bash
   git clone https://github.com/CrackingShells/Hatchling.git
@@ -87,7 +83,7 @@ cd ./Hatchling/docker
    docker-compose build hatchling
    ```
 
-   This typically takes 20 to 50 seconds depending on your computer.
+The step has been observed to take as little as 50 seconds and as much as 10 minutes on different setups. The time it takes varies depending on the computer's hardware, but also on the speed of your internet connection.
 
 ### Start Hatchling
 
@@ -97,23 +93,35 @@ Modify the variables in the `.env` file to suit your needs.
 
 #### Configuration
 
-Configuration is managed through environment variables or a `.env` file in the `docker` directory:
+Initial configuration is managed through environment variables or a `.env` file in the `docker` directory. Remember that this configuration will be **super-seeded by the user settings once you have launched Hatchling once**.
 
 | Variable | Description | Default |
 |----------|-------------|---------|
-| `OLLAMA_HOST_API` | URL for the Ollama API | `http://localhost:11434/api` |
+| `OLLAMA_IP` | The IP address for where Ollama was attached to | `localhost` |
+| `OLLAMA_PORT` | The port at which Ollama is listening to | `11434` |
 | `OLLAMA_MODEL` | Default LLM model to use | `llama3.2` |
+| `OPENAI_MODEL` | Default OpenAI model to use | `gpt-4.1-nano` |
+| `OPENAI_API_KEY` | API key for OpenAI | A dummy value |
+| `LLM_PROVIDER` | Which LLM provider to use (`ollama` or `openai`) | `ollama` |
 | `HATCH_HOST_CACHE_DIR` | Directory where Hatch environments and cache will be stored on the host machine | `./.hatch` |
 | `HATCH_LOCAL_PACKAGE_DIR` | Directory where local packages are stored on the host machine to be accessible in the container | `../../Hatch_Pkg_Dev` |
-| `NETWORK_MODE` | Docker network mode | `host` (for Linux) |
+| `HATCHLING_SOURCE_DIR` | Directory where Hatchling source code is located in the container | `/opt/Hatchling` |
+| `HATCHLING_DEFAULT_LANGUAGE` | Default language for Hatchling's UI | `en` |
+| `NETWORK_MODE` | Docker network mode | `host` |
 | `LOG_LEVEL` | The default log level at start up | `INFO` |
-| `USER_ID` | User ID for the container user (set on Linux to match host user for permissions) | `1000` |
-| `GROUP_ID` | Group ID for the container user (set on Linux to match host group for permissions) | `1000` |
+| `USER_ID` | User ID for the container user (set on Linux to match host user for permissions) | `1002` |
+| `GROUP_ID` | Group ID for the container user (set on Linux to match host group for permissions) | `1002` |
 | `USER_NAME` | Username for the container user (set on Linux to match host name) | `HatchlingUser` |
 
-##### OLLAMA_HOST_API
+##### OLLAMA_IP & OLLAMA_PORT
 
-You may need to adjust `OLLAMA_HOST_API` to match where your Ollama container is hosted. If you did not change this value and used the default from [earlier](#using-cpu-or-gpu-for-the-llm), then you don't need to change that variable either.
+You may need to adjust `OLLAMA_IP` and `OLLAMA_PORT` to match where your Ollama container is hosted:
+
+- If Ollama is **running on the same computer as Hatchling** and you did not change the port [earlier](#using-cpu-or-gpu-for-the-llm), then you don't need to change that variable either.
+- If Ollama is **running on a different computer as Hatchling** (e.g. your GPU server), then you must adapt `OLLAMA_IP` and `OLLAMA_PORT`.
+
+> [!Note]
+> You cannot set the value for the `ip` when launching Ollama. It seems to be listening to everything by default (0.0.0.0) meaning you can reach the container by rather **setting OLLAMA_IP to the `ip` of your GPU server** (or any remote machine where it is running).
 
 ##### OLLAMA_MODEL
 
@@ -128,9 +136,9 @@ For example, [earlier](#checking-that-gpu-support-is-enabled--as-expected) the G
 
 #### Ollama
 
-* On Docker Desktop, navigate to your containers (arrow 1), and press the play button (arrow 2)
+- On Docker Desktop, navigate to your containers (arrow 1), and press the play button (arrow 2)
 ![start_ollama_container](../../../../resources/images/docker-setup/Run_Ollama_Container.png)
-* Alternatively, run the command `docker start ollama`
+- Alternatively, run the command `docker start ollama`
 
 #### Hatchling
 
@@ -139,7 +147,7 @@ For example, [earlier](#checking-that-gpu-support-is-enabled--as-expected) the G
 
 **Running Hatchling (recommended approach)**:
 
-By default, the Hatchling container does not start the application automatically. This gives you flexibility to inspect or run any command inside the container.
+By default, the Hatchling container does not start the application automatically. **This gives you flexibility to inspect or run any command inside the container.**
 
 **First time:**
 
@@ -167,7 +175,6 @@ Here is a screenshot of what Hatchling typically looks like right after start up
 ![Typical_Hatchling_CLI_20250627_pt1](../../../../resources/images/running-hatchling/Typical_Hatchling_CLI_20250627_pt1.png)
 ![Typical_Hatchling_CLI_20250627_pt2](../../../../resources/images/running-hatchling/Typical_Hatchling_CLI_20250627_pt2.png)
 
-<<<<<<<< HEAD:docs/articles/users/running_hatchling.md
 You can receive help about all available commands by writing `help` in the chat. Details about the commands are also available in the [documentation](./chat_commands.md)
 
 To close Hatchling, type:
@@ -188,8 +195,8 @@ Both commands have the same effect and are aliases.
 
 After you are done inside the container (for example, after running Hatchling), you can exit the bash shell in two ways:
 
-* Type `exit` and press Enter
-* Or press `Ctrl-D`
+- Type `exit` and press Enter
+- Or press `Ctrl-D`
 
 Both methods will close your shell session and return you to your host terminal.
 
@@ -209,7 +216,7 @@ To restart the background container and enter it again:
 
 ```bash
 docker-compose start hatchling
-docker-compose exec hatchling bash
+docker-compose exec --user HatchlingUser hatchling bash
 # Then run:
 hatchling
 ```
@@ -224,10 +231,9 @@ To remove the container:
 ```bash
 docker-compose rm hatchling
 ```
-========
-You can receive help about all available commands by writing `help` in the chat. Details about the commands are also available in the [documentation](../../chat_commands.md)
+
+You can print the help about all available commands by writing `help` in the chat. Details about the commands are also available in the [documentation](../../chat_commands.md)
 
 ---
 
-**Previous:** [Docker Setup](./docker-setup.md) | **Next:** [Chat Commands](../../chat_commands.md)
->>>>>>>> d80b908 (Restructure documentation following .github instructions):docs/articles/users/tutorials/Installation/running_hatchling.md
+**Previous:** [Docker Setup](./docker-ollama-setup.md) | **Next:** [Chat Commands](../../chat_commands.md)
