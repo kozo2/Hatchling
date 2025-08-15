@@ -132,3 +132,7 @@ These repositories work together to provide a comprehensive framework for creati
 - The Hatch package manager is now **fully integrated into Hatchling** with built-in commands
 - The package architecture for dynamic loading and switching of MCP servers is now complete
 - [Related repositories](#related-repositories) established to support the pipeline.
+
+## Contributing
+
+Checkout the [guides](./docs/articles/table_of_contents.md#contributing)

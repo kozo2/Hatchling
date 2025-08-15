@@ -32,6 +32,7 @@ Documentation for maintainers and contributors working on Hatchling's codebase.
 
 ### Contributing
 
+- [**General Contribution Guidelines**](devs/how_to_contribute.md) - Standards for branches, versioning, and automation
 - [Contributing Languages](devs/contribution_guides/contributing_languages.md) - How to add new language translations
 - [Implementing LLM Providers](devs/contribution_guides/implementing_llm_providers.md) - Complete guide for adding new LLM providers
 
