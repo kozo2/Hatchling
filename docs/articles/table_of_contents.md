@@ -1,16 +1,6 @@
 # Documentation Table of Contents
 
-This article is about:
-
-- Complete overview of all available documentation
-- Organized navigation structure for users and developers
-- Quick access to tutorials, guides, and reference materials
-
 ## For Users
-
-### Getting Started
-
-- [Getting Started](./users/GettingStarted.md) - Quick introduction and setup overview
 
 ### Tutorials
 
@@ -29,6 +19,10 @@ This article is about:
 ### Development Documentation
 
 Documentation for maintainers and contributors working on Hatchling's codebase.
+
+### Versioning
+
+- [Versioning](devs/versioning.md) - Versioning strategy and documentation
 
 ### Architecture
 
@@ -57,6 +51,13 @@ Documentation for maintainers and contributors working on Hatchling's codebase.
 
 ### Diagrams
 
-- [Architecture Diagrams](../resources/diagrams/) - System architecture documentation
-  - [LLM Provider Architecture](../resources/diagrams/llm_provider_architecture.puml) - Provider system class diagram
-  - [Provider Interaction Sequence](../resources/diagrams/provider_interaction_sequence.puml) - Provider workflow sequence diagram
+- [Architecture Diagrams](../resources/diagrams/export/) - System architecture documentation
+  - [LLM Provider Architecture](../resources/diagrams/export//llm_provider_architecture.svg) - Provider system class diagram
+  - [Provider Interaction Sequence](../resources/diagrams/export/provider_interaction_sequence.svg) - Provider workflow sequence diagram
+  - [Translation Flow](../resources/diagrams/export/i18n_translation_flow.svg) - How the translation files are leveraged to display runtime documentation in different languages
+  - [Settings](../resources/diagrams/export/settings_components_architecture.svg) - How the settings components are related to each other
+  - [Tool Chaining Sequence](../resources/diagrams/export/tool_chaining_events_sequence_v2.svg) - How tool chaining plays out
+
+### Diagram Sources
+
+- [PlantUML Sources](../resources/diagrams/puml/) - Editable source files for architecture and workflow diagrams
