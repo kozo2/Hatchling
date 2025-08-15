@@ -34,7 +34,7 @@ This document provides instructions on how to set up and run Ollama for deployin
    - Click "Apply & Restart" if you make changes (arrow 5)
 
 3. **For NVIDIA GPU owners, setup GPU Support (nothing to do for AMD GPU owners at this stage)**:
-   - Open a terminal on the computer with the GPU you want to use (for GPU servers, you likely connect through ssh)
+   - [Open a terminal](../../../appendices/open_a_terminal.md) on the computer with the GPU you want to use (for GPU servers, you likely connect through ssh)
      - On Windows, launch the Linux version that was installed via WSL and that Docker is using. For example, in the previous image, that would be `Ubuntu-24.04`; so, run `wsl -d Ubuntu-24.04` to start Ubuntu.
    - For NVIDIA GPU support, run:
 
@@ -62,7 +62,7 @@ This document provides instructions on how to set up and run Ollama for deployin
      - On Linux (Ubuntu, Debian, CentOs, Fedora), running: `systemctl restart docker` should do it. You can prepend with `sudo` if necessary.
 
 4. **Pull Ollama Image**:
-   - Open a terminal capable of running docker commands.
+   - [Open a terminal](../../../appendices/open_a_terminal.md) capable of running docker commands.
      - In Docker Desktop you can open it by pressing the `Terminal` button:
      ![docker_terminal_position](../../../../resources/images/docker-setup/docker_terminal_position.png)
      - Or any terminal of your system that can access to Docker

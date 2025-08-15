@@ -58,7 +58,7 @@ For more detailed instructions and options, refer to the [official Ollama Docker
 
 At this step, you will be downloading the content of Hatchling. Currently, we are only using GitHub's interface to install Hatchling.
 
-- Open a terminal
+- [Open a terminal](../../../appendices/open_a_terminal.md)
 - Navigate to a directory where you want Hatchling to be:
 
   ```bash
