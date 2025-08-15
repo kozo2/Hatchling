@@ -1,11 +1,1 @@
 theme: minima
-title: Hatchling documentaiton GitHub Pages
-description: Hatchling is the user interface optimized for the MCP servers on Hatch!
-url: "https://kozo2.github.io/Hatchling/articles/table_of_contents"
-plugins:
-  - jekyll-titles-from-headings
-  - jekyll-sitemap
-titles_from_headings:
-  enabled:     true
-  strip_title: true
-  collections: false
