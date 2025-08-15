@@ -5,6 +5,6 @@
 MAJOR=0
 MINOR=4
 PATCH=2
-DEV_NUMBER=14
-BUILD_NUMBER=0
-BRANCH=fix/openai-tool-result-conversion
+DEV_NUMBER=15
+BUILD_NUMBER=
+BRANCH=dev
