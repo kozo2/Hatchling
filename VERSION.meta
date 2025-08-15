@@ -5,6 +5,6 @@
 MAJOR=0
 MINOR=4
 PATCH=0
-DEV_NUMBER=11
-BUILD_NUMBER=1
-BRANCH=feat/expand-permitted-branch-pr-to-dev
+DEV_NUMBER=12
+BUILD_NUMBER=
+BRANCH=dev
