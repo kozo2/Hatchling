@@ -5,12 +5,6 @@ This article is about:
 - The dual-file versioning system in Hatchling
 - How version information is managed for both humans and tools
 
-You will learn about:
-
-- The structure and purpose of `VERSION.meta` and `VERSION`
-- How to use the versioning scripts and workflows
-- Best practices for version management
-
 Hatchling uses a dual-file versioning system to maintain both human-readable version information and compatibility with Python packaging tools.
 
 ## Dual-File Versioning System

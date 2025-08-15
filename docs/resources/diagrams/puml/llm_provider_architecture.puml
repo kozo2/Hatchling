@@ -1,0 +1,128 @@
+@startuml llm_provider_architecture
+!theme plain
+
+package "Core Provider System" {
+  abstract class LLMProvider {
+  +provider_name: str
+  +provider_enum: ELLMProvider
+  -_event_publisher: EventPublisher
+  -_toolLifecycle_subscriber: ToolLifecycleSubscriber
+  +initialize()
+  +close()
+  +check_health(): dict
+  +prepare_chat_payload(): dict
+  +add_tools_to_payload(): dict
+  +stream_chat_response()
+  +_parse_and_publish_chunk()
+  +llm_to_hatchling_tool_call(event: Event): ToolCallParsedResult
+  +hatchling_to_llm_tool_call(tool_call: ToolCallParsedResult): dict
+  +mcp_to_provider_tool(tool_info: MCPToolInfo): dict
+  +hatchling_to_provider_tool_result(tool_result: ToolCallExecutionResult): dict
+  }
+
+  class ProviderRegistry {
+    +register(provider_enum: ELLMProvider)
+    +create_provider(): LLMProvider
+    +get_provider(): LLMProvider
+    +list_providers(): List[ELLMProvider]
+  }
+
+  class EventPublisher {
+    +publish(event: Event)
+    +subscribe(subscriber: EventSubscriber)
+  }
+
+  class ToolLifecycleSubscriber {
+    +get_enabled_tools(): List[MCPToolInfo]
+    +on_event(event: Event)
+  }
+}
+
+package "Data Structures" {
+  class ToolCallParsedResult {
+    +tool_call_id: str
+    +function_name: str
+    +arguments: Dict[str, Any]
+    +to_dict(): dict
+  }
+
+  class ToolCallExecutionResult {
+    +tool_call_id: str
+    +function_name: str
+    +arguments: Dict[str, Any]
+    +result: Any
+    +error: Optional[str]
+    +to_dict(): dict
+  }
+
+  enum EventType {
+    CONTENT
+    LLM_TOOL_CALL_REQUEST
+    USAGE
+    FINISH
+    ERROR
+  }
+
+  class Event {
+    +type: EventType
+    +data: Dict[str, Any]
+  }
+}
+
+package "Configuration" {
+  enum ELLMProvider {
+    OLLAMA
+    OPENAI
+    YOUR_PROVIDER
+  }
+
+  class AppSettings {
+    +llm: LLMSettings
+    +ollama: OllamaSettings
+    +openai: OpenAISettings
+    +your_provider: YourProviderSettings
+  }
+}
+
+package "Concrete Providers" {
+  class OllamaProvider {
+    -_client: AsyncClient
+    +provider_name: "ollama"
+    +provider_enum: ELLMProvider.OLLAMA
+  }
+
+  class OpenAIProvider {
+    -_client: AsyncClient
+    +provider_name: "openai"
+    +provider_enum: ELLMProvider.OPENAI
+  }
+
+  class YourProvider {
+    -_client: YourClient
+    +provider_name: "your_provider"
+    +provider_enum: ELLMProvider.YOUR_PROVIDER
+  }
+}
+
+' Relationships
+LLMProvider <|-- OllamaProvider
+LLMProvider <|-- OpenAIProvider
+LLMProvider <|-- YourProvider
+
+ProviderRegistry --> LLMProvider : creates
+ProviderRegistry --> ELLMProvider : uses
+
+LLMProvider --> EventPublisher : publishes events
+LLMProvider --> ToolLifecycleSubscriber : gets tools
+LLMProvider --> ToolCallParsedResult : creates
+
+EventPublisher --> Event : publishes
+Event --> EventType : has type
+
+AppSettings --> ELLMProvider : configured with
+
+note right of YourProvider : Your implementation\nextends LLMProvider\nand registers with\n@ProviderRegistry.register
+
+note top of ProviderRegistry : Decorator pattern:\n@ProviderRegistry.register(ELLMProvider.YOUR_PROVIDER)\nclass YourProvider(LLMProvider)
+
+@enduml

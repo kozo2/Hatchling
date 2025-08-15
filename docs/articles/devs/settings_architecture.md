@@ -6,12 +6,6 @@ This article is about:
 - Settings registry and access control patterns
 - Architecture of the settings abstraction layer
 
-You will learn about:
-
-- How settings are organized into categories
-- Access level enforcement and validation patterns
-- Integration points between settings and other components
-
 ## Overview
 
 The settings are organized into categories (LLM, paths, tool calling, UI) with centralized management through `SettingsRegistry`.
