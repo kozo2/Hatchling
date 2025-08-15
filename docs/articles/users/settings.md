@@ -6,48 +6,13 @@ This article is about:
 - Settings categories and their purposes
 - Managing settings through the chat interface
 
-You will learn about:
-
-- How to view, modify, and reset settings
-- Available setting categories and options
-- Import/export settings for backup and sharing
-
 ## Overview
 
 Hatchling provides a comprehensive settings system to configure various aspects of the application including language model settings, file paths, tool behavior, and user interface preferences.
 
 ## Settings Categories
 
-### LLM Configuration (`llm`)
-
-| Setting | Description | Default | Example |
-|---------|-------------|---------|---------|
-| `api_url` | URL for the Ollama API endpoint | `http://localhost:11434/api` | `http://localhost:11434/api` |
-| `model` | LLM model to use for chat interactions | `mistral-small3.1` | `mistral-small3.1` |
-
-### Path Configuration (`paths`)
-
-| Setting | Description | Default | Example |
-|---------|-------------|---------|---------|
-| `envs_dir` | Directory where Hatch environments are stored | Auto-detected | `/home/user/.hatch/envs` |
-| `hatchling_source_dir` | Directory where Hatchling source code is located | Auto-detected | `/opt/hatchling/src` |
-| `hatchling_cache_dir` | Directory for Hatchling cache and data storage (read-only after install) | `~/.hatch` or `HATCHLING_CACHE_DIR` | `/home/user/.hatch` |
-| `hatchling_settings_dir` | Directory for Hatchling settings storage (read-only after install) | `hatchling_cache_dir/settings` or `HATCHLING_SETTINGS_DIR` | `/home/user/.hatch/settings` |
-| `data_dir` | Directory for application data storage | Auto-detected | `/home/user/.hatchling/data` |
-| `config_dir` | Directory for configuration files | Auto-detected | `/home/user/.hatchling/config` |
-
-### Tool Calling (`tool_calling`)
-
-| Setting | Description | Default | Example |
-|---------|-------------|---------|---------|
-| `max_iterations` | Maximum number of tool calling iterations | `10` | `15` |
-| `max_working_time` | Maximum working time for tool calls (seconds) | `60` | `120` |
-
-### User Interface (`ui`)
-
-| Setting | Description | Default | Example |
-|---------|-------------|---------|---------|
-| `language_code` | Language code for user interface localization | `en` | `fr` |
+The lists of settings was moved to [settings reference](./settings_reference.md)
 
 ## Managing Settings
 
@@ -95,6 +60,8 @@ For **protected settings**, use the `--force-protected` flag:
 settings:set llm:api_url /custom/path --force-protected
 ```
 
+The protected settings can be found in the [full list](./settings_reference.md)
+
 Reset a setting to its default value:
 
 ```bash
@@ -133,7 +100,7 @@ Hatchling automatically saves and loads user settings to persist your preference
 
 ### How It Works
 
-- **On Startup**: Settings are loaded from `hatchling_settings_dir/hatchling_settings.toml`
+- **On Startup**: Settings are, by default, loaded from `<path_to_hatchling_cache>/settings/hatchling_settings.toml`
 - **On Exit**: Current settings are automatically saved to preserve changes
 - **What's Saved**: Only modifiable settings (excludes read-only settings like computed paths)
 
