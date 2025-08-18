@@ -109,50 +109,50 @@ class MCPCommands(AbstractCommands):
                     }
                 }
             },
-            'mcp:tool:execute': {
-                'handler': self._cmd_tool_execute,
-                'description': translate('commands.mcp.tool_execute_description'),
-                'is_async': True,
-                'args': {
-                    'tool_name': {
-                        'positional': True,
-                        'completer_type': 'none',
-                        'description': translate('commands.mcp.tool_name_arg_description_execute'),
-                        'required': True
-                    }
-                }
-            },
-            'mcp:tool:schema': {
-                'handler': self._cmd_tool_schema,
-                'description': translate('commands.mcp.tool_schema_description'),
-                'is_async': False,
-                'args': {
-                    'tool_name': {
-                        'positional': True,
-                        'completer_type': 'none',
-                        'description': translate('commands.mcp.tool_name_arg_description'),
-                        'required': True
-                    }
-                }
-            },
+            # 'mcp:tool:execute': {
+            #     'handler': self._cmd_tool_execute,
+            #     'description': translate('commands.mcp.tool_execute_description'),
+            #     'is_async': True,
+            #     'args': {
+            #         'tool_name': {
+            #             'positional': True,
+            #             'completer_type': 'none',
+            #             'description': translate('commands.mcp.tool_name_arg_description_execute'),
+            #             'required': True
+            #         }
+            #     }
+            # },
+            # 'mcp:tool:schema': {
+            #     'handler': self._cmd_tool_schema,
+            #     'description': translate('commands.mcp.tool_schema_description'),
+            #     'is_async': False,
+            #     'args': {
+            #         'tool_name': {
+            #             'positional': True,
+            #             'completer_type': 'none',
+            #             'description': translate('commands.mcp.tool_name_arg_description'),
+            #             'required': True
+            #         }
+            #     }
+            # },
             'mcp:health': {
                 'handler': self._cmd_health,
                 'description': translate('commands.mcp.health_description'),
                 'is_async': False,
                 'args': {}
             },
-            'mcp:citations': {
-                'handler': self._cmd_citations,
-                'description': translate('commands.mcp.citations_description'),
-                'is_async': True,
-                'args': {}
-            },
-            'mcp:reset': {
-                'handler': self._cmd_reset,
-                'description': translate('commands.mcp.reset_description'),
-                'is_async': False,
-                'args': {}
-            }
+            # 'mcp:citations': {
+            #     'handler': self._cmd_citations,
+            #     'description': translate('commands.mcp.citations_description'),
+            #     'is_async': True,
+            #     'args': {}
+            # },
+            # 'mcp:reset': {
+            #     'handler': self._cmd_reset,
+            #     'description': translate('commands.mcp.reset_description'),
+            #     'is_async': False,
+            #     'args': {}
+            # }
         }
     def _cmd_server_list(self, args: str) -> bool:
         """List all configured MCP servers and their status.

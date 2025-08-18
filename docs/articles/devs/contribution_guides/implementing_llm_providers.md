@@ -32,7 +32,7 @@ hatchling/core/llm/providers/
 
 ### Interface Requirements
 
-FThe name of the provider `provider_name` and `provider_enum` are declared in ([`llm_settings.py`](../../../../hatchling/config/llm_settings.py)), While the `LLMProvider` abstract base class in [`base.py`](../../../../hatchling/core/llm/providers/base.py) defines twelve methods organized into functional groups:
+The name of the provider `provider_name` and `provider_enum` are declared in ([`llm_settings.py`](../../../../hatchling/config/llm_settings.py)), While the `LLMProvider` abstract base class in [`base.py`](../../../../hatchling/core/llm/providers/base.py) defines twelve methods organized into functional groups:
 
 **Identity and Lifecycle**:
 

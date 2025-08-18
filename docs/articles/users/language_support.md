@@ -41,12 +41,6 @@ Change to a specific language:
 settings:language:set fr
 ```
 
-Or using the general settings command:
-
-```bash
-settings:set ui:language_code fr
-```
-
 The interface will immediately switch to the selected language for:
 
 - Command descriptions and help text

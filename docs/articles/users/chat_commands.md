@@ -75,7 +75,7 @@ The following commands are available during chat:
 ## MCP Server and Tool Management Commands
 
 > [!Warning]
-> Still unstable on the dev branch. Commands to connect, an enable/disable tool are stable but UX is poor.
+> In development. Commands to connect/disconnect a server, list a server or a tool, an enable/disable tool are stable but UX is poor.
 
 | Command | Description | Arguments | Example |
 |---------|-------------|----------|---------|
@@ -87,11 +87,7 @@ The following commands are available during chat:
 | `mcp:tool:info` | Show detailed information about a specific tool | `<tool_name>` - Name of the tool | `mcp:tool:info my_tool` |
 | `mcp:tool:enable` | Enable a specific MCP tool | `<tool_name>` - Name of the tool to enable | `mcp:tool:enable my_tool` |
 | `mcp:tool:disable` | Disable a specific MCP tool | `<tool_name>` - Name of the tool to disable | `mcp:tool:disable my_tool` |
-<!-- | `mcp:tool:execute` | Execute an MCP tool manually for debugging | `<tool_name>` - Name of the tool to execute | `mcp:tool:execute my_tool` | -->
-| `mcp:tool:schema` | Show the JSON schema for a tool's arguments | `<tool_name>` - Name of the tool | `mcp:tool:schema my_tool` |
 | `mcp:health` | Show overall MCP system health summary | None | `mcp:health` |
-| `mcp:citations` | Show MCP server citations for current session | None | `mcp:citations` |
-| `mcp:reset` | Reset MCP session tracking | None | `mcp:reset` |
 
 ## LLM Model and Provider Management Commands
 

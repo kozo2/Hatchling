@@ -8,12 +8,7 @@ This article is about:
 - Building and running Hatchling with Docker Compose
 - Configuration options for optimal performance
 
-This section assumes you have followed the [docker & Ollama setup](./docker-ollama-setup.md).
-
-In this guide, you will:
-
-1. Start Ollama to have access to local LLMs later in Hatchling.
-2. Download, setup, and start Hatchling
+This section assumes you have followed the [Docker & Ollama setup](./docker-ollama-setup.md).
 
 ## Running Ollama with Docker
 
@@ -125,7 +120,7 @@ You may need to adjust `OLLAMA_IP` and `OLLAMA_PORT` to match where your Ollama 
 
 ##### OLLAMA_MODEL
 
-For hatchlings, one can change `OLLAMA_MODEL` to any model under the category [tools](https://ollama.com/search?c=tools)
+For Hatchling, one can change `OLLAMA_MODEL` to any model under the category [tools](https://ollama.com/search?c=tools)
 
 > [!Warning]
 > Be mindful of the size of the LLM. Models larger than your GPU's memory (VRAM on GPU cards, or the partition of the shared memory that can be allocated to GPU tasks on Apple Silicon), will not run smoothly. You can check the actual size of a model when selecting a model on the within [the list](https://ollama.com/search?c=tools)
@@ -141,9 +136,6 @@ For example, [earlier](#checking-that-gpu-support-is-enabled--as-expected) the G
 - Alternatively, run the command `docker start ollama`
 
 #### Hatchling
-
-> [!Note]
-> You can adapt the [environment variables](#configuration) to suit your needs (e.g. change the LLM) before you run the following command:
 
 **Running Hatchling (recommended approach)**:
 

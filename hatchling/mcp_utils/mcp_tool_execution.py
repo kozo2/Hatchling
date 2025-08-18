@@ -27,7 +27,7 @@ class MCPToolExecution:
         """
         self.settings = settings or AppSettings.get_instance()
         self.logger = logging_manager.get_session("MCPToolExecution")
-        logging_manager.set_log_level(logging.DEBUG)
+        logging_manager.set_log_level(logging.INFO)
         
         # Initialize event publisher
         self._event_publisher = EventPublisher()
