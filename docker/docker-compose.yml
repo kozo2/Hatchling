@@ -5,14 +5,22 @@ services:
       context: ..
       dockerfile: ./docker/Dockerfile
     volumes:
-      - ${HATCH_HOST_CACHE_DIR}:/home/${USER_NAME:-appuser}/.hatch
-      - ${HATCH_LOCAL_PACKAGE_DIR}:/app/.local
+      - ${HATCH_HOST_CACHE_DIR}:/home/${USER_NAME}/.hatch
+      - ${HATCH_LOCAL_PACKAGE_DIR}:/home/${USER_NAME}/.local
     env_file: .env
     environment:
-      - PYTHONPATH=/app
       - USER_ID=${USER_ID:-1000}
       - GROUP_ID=${GROUP_ID:-1000}
-      - USER_NAME=${USER_NAME:-appuser}
+      - USER_NAME=${USER_NAME:-HatchlingUser}
+      - HATCHLING_DEFAULT_LANGUAGE=${HATCHLING_DEFAULT_LANGUAGE:-en}
+      - HATCHLING_SOURCE_DIR=${HATCHLING_SOURCE_DIR:-/opt/Hatchling}
+      - LLM_PROVIDER=${LLM_PROVIDER:-ollama}
+      - OPENAI_API_KEY=${OPENAI_API_KEY}
+      - OPENAI_MODEL=${OPENAI_MODEL:-gpt-4.1-nano}
+      - OPENAI_API_URL=${OPENAI_API_URL:-https://api.openai.com/v1}
+      - OLLAMA_IP=${OLLAMA_IP:-localhost}
+      - OLLAMA_PORT=${OLLAMA_PORT:-11434}
+      - OLLAMA_MODEL=${OLLAMA_MODEL:-llama3.2}
     network_mode: ${NETWORK_MODE}
     tty: true
     stdin_open: true
@@ -23,14 +31,23 @@ services:
       context: ..
       dockerfile: ./docker/Dockerfile
     volumes:
-      - ${HATCH_HOST_CACHE_DIR}:/home/${USER_NAME:-appuser}/.hatch
-      - ${HATCH_LOCAL_PACKAGE_DIR}:/app/.local
-      - ../:/app # Mount source code for development overriding copied /app in docker file
+      - ${HATCH_HOST_CACHE_DIR}:/home/${USER_NAME}/.hatch
+      - ${HATCH_LOCAL_PACKAGE_DIR}:/home/${USER_NAME}/.local
+      - ../:${HATCHLING_SOURCE_DIR} # Mount source code for development overriding copied /app in docker file
     env_file: .env
     environment:
       - USER_ID=${USER_ID:-1000}
       - GROUP_ID=${GROUP_ID:-1000}
-      - USER_NAME=${USER_NAME:-appuser}
+      - USER_NAME=${USER_NAME:-HatchlingUser}
+      - HATCHLING_DEFAULT_LANGUAGE=${HATCHLING_DEFAULT_LANGUAGE:-en}
+      - HATCHLING_SOURCE_DIR=${HATCHLING_SOURCE_DIR:-/opt/Hatchling}
+      - LLM_PROVIDER=${LLM_PROVIDER:-ollama}
+      - OPENAI_MODEL=${OPENAI_MODEL:-gpt-4.1-nano}
+      - OPENAI_API_URL=${OPENAI_API_URL:-https://api.openai.com/v1}
+      - OLLAMA_IP=${OLLAMA_IP:-localhost}
+      - OLLAMA_PORT=${OLLAMA_PORT:-11434}
+      - OLLAMA_MODEL=${OLLAMA_MODEL:-llama3.2}
+      - DEVELOPMENT_MODE=true
     network_mode: ${NETWORK_MODE}
     tty: true
     stdin_open: true

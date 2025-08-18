@@ -1,0 +1,31 @@
+{
+  "openai_tool_calls": [
+    {
+      "id": "call_test_123",
+      "type": "function",
+      "function": {
+        "name": "test_function",
+        "arguments": "{\"param1\": \"value1\", \"param2\": 42}"
+      }
+    },
+    {
+      "id": "call_test_456", 
+      "type": "function",
+      "function": {
+        "name": "another_function",
+        "arguments": "{\"data\": [1, 2, 3], \"flag\": true}"
+      }
+    }
+  ],
+  "ollama_tool_calls": [
+    {
+      "function": {
+        "name": "test_function",
+        "arguments": {
+          "param1": "value1",
+          "param2": 42
+        }
+      }
+    }
+  ]
+}

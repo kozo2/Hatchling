@@ -1,0 +1,67 @@
+@startuml
+actor User
+participant ChatSession
+participant OllamaProvider
+participant StreamPublisher
+participant MCPToolCallSubscriber
+participant MCPToolExecution
+participant ToolChainingSubscriber
+participant ToolResultCollectorSubscriber
+
+User -> ChatSession : send_message()
+ChatSession -> OllamaProvider : await stream_chat_response(payload)
+OllamaProvider -> OllamaProvider : _parse_and_publish_chunk(chunk)
+OllamaProvider -> StreamPublisher : publish(StreamEventType.CONTENT/ROLE/LLM_TOOL_CALL_REQUEST/FINISH/USAGE)
+
+group LLM streaming events
+    StreamPublisher -> MCPToolCallSubscriber : on_event(StreamEventType.LLM_TOOL_CALL_REQUEST)
+    StreamPublisher -> ToolChainingSubscriber : on_event(StreamEventType.LLM_TOOL_CALL_REQUEST)
+end
+
+group Tool call & exec
+    MCPToolCallSubscriber -> MCPToolCallSubscriber : if event.request_id in _recent_request_ids:\n  skip (deduplication)
+    MCPToolCallSubscriber -> MCPToolCallSubscriber : parse_tool_call(event)
+    MCPToolCallSubscriber -> MCPToolExecution : execute_tool_sync(parsed_tool_call)
+    MCPToolExecution -> StreamPublisher : publish(StreamEventType.MCP_TOOL_CALL_DISPATCHED)
+    MCPToolExecution -> MCPToolExecution : await mcp_manager.execute_tool(...)
+
+    StreamPublisher -> ToolChainingSubscriber : on_event(StreamEventType.MCP_TOOL_CALL_DISPATCHED)
+    ToolChainingSubscriber -> ToolResultCollectorSubscriber : on_event(event)
+    note right: ToolResultCollectorSubscriber:\nappend (tool_call_id, timestamp, call) to tool_call_queue
+
+    MCPToolExecution -> StreamPublisher : publish(MCP_TOOL_CALL_RESULT | MCP_TOOL_CALL_ERROR)
+    StreamPublisher -> ToolChainingSubscriber : on_event(StreamEventType.MCP_TOOL_CALL_RESULT | MCP_TOOL_CALL_ERROR)
+    ToolChainingSubscriber -> ToolResultCollectorSubscriber : on_event(event)
+    note right: ToolResultCollectorSubscriber:\nif tool_call_id in tool_result_buffer:\n  warn (overwrite)\nif tool_call_id not in tool_call_queue:\n  warn (no matching call)\nadd to tool_result_buffer
+end
+
+StreamPublisher -> ToolChainingSubscriber : on_event(StreamEventType.FINISH)
+ToolChainingSubscriber -> ToolResultCollectorSubscriber : on_event(event)
+
+group ToolChainingSubscriber event handling
+    ToolChainingSubscriber -> ToolResultCollectorSubscriber : get_next_ready_pair()
+    note right: ToolResultCollectorSubscriber:\nwhile tool_call_queue:\n  if head tool_call_id in tool_result_buffer:\n    pop both, return pair\n  else: break
+    alt If ready pair exists
+        ToolChainingSubscriber -> ToolChainingSubscriber : _chain_continuation_with_lock(tool_call, tool_result)
+        note right: ToolChainingSubscriber:\ncurrent_tool_chain_iteration += 1\nif not started:\n  started = True\n  tool_chain_id = uuid\n  start_time = now\nif reached_max_iterations or reached_time_limit:\n  is_partial_response = True
+        ToolChainingSubscriber -> OllamaProvider : await stream_chat_response(payload) (next iteration)
+    else No ready pair
+        ToolChainingSubscriber -> ToolChainingSubscriber : Wait for more results
+    end
+end
+
+group Finish event
+    OllamaProvider -> StreamPublisher : publish(StreamEventType.FINISH)
+    StreamPublisher -> ToolChainingSubscriber : on_event(StreamEventType.FINISH)
+    ToolChainingSubscriber -> ToolResultCollectorSubscriber : on_event(StreamEventType.FINISH)
+    note right: ToolChainingSubscriber:\nif is_partial_response or (not has_pending_tool_calls and not is_expecting_mcp_tool_call):\n  publish TOOL_CHAIN_END\n  reset()
+    alt ToolChainingSubscriber: is_partial_response or no pending tool calls
+        ToolChainingSubscriber -> StreamPublisher : publish(StreamEventType.TOOL_CHAIN_END)
+        ToolChainingSubscriber -> ToolChainingSubscriber : reset()
+        note right: ToolChainingSubscriber:\nstarted = False\nstart_time = 0.0\nis_expecting_mcp_tool_call = False\nis_partial_response = False\ncurrent_tool_chain_iteration = 0
+        ToolChainingSubscriber -> ToolResultCollectorSubscriber : reset()
+        note right: ToolResultCollectorSubscriber:\ntool_call_queue.clear()\ntool_result_buffer.clear()
+    end
+end
+
+@enduml

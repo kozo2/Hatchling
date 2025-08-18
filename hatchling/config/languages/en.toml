@@ -1,0 +1,443 @@
+# English translation file for Hatchling
+# This serves as both the template and default language
+
+[meta]
+language_code = "en"
+language_name = "English"
+version = "1.0.0"
+
+# Commonly used translations
+[common]
+description = "Description"
+name = "Name"
+default = "Default"
+current = "Current"
+category = "Category"
+
+# Settings translations
+[settings]
+
+[settings.categories]
+llm = "LLM Configuration"
+paths = "Path Configuration" 
+tool_calling = "Tool Calling"
+ui = "User Interface"
+
+# LLM Settings
+[settings.llm]
+category_name = "llm"
+category_display_name = "LLM Configuration"
+category_description = "Settings for Large Language Model configuration"
+
+[settings.llm.models]
+name = "LLM Models"
+description = "List of available LLM models. Format: [(provider, model_name), ...(provider, model_name)]"
+hint = "Example: [(ollama, llama3.2), (openai, gpt-4.1-nano)]"
+
+# Ollama settings (new/expanded)
+[settings.ollama.ip]
+name = "Ollama IP Address"
+description = "IP address for the Ollama API endpoint."
+hint = "Example: localhost"
+
+[settings.ollama.port]
+name = "Ollama Port"
+description = "Port for the Ollama API endpoint."
+hint = "Example: 11434"
+
+[settings.ollama.num_ctx]
+name = "Ollama Context Window Size"
+description = "Sets the size of the context window used to generate the next token. (Default: 4096)"
+hint = "Integer value"
+
+[settings.ollama.repeat_last_n]
+name = "Ollama Repeat Last N"
+description = "Sets how far back for the model to look back to prevent repetition. (Default: 64, 0 = disabled, -1 = num_ctx)"
+hint = "Integer value"
+
+[settings.ollama.repeat_penalty]
+name = "Ollama Repeat Penalty"
+description = "Sets how strongly to penalize repetitions. Higher values penalize more strongly. (Default: 1.1)"
+hint = "Float value"
+
+[settings.ollama.temperature]
+name = "Ollama Temperature"
+description = "The temperature of the model. Higher values make answers more creative. (Default: 0.8)"
+hint = "Float value"
+
+[settings.ollama.timeout]
+name = "Ollama Timeout"
+description = "Timeout in seconds for Ollama API requests. (Default: 30.0)"
+hint = "Float value"
+
+[settings.ollama.seed]
+name = "Ollama Seed"
+description = "Sets the random number seed to use for generation. (Default: 0)"
+hint = "Integer value"
+
+[settings.ollama.stop]
+name = "Ollama Stop Sequences"
+description = "Sets the stop sequences to use. When encountered, generation stops. Multiple patterns allowed."
+hint = "Comma-separated list of strings"
+
+[settings.ollama.num_predict]
+name = "Ollama Max Tokens to Predict"
+description = "Maximum number of tokens to predict when generating text. (Default: -1, infinite generation)"
+hint = "Integer value"
+
+[settings.ollama.top_k]
+name = "Ollama Top-K"
+description = "Reduces the probability of generating nonsense. Higher values give more diverse answers. (Default: 40)"
+hint = "Integer value"
+
+[settings.ollama.top_p]
+name = "Ollama Top-P"
+description = "Works with top-k. Higher values lead to more diverse text. (Default: 0.9)"
+hint = "Float value"
+
+[settings.ollama.min_p]
+name = "Ollama Min-P"
+description = "Alternative to top_p, ensures a balance of quality and variety. (Default: 0.0)"
+hint = "Float value"
+
+# Ollama category display/description
+[settings.ollama]
+category_display_name = "Ollama Configuration"
+category_description = "Settings for Ollama LLM configuration"
+
+# OpenAI settings
+[settings.openai]
+category_display_name = "OpenAI Configuration"
+category_description = "Settings for OpenAI LLM configuration"
+
+[settings.openai.api_key]
+name = "OpenAI API Key"
+description = "The API key used to authenticate with OpenAI services."
+hint = "Enter your OpenAI API key"
+
+[settings.openai.api_base]
+name = "OpenAI API Base URL"
+description = "The base URL for OpenAI API requests."
+hint = "Example: https://api.openai.com/v1"
+
+[settings.openai.model]
+name = "OpenAI Model"
+description = "The default OpenAI model to use."
+hint = "Example: gpt-4-1-nano"
+
+[settings.openai.timeout]
+name = "OpenAI Timeout"
+description = "Timeout in seconds for OpenAI API requests."
+hint = "Integer value (seconds)"
+
+[settings.openai.max_completion_tokens]
+name = "OpenAI Max Completion Tokens"
+description = "The maximum number of tokens for OpenAI completions. This includes visible and reasoning tokens (when enabled). The higher the value, the more tokens can be generated, but it may increase costs."
+hint = "Integer value"
+
+[settings.openai.temperature]
+name = "OpenAI Temperature"
+description = "Sampling temperature for OpenAI completions."
+hint = "Float value"
+
+[settings.openai.top_p]
+name = "OpenAI Top-P"
+description = "Nucleus sampling parameter for OpenAI completions."
+hint = "Float value"
+
+[settings.openai.tool_choice]
+name = "OpenAI Tool Choice"
+description = "The tool choice for OpenAI API requests. (auto, none, required)"
+hint = "String: auto | none | required"
+
+# Provider setting
+[settings.llm.provider_enum]
+name = "LLM Provider"
+description = "LLM provider to use ('ollama' or 'openai')."
+hint = "Choose between 'ollama' or 'openai'"
+
+[settings.llm.model]
+name = "Model"
+description = "LLM model to use for chat interactions"
+hint = "Example: mistral-small3.1"
+
+# Path Settings
+[settings.paths]
+category_name = "paths"
+category_display_name = "Path Configuration"
+category_description = "Settings for file and directory paths"
+
+[settings.paths.envs_dir]
+name = "Environments Directory"
+description = "Directory where Hatch environments are stored"
+hint = "Directory path"
+
+[settings.paths.hatchling_source_dir]
+name = "Hatchling Source Directory"
+description = "Directory where Hatchling source code is located"
+hint = "Directory path"
+
+[settings.paths.hatchling_cache_dir]
+name = "Hatchling Cache Directory"
+description = "Directory for Hatchling cache and data storage"
+hint = "Directory path"
+
+[settings.paths.hatchling_settings_dir]
+name = "Hatchling Settings Directory"
+description = "Directory for Hatchling settings storage"
+hint = "Directory path"
+
+[settings.paths.data_dir]
+name = "Data Directory"
+description = "Directory for application data storage"
+hint = "Directory path"
+
+[settings.paths.config_dir]
+name = "Configuration Directory"
+description = "Directory for configuration files"
+hint = "Directory path"
+
+# Tool Calling Settings
+[settings.tool_calling]
+category_name = "tool_calling"
+category_display_name = "Tool Calling"
+category_description = "Settings for tool calling behavior"
+
+[settings.tool_calling.max_iterations]
+name = "Max Iterations"
+description = "Maximum number of tool calling iterations"
+hint = "Integer value" 
+
+[settings.tool_calling.max_working_time]
+name = "Max Working Time"
+description = "Maximum working time for tool calls. If None, no limit is enforced. This is checked upon tool call, not during the tool call. Hence if a single tool call takes longer than this, it will not be interrupted."
+hint = "Time in seconds"
+
+[settings.tool_calling.max_tool_working_time]
+name = "Max Tool Working Time"
+description = "Maximum working time for a single tool call. If None, no limit is enforced."
+hint = "Time in seconds"
+
+# UI Settings
+[settings.ui]
+category_name = "ui"
+category_display_name = "User Interface"
+category_description = "Settings for user interface behavior"
+
+[settings.ui.language_code]
+name = "Language"
+description = "Language code for user interface localization"
+hint = "Language code (e.g., en, fr, es)"
+
+# Command translations
+[commands]
+
+# Base chat commands
+[commands.base]
+help_name = "help"
+help_description = "Display help for available commands"
+exit_name = "exit"
+exit_description = "End the chat session"
+quit_name = "quit"
+quit_description = "End the chat session (alias for exit)"
+clear_name = "clear"
+clear_description = "Clear the chat history"
+
+# Additional base commands
+show_logs_name = "show_logs"
+show_logs_description = "Display session logs"
+set_log_level_name = "set_log_level"
+set_log_level_description = "Change log level"
+set_max_tool_call_iterations_name = "set_max_tool_call_iterations"
+set_max_tool_call_iterations_description = "Set max tool call iterations"
+set_max_working_time_name = "set_max_working_time"
+set_max_working_time_description = "Set max working time in seconds"
+enable_tools_name = "enable_tools"
+enable_tools_description = "Enable MCP tools"
+disable_tools_name = "disable_tools"
+disable_tools_description = "Disable MCP tools"
+version_name = "version"
+version_description = "Display the current version of Hatchling"
+
+# Hatch commands
+[commands.hatch]
+
+# Environment management commands
+env_create_name = "hatch:env:create"
+env_create_description = "Create a new Hatch environment"
+env_list_name = "hatch:env:list"
+env_list_description = "List available Hatch environments"
+env_remove_name = "hatch:env:remove"
+env_remove_description = "Remove a Hatch environment"
+env_current_name = "hatch:env:current"
+env_current_description = "Show the current Hatch environment"
+env_use_name = "hatch:env:use"
+env_use_description = "Switch to a different Hatch environment"
+
+# Package management commands
+pkg_add_name = "hatch:pkg:add"
+pkg_add_description = "Add a package to the current environment"
+pkg_remove_name = "hatch:pkg:remove"
+pkg_remove_description = "Remove a package from the current environment"
+pkg_list_name = "hatch:pkg:list"
+pkg_list_description = "List packages in the current environment"
+pkg_create_name = "hatch:pkg:create"
+pkg_create_description = "Create a new package from a template"
+pkg_validate_name = "hatch:pkg:validate"
+pkg_validate_description = "Validate the current package"
+
+# Environment Python commands
+env_python_init_name = "hatch:env:python:init"
+env_python_init_description = "Initialize Python in the environment"
+env_python_info_name = "hatch:env:python:info"
+env_python_info_description = "Show Python info for the environment"
+env_python_remove_name = "hatch:env:python:remove"
+env_python_remove_description = "Remove Python from the environment"
+env_python_shell_name = "hatch:env:python:shell"
+env_python_shell_description = "Open a Python shell in the environment"
+env_python_add_hatch_mcp_name = "hatch:env:python:add_hatch_mcp"
+env_python_add_hatch_mcp_description = "Add Hatch MCP to the Python environment"
+
+# Settings commands
+[commands.settings]
+list_name = "settings:list"
+list_description = "List all available settings"
+get_name = "settings:get"
+get_description = "Get the value of a specific setting"
+set_name = "settings:set"
+set_description = "Set the value of a specific setting"
+reset_name = "settings:reset"
+reset_description = "Reset a setting to its default value"
+import_name = "settings:import"
+import_description = "Import settings from a file"
+export_name = "settings:export"
+export_description = "Export settings to a file"
+save_name = "settings:save"
+save_description = "Save current settings to the default settings file"
+language_list_name = "settings:language:list"
+language_list_description = "List available languages"
+language_set_name = "settings:language:set"
+language_set_description = "Set the interface language"
+
+[commands.llm]
+provider_supported_description = "List all supported LLM providers"
+provider_status_description = "Check status of a specific provider. Effectively sends a request to see if providers are available and responsive."
+provider_name_arg_description = "Name of the provider (e.g., ollama, openai)"
+model_list_description = "List available models. This includes downloaded models for Ollama, and preferred models for other providers."
+model_add_description = "Add (download) a model for Ollama; for other providers, first check if the model exists online."
+model_name_arg_description = "Name of the model to pull or set as default"
+model_use_description = "Set the default model to use for the current session"
+force_confirmed_arg_description = "Force confirmation prompt even if the model is already set as default"
+model_remove_description = "Remove a model from the list of available models"
+
+[commands.mcp]
+server_list_description = "List all MCP servers and their status"
+server_status_description = "Show detailed status for a specific MCP server"
+server_path_arg_description = "Path to the MCP server script"
+server_connect_description = "Connect to MCP servers"
+server_paths_arg_description = "Comma-separated paths to MCP server scripts"
+server_disconnect_description = "Disconnect from all MCP servers"
+tool_list_description = "List all available MCP tools"
+server_path_arg_description_optional = "Filter tools by server path (optional)"
+tool_info_description = "Show detailed information about a specific tool"
+tool_name_arg_description = "Name of the tool"
+tool_enable_description = "Enable a specific MCP tool"
+tool_name_arg_description_enable = "Name of the tool to enable"
+tool_disable_description = "Disable a specific MCP tool"
+tool_name_arg_description_disable = "Name of the tool to disable"
+tool_execute_description = "Execute an MCP tool manually for debugging"
+tool_name_arg_description_execute = "Name of the tool to execute"
+tool_schema_description = "Show the JSON schema for a tool's arguments"
+health_description = "Show overall MCP system health summary"
+citations_description = "Show MCP server citations for current session"
+reset_description = "Reset MCP session tracking"
+
+# Command arguments
+[commands.args]
+name_description = "Name for the resource"
+file_description = "File path"
+format_description = "Output format (table, json, yaml)"
+force_description = "Force the operation without confirmation"
+force_protected_description = "Force setting a protected setting"
+language_description = "Language code to set"
+filter_description = "Filter pattern for settings"
+setting_description = "Setting in format category:name"
+value_description = "Value to set"
+env_name_description = "Name for the new environment"
+env_description_description = "Description for the environment"
+python_version_description = "Python version for the environment (e.g., 3.11, 3.12)"
+no_python_description = "Don't create a Python environment using conda/mamba"
+no_hatch_mcp_server_description = "Don't install hatch_mcp_server in the new environment"
+no_hatch_mcp_server_wrapper_description = "Don't install hatch_mcp_server wrapper in the Python environment"
+hatch_mcp_server_tag_description = "Git tag/branch reference for hatch_mcp_server installation (e.g., 'dev', 'v0.1.0')"
+env_remove_name_description = "Name of the environment to remove"
+env_use_name_description = "Name of the environment to use"
+package_path_or_name_description = "Path or name of the package to add"
+env_target_description = "Environment to add the package to"
+package_version_description = "Version of the package to add"
+force_download_description = "Force download even if already available"
+refresh_registry_description = "Refresh the registry before installing"
+auto_approve_description = "Skip user consent prompt for automation scenarios"
+package_name_description = "Name of the package to remove"
+env_remove_package_description = "Environment to remove the package from"
+env_list_packages_description = "Environment to list packages from"
+package_create_name_description = "Name of the package to create"
+dir_description = "Directory to create the package in"
+package_description_description = "Description of the package"
+package_dir_description = "Directory of the package to validate"
+hatch_env_description = "Hatch environment name (default: current environment)"
+hatch_env_special_description = "Hatch environment name. It must possess a valid Python environment. (default: current environment)"
+force_recreation_description = "Force recreation if exists"
+detailed_description = "Show detailed diagnostics"
+force_removal_description = "Force removal without confirmation"
+cmd_description = "Command to run in the shell (optional)"
+tag_description = "Git tag/branch reference for wrapper installation (e.g., 'dev', 'v0.1.0')"
+all_settings_description = "Include read-only settings in the export"
+
+# Error messages
+[errors]
+invalid_setting = "Invalid setting: {setting}"
+invalid_value = "Invalid value for {setting}: {value}"
+setting_not_found = "Setting not found: {setting}"
+permission_denied = "Permission denied for setting: {setting}"
+file_not_found = "File not found: {file}"
+invalid_format = "Invalid format: {format}"
+language_not_found = "Language not found: {language}"
+translation_key_missing = "Translation key missing: {key}"
+settings_registry_not_available = "Settings registry not available"
+setting_name_required = "Setting name is required"
+setting_and_value_required = "Both setting name and value are required"
+file_path_required = "File path is required"
+language_code_required = "Language code is required"
+invalid_setting_path = "Invalid setting path format: {path}. Use 'category:name'"
+list_settings_failed = "Failed to list settings: {error}"
+get_setting_failed = "Failed to get setting: {error}"
+set_setting_failed = "Failed to set setting: {error}"
+reset_setting_failed = "Failed to reset setting: {error}"
+export_settings_failed = "Failed to export settings: {error}"
+import_settings_failed = "Failed to import settings: {error}"
+list_languages_failed = "Failed to list languages: {error}"
+set_language_failed = "Failed to set language: {error}"
+save_settings_failed = "Failed to save settings: {error}"
+
+# Info messages
+[info]
+setting_updated = "Setting '{setting}' updated to '{value}'"
+setting_reset = "Setting '{setting}' reset to default value"
+settings_imported = "Settings imported from {file}"
+settings_exported = "Settings exported to {file}"
+settings_saved = "Settings saved to default settings file: {file}"
+language_changed = "Language changed to {language}"
+available_languages = "Available languages: {languages}"
+operation_cancelled = "Operation cancelled"
+
+# Headers
+[headers]
+settings_list = "Available Settings"
+available_languages = "Available Languages"
+
+# Prompts
+[prompts]
+confirm_reset = "Are you sure you want to reset '{setting}' to its default value?"
+confirm_import = "Are you sure you want to import settings from '{file}'? This may overwrite current settings."
+confirm_set = "Are you sure you want to set '{setting}' to '{value}'?"

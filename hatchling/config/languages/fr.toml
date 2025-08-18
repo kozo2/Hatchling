@@ -1,0 +1,438 @@
+# French translation file for Hatchling
+# Fichier de traduction française pour Hatchling
+
+[meta]
+language_code = "fr"
+language_name = "Français"
+version = "1.0.0"
+
+# Commonly used translations
+[common]
+description = "Description"
+name = "Nom"
+default = "Par défaut"
+current = "Actuel"
+category = "Catégorie"
+
+# Settings translations
+[settings]
+
+[settings.categories]
+llm = "Configuration LLM"
+paths = "Configuration des Chemins"
+tool_calling = "Appel d'Outils"
+ui = "Interface Utilisateur"
+
+# LLM Settings
+[settings.llm]
+category_name = "llm"
+category_display_name = "Configuration LLM"
+category_description = "Paramètres pour la configuration du modèle de langage"
+
+# Paramètres Ollama
+[settings.ollama]
+category_display_name = "Configuration Ollama"
+category_description = "Paramètres pour la configuration du LLM Ollama"
+
+[settings.ollama.ip]
+name = "Adresse IP Ollama"
+description = "Adresse IP pour le point de terminaison de l'API Ollama."
+hint = "Exemple : localhost"
+
+[settings.ollama.port]
+name = "Port Ollama"
+description = "Port pour le point de terminaison de l'API Ollama."
+hint = "Exemple : 11434"
+
+[settings.ollama.num_ctx]
+name = "Taille de la fenêtre de contexte Ollama"
+description = "Définit la taille de la fenêtre de contexte utilisée pour générer le prochain jeton. (Par défaut : 4096)"
+hint = "Valeur entière"
+
+[settings.ollama.repeat_last_n]
+name = "Ollama Répéter les N derniers"
+description = "Définit jusqu'où le modèle regarde en arrière pour éviter les répétitions. (Par défaut : 64, 0 = désactivé, -1 = num_ctx)"
+hint = "Valeur entière"
+
+[settings.ollama.repeat_penalty]
+name = "Pénalité de répétition Ollama"
+description = "Définit la force de la pénalisation des répétitions. Plus la valeur est élevée, plus la pénalisation est forte. (Par défaut : 1.1)"
+hint = "Valeur décimale"
+
+[settings.ollama.temperature]
+name = "Température Ollama"
+description = "La température du modèle. Des valeurs plus élevées rendent les réponses plus créatives. (Par défaut : 0.8)"
+hint = "Valeur décimale"
+
+[settings.ollama.timeout]
+name = "Timeout Ollama"
+description = "Délai d'attente en secondes pour les requêtes API Ollama. (Par défaut : 30.0)"
+hint = "Valeur décimale"
+
+[settings.ollama.seed]
+name = "Graine Ollama"
+description = "Définit la graine du générateur aléatoire pour la génération. (Par défaut : 0)"
+hint = "Valeur entière"
+
+[settings.ollama.stop]
+name = "Séquences d'arrêt Ollama"
+description = "Définit les séquences d'arrêt à utiliser. Lorsqu'elles sont rencontrées, la génération s'arrête. Plusieurs motifs autorisés."
+hint = "Liste de chaînes séparées par des virgules"
+
+[settings.ollama.num_predict]
+name = "Nombre max de jetons à prédire Ollama"
+description = "Nombre maximum de jetons à prédire lors de la génération de texte. (Par défaut : -1, génération infinie)"
+hint = "Valeur entière"
+
+[settings.ollama.top_k]
+name = "Ollama Top-K"
+description = "Réduit la probabilité de générer des réponses incohérentes. Des valeurs plus élevées donnent des réponses plus diverses. (Par défaut : 40)"
+hint = "Valeur entière"
+
+[settings.ollama.top_p]
+name = "Ollama Top-P"
+description = "Fonctionne avec top-k. Des valeurs plus élevées donnent des textes plus variés. (Par défaut : 0.9)"
+hint = "Valeur décimale"
+
+[settings.ollama.min_p]
+name = "Ollama Min-P"
+description = "Alternative à top_p, assure un équilibre entre qualité et variété. (Par défaut : 0.0)"
+hint = "Valeur décimale"
+
+# Paramètres OpenAI (étendus)
+[settings.openai]
+category_display_name = "Configuration OpenAI"
+category_description = "Paramètres pour la configuration du LLM OpenAI"
+
+[settings.openai.api_key]
+name = "Clé API OpenAI"
+description = "Clé API utilisée pour authentifier les services OpenAI."
+hint = "Entrez votre clé API OpenAI"
+
+[settings.openai.api_base]
+name = "URL de base API OpenAI"
+description = "URL de base pour les requêtes API OpenAI."
+hint = "Exemple : https://api.openai.com/v1"
+
+[settings.openai.model]
+name = "Modèle OpenAI"
+description = "Modèle OpenAI par défaut à utiliser."
+hint = "Exemple : gpt-4-1-nano"
+
+[settings.openai.timeout]
+name = "Timeout OpenAI"
+description = "Délai d'attente en secondes pour les requêtes API OpenAI."
+hint = "Valeur entière (secondes)"
+
+[settings.openai.max_completion_tokens]
+name = "Nombre max de jetons de complétion OpenAI"
+description = "Nombre maximum de jetons pour les complétions OpenAI. Cela inclut les jetons visibles et de raisonnement (si activé). Plus la valeur est élevée, plus de jetons peuvent être générés, mais cela peut augmenter les coûts."
+hint = "Valeur entière"
+
+[settings.openai.temperature]
+name = "Température OpenAI"
+description = "Température d'échantillonnage pour les complétions OpenAI."
+hint = "Valeur décimale"
+
+[settings.openai.top_p]
+name = "OpenAI Top-P"
+description = "Paramètre de nucleus sampling pour les complétions OpenAI."
+hint = "Valeur décimale"
+
+[settings.openai.tool_choice]
+name = "Choix d'outil OpenAI"
+description = "Le choix d'outil pour les requêtes API OpenAI. (auto, none, required)"
+hint = "Chaîne : auto | none | required"
+
+# Provider setting
+[settings.llm.provider_enum]
+name = "Fournisseur LLM"
+description = "Fournisseur LLM à utiliser ('ollama' ou 'openai')."
+hint = "Choisir entre 'ollama' ou 'openai'"
+
+[settings.llm.model]
+name = "Modèle"
+description = "Modèle LLM à utiliser pour les interactions de chat"
+hint = "Exemple : mistral-small3.1"
+
+[settings.llm.models]
+name = "Modèles"
+description = "Liste des modèles LLM disponibles. Format : [(fournisseur, nom_modèle), ...(fournisseur, nom_modèle)]"
+hint = "Exemple : [(ollama, llama3.2), (openai, gpt-4.1-nano)]"
+
+# Path Settings
+[settings.paths]
+category_name = "paths"
+category_display_name = "Configuration des Chemins"
+category_description = "Paramètres pour les chemins de fichiers et répertoires"
+
+[settings.paths.envs_dir]
+name = "Répertoire des Environnements"
+description = "Répertoire où les environnements Hatch sont stockés"
+hint = "Chemin du répertoire"
+
+[settings.paths.hatchling_source_dir]
+name = "Répertoire Source de Hatchling"
+description = "Répertoire où le code source de Hatchling est situé"
+hint = "Chemin du répertoire"
+
+[settings.paths.hatchling_cache_dir]
+name = "Répertoire de Cache de Hatchling"
+description = "Répertoire pour le cache et le stockage de données de Hatchling"
+hint = "Chemin du répertoire"
+
+[settings.paths.hatchling_settings_dir]
+name = "Répertoire de Paramètres de Hatchling"
+description = "Répertoire pour le stockage des paramètres de Hatchling"
+hint = "Chemin du répertoire"
+
+[settings.paths.data_dir]
+name = "Répertoire de Données"
+description = "Répertoire pour le stockage des données d'application"
+hint = "Chemin du répertoire"
+
+[settings.paths.config_dir]
+name = "Répertoire de Configuration"
+description = "Répertoire pour les fichiers de configuration"
+hint = "Chemin du répertoire"
+
+# Tool Calling Settings
+[settings.tool_calling]
+category_name = "tool_calling"
+category_display_name = "Appel d'Outils"
+category_description = "Paramètres pour le comportement d'appel d'outils"
+
+[settings.tool_calling.max_iterations]
+name = "Max Itérations"
+description = "Nombre maximum d'itérations d'appel d'outils"
+hint = "Nombre entier"
+
+[settings.tool_calling.max_working_time]
+name = "Max Temps de Travail"
+description = "Temps de travail maximum pour les appels d'outils. Si None, aucune limite n'est appliquée. Ceci est vérifié lors de l'appel d'outils, pas pendant l'appel d'outils. Par conséquent, si un seul appel d'outil prend plus de temps que cela, il ne sera pas interrompu."
+hint = "Temps en secondes"
+
+[settings.tool_calling.max_tool_working_time]
+name = "Max Temps de Travail d'Outil"
+description = "Temps de travail maximum pour un seul appel d'outil. Si None, aucune limite n'est appliquée."
+hint = "Temps en secondes"
+
+# UI Settings
+[settings.ui]
+category_name = "ui"
+category_display_name = "Interface Utilisateur"
+category_description = "Paramètres pour le comportement de l'interface utilisateur"
+
+[settings.ui.language_code]
+name = "Langue"
+description = "Code de langue pour la localisation de l'interface utilisateur"
+hint = "Code de langue (ex : en, fr, es)"
+
+# Command translations
+[commands]
+
+# Base chat commands
+[commands.base]
+help_name = "aide"
+help_description = "Afficher l'aide pour les commandes disponibles"
+exit_name = "sortir"
+exit_description = "Terminer la session de chat"
+quit_name = "quitter"
+quit_description = "Terminer la session de chat (alias pour sortir)"
+clear_name = "effacer"
+clear_description = "Effacer l'historique du chat"
+
+# Additional base commands
+show_logs_name = "afficher_logs"
+show_logs_description = "Afficher les logs de session"
+set_log_level_name = "def_niveau_log"
+set_log_level_description = "Changer le niveau de journalisation"
+set_max_tool_call_iterations_name = "def_max_iterations_outils"
+set_max_tool_call_iterations_description = "Définir le nombre maximal d'itérations d'appel d'outils"
+set_max_working_time_name = "def_max_temps_travail"
+set_max_working_time_description = "Définir le temps de travail maximal en secondes"
+enable_tools_name = "activer_outils"
+enable_tools_description = "Activer les outils MCP"
+disable_tools_name = "desactiver_outils"
+disable_tools_description = "Désactiver les outils MCP"
+version_name = "version"
+version_description = "Afficher la version actuelle de Hatchling"
+
+# Hatch commands
+[commands.hatch]
+env_create_name = "env:créer"
+env_create_description = "Créer un nouvel environnement Hatch"
+env_list_name = "env:lister"
+env_list_description = "Lister les environnements Hatch disponibles"
+env_remove_name = "env:supprimer"
+env_remove_description = "Supprimer un environnement Hatch"
+env_current_name = "env:actuel"
+env_current_description = "Afficher l'environnement Hatch actuel"
+env_use_name = "env:utiliser"
+env_use_description = "Basculer vers un autre environnement Hatch"
+
+pkg_add_name = "pkg:ajouter"
+pkg_add_description = "Ajouter un package à l'environnement actuel"
+pkg_remove_name = "pkg:supprimer"
+pkg_remove_description = "Supprimer un package de l'environnement actuel"
+pkg_list_name = "pkg:lister"
+pkg_list_description = "Lister les packages dans l'environnement actuel"
+pkg_create_name = "pkg:créer"
+pkg_create_description = "Créer un nouveau package à partir d'un modèle"
+pkg_validate_name = "pkg:valider"
+pkg_validate_description = "Valider le package actuel"
+
+env_python_init_name = "env:python:init"
+env_python_init_description = "Initialiser Python dans l'environnement"
+env_python_info_name = "env:python:info"
+env_python_info_description = "Afficher les informations Python pour l'environnement"
+env_python_remove_name = "env:python:supprimer"
+env_python_remove_description = "Supprimer Python de l'environnement"
+env_python_shell_name = "env:python:shell"
+env_python_shell_description = "Ouvrir un shell Python dans l'environnement"
+env_python_add_hatch_mcp_name = "env:python:ajouter_hatch_mcp"
+env_python_add_hatch_mcp_description = "Ajouter Hatch MCP à l'environnement Python"
+
+# Settings commands
+[commands.settings]
+list_name = "param:lister"
+list_description = "Lister tous les paramètres disponibles"
+get_name = "param:obtenir"
+get_description = "Obtenir la valeur d'un paramètre spécifique"
+set_name = "param:définir"
+set_description = "Définir la valeur d'un paramètre spécifique"
+reset_name = "param:réinitialiser"
+reset_description = "Réinitialiser un paramètre à sa valeur par défaut"
+import_name = "param:importer"
+import_description = "Importer les paramètres depuis un fichier"
+export_name = "param:exporter"
+export_description = "Exporter les paramètres vers un fichier"
+save_name = "param:sauvegarder"
+save_description = "Sauvegarder les paramètres actuels dans le fichier de paramètres par défaut"
+language_list_name = "param:langue:lister"
+language_list_description = "Lister les langues disponibles"
+language_set_name = "param:langue:définir"
+language_set_description = "Définir la langue de l'interface"
+
+[commands.llm]
+provider_supported_description = "Lister tous les fournisseurs LLM pris en charge"
+provider_status_description = "Vérifier le statut d'un fournisseur spécifique. Envoie une requête pour voir si les fournisseurs sont disponibles et réactifs."
+provider_name_arg_description = "Nom du fournisseur (ex : ollama, openai)"
+model_list_description = "Lister les modèles disponibles. Cela inclut les modèles téléchargés pour Ollama et les modèles préférés pour les autres fournisseurs."
+model_add_description = "Ajouter (télécharger) un modèle pour Ollama ; pour les autres fournisseurs, vérifier d'abord si le modèle existe en ligne."
+model_name_arg_description = "Nom du modèle à télécharger ou à définir par défaut"
+model_use_description = "Définir le modèle par défaut à utiliser pour la session en cours"
+force_confirmed_arg_description = "Forcer la confirmation même si le modèle est déjà défini par défaut"
+model_remove_description = "Supprimer un modèle de la liste des modèles disponibles"
+
+[commands.mcp]
+server_list_description = "Lister tous les serveurs MCP et leur statut"
+server_status_description = "Afficher le statut détaillé d'un serveur MCP spécifique"
+server_path_arg_description = "Chemin vers le script du serveur MCP"
+server_connect_description = "Se connecter aux serveurs MCP"
+server_paths_arg_description = "Chemins séparés par des virgules vers les scripts de serveurs MCP"
+server_disconnect_description = "Se déconnecter de tous les serveurs MCP"
+tool_list_description = "Lister tous les outils MCP disponibles"
+server_path_arg_description_optional = "Filtrer les outils par chemin de serveur (optionnel)"
+tool_info_description = "Afficher des informations détaillées sur un outil spécifique"
+tool_name_arg_description = "Nom de l'outil"
+tool_enable_description = "Activer un outil MCP spécifique"
+tool_name_arg_description_enable = "Nom de l'outil à activer"
+tool_disable_description = "Désactiver un outil MCP spécifique"
+tool_name_arg_description_disable = "Nom de l'outil à désactiver"
+tool_execute_description = "Exécuter un outil MCP manuellement pour le débogage"
+tool_name_arg_description_execute = "Nom de l'outil à exécuter"
+tool_schema_description = "Afficher le schéma JSON des arguments d'un outil"
+health_description = "Afficher le résumé de l'état de santé global du système MCP"
+citations_description = "Afficher les citations du serveur MCP pour la session en cours"
+reset_description = "Réinitialiser le suivi de session MCP"
+
+# Command arguments
+[commands.args]
+name_description = "Nom pour la ressource"
+file_description = "Chemin du fichier"
+format_description = "Format de sortie (table, json, yaml)"
+force_description = "Forcer l'opération sans confirmation"
+force_protected_description = "Forcer la définition d'un paramètre protégé"
+language_description = "Code de langue à définir"
+filter_description = "Motif de filtre pour les paramètres"
+setting_description = "Paramètre au format catégorie:nom"
+value_description = "Valeur à définir"
+env_name_description = "Nom pour le nouvel environnement"
+env_description_description = "Description pour l'environnement"
+python_version_description = "Version Python pour l'environnement (ex: 3.11, 3.12)"
+no_python_description = "Ne pas créer d'environnement Python avec conda/mamba"
+no_hatch_mcp_server_description = "Ne pas installer hatch_mcp_server dans le nouvel environnement"
+no_hatch_mcp_server_wrapper_description = "Ne pas installer le wrapper hatch_mcp_server dans l'environnement Python"
+hatch_mcp_server_tag_description = "Référence de tag/branche Git pour l'installation hatch_mcp_server (ex: 'dev', 'v0.1.0')"
+env_remove_name_description = "Nom de l'environnement à supprimer"
+env_use_name_description = "Nom de l'environnement à utiliser"
+package_path_or_name_description = "Chemin ou nom du package à ajouter"
+env_target_description = "Environnement auquel ajouter le package"
+package_version_description = "Version du package à ajouter"
+force_download_description = "Forcer le téléchargement même si déjà disponible"
+refresh_registry_description = "Actualiser le registre avant l'installation"
+auto_approve_description = "Ignorer l'invite de consentement utilisateur pour les scénarios d'automatisation"
+package_name_description = "Nom du package à supprimer"
+env_remove_package_description = "Environnement duquel supprimer le package"
+env_list_packages_description = "Environnement duquel lister les packages"
+package_create_name_description = "Nom du package à créer"
+dir_description = "Répertoire dans lequel créer le package"
+package_description_description = "Description du package"
+package_dir_description = "Répertoire du package à valider"
+hatch_env_description = "Nom de l'environnement Hatch (par défaut: environnement actuel)"
+hatch_env_special_description = "Nom de l'environnement Hatch. Il doit posséder un environnement Python valide. (par défaut: environnement actuel)"
+force_recreation_description = "Forcer la recréation si existant"
+detailed_description = "Afficher les diagnostics détaillés"
+force_removal_description = "Forcer la suppression sans confirmation"
+cmd_description = "Commande à exécuter dans le shell (optionnel)"
+tag_description = "Référence de tag/branche Git pour l'installation du wrapper (ex: 'dev', 'v0.1.0')"
+all_settings_description = "Inclure les paramètres en lecture seule dans l'exportation"
+
+
+# Error messages
+[errors]
+invalid_setting = "Paramètre invalide : {setting}"
+invalid_value = "Valeur invalide pour {setting} : {value}"
+setting_not_found = "Paramètre introuvable : {setting}"
+permission_denied = "Permission refusée pour le paramètre : {setting}"
+file_not_found = "Fichier introuvable : {file}"
+invalid_format = "Format invalide : {format}"
+language_not_found = "Langue introuvable : {language}"
+translation_key_missing = "Clé de traduction manquante : {key}"
+settings_registry_not_available = "Registre des paramètres non disponible"
+setting_name_required = "Le nom du paramètre est requis"
+setting_and_value_required = "Le nom du paramètre et la valeur sont requis"
+file_path_required = "Le chemin du fichier est requis"
+language_code_required = "Le code de langue est requis"
+invalid_setting_path = "Format de chemin de paramètre invalide : {path}. Utilisez 'catégorie:nom'"
+list_settings_failed = "Échec de la liste des paramètres : {error}"
+get_setting_failed = "Échec de l'obtention du paramètre : {error}"
+set_setting_failed = "Échec de la définition du paramètre : {error}"
+reset_setting_failed = "Échec de la réinitialisation du paramètre : {error}"
+export_settings_failed = "Échec de l'exportation des paramètres : {error}"
+import_settings_failed = "Échec de l'importation des paramètres : {error}"
+list_languages_failed = "Échec de la liste des langues : {error}"
+set_language_failed = "Échec de la définition de la langue : {error}"
+save_settings_failed = "Échec de la sauvegarde des paramètres : {error}"
+
+# Info messages
+[info]
+setting_updated = "Paramètre '{setting}' mis à jour vers '{value}'"
+setting_reset = "Paramètre '{setting}' réinitialisé à la valeur par défaut"
+settings_imported = "Paramètres importés depuis {file}"
+settings_exported = "Paramètres exportés vers {file}"
+settings_saved = "Paramètres sauvegardés dans le fichier de paramètres par défaut : {file}"
+language_changed = "Langue changée vers {language}"
+available_languages = "Langues disponibles : {languages}"
+operation_cancelled = "Opération annulée"
+
+# Headers
+[headers]
+settings_list = "Paramètres Disponibles"
+available_languages = "Langues Disponibles"
+
+# Prompts
+[prompts]
+confirm_reset = "Êtes-vous sûr de vouloir réinitialiser '{setting}' à sa valeur par défaut ?"
+confirm_import = "Êtes-vous sûr de vouloir importer les paramètres depuis '{file}' ? Cela peut écraser les paramètres actuels."

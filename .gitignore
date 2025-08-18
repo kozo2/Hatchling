@@ -7,6 +7,9 @@ __logs__/
 .vscode/
 *.code-workspace
 
+# env file sample
+**.env
+
 # Python
 __pycache__/
 *.py[cod]
@@ -43,9 +46,19 @@ coverage.xml
 *.ipynb_checkpoints
 *.pyc
 
+
+
 # Docker
 *.dockerfile
 Dockerfile.*
 docker-compose.override.yml
 .dockerignore
 .docker/
+
+# Jekyll
+_site
+.sass-cache
+.jekyll-cache
+.jekyll-metadata
+vendor
+Gemfile.lock

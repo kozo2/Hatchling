@@ -1,45 +1,93 @@
-import os
-import logging
-from pathlib import Path
-from hatchling.core.logging.logging_manager import logging_manager
+"""Modular settings configuration for Hatchling application.
 
-class ChatSettings:
-    """Manages chat configuration settings."""
+Imports and combines all modular settings classes.
+"""
+
+import threading
+from enum import Enum
+from typing import Optional
+
+from pydantic import BaseModel, Field
+from .llm_settings import LLMSettings, ELLMProvider
+from .openai_settings import OpenAISettings
+from .ollama_settings import OllamaSettings
+from .path_settings import PathSettings
+from .tool_calling_settings import ToolCallingSettings
+from .ui_settings import UISettings
+
+class SettingAccessLevel(str, Enum):
+    """Defines access levels for settings."""
+    NORMAL = "normal"
+    PROTECTED = "protected"
+    READ_ONLY = "read_only"
+
+
+# Global singleton state - outside the class to avoid Pydantic interference
+_app_settings_instance: Optional['AppSettings'] = None
+_app_settings_lock = threading.Lock()
+
+
+class AppSettings(BaseModel):
+    """Root settings model that aggregates all setting categories.
     
-    def __init__(self, 
-                 ollama_api_url: str = os.environ.get("OLLAMA_HOST_API", "http://localhost:11434/api"),
-                 ollama_model: str = os.environ.get("OLLAMA_MODEL", "mistral-small3.1"),
-                 hatch_envs_dir: str = os.environ.get("HATCH_ENVS_DIR", Path.home() / ".hatch" / "envs"),
-                 max_tool_call_iteration: int = 5,
-                 max_working_time: float = 30.0):
-        """Initialize chat settings with configurable parameters.
+    Implemented as a thread-safe singleton to provide global access
+    to application settings throughout the codebase.
+    """
+    
+    llm: LLMSettings = Field(default_factory=LLMSettings)
+    openai: OpenAISettings = Field(default_factory=OpenAISettings)
+    ollama: OllamaSettings = Field(default_factory=OllamaSettings)
+    paths: PathSettings = Field(default_factory=PathSettings)
+    tool_calling: ToolCallingSettings = Field(default_factory=ToolCallingSettings)
+    ui: UISettings = Field(default_factory=UISettings)
+    
+    def __new__(cls, *args, **kwargs):
+        """Ensure only one instance exists (singleton pattern).
         
-        Args:
-            ollama_api_url (str, optional): URL for the Ollama API. Defaults to environment variable or localhost.
-            ollama_model (str, optional): Ollama LLM to use. Defaults to environment variable or mistral-small3.1.
-            hatch_envs_dir (str, optional): Directory for Hatch environments. Defaults to environment variable or ~/.hatch/envs.
-            max_tool_call_iteration (int, optional): Maximum number of tool call iterations. Defaults to 5.
-            max_working_time (float, optional): Maximum time in seconds for tool operations. Defaults to 30.0.
+        Returns:
+            AppSettings: The singleton instance.
         """
-        self.logger = logging_manager.get_session("ChatSettings",
-                                                  logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s'))
-
-
-        self.ollama_api_url = ollama_api_url
-        self.ollama_model = ollama_model
-
-        # If hatch_envs_dir is:
-        # - an absolute path, it is used as is
-        # - a relative path, it is resolved against the user's home directory
-        if os.path.isabs(hatch_envs_dir):
-            self.hatch_envs_dir = hatch_envs_dir
-        else:
-            self.hatch_envs_dir = Path.home() / hatch_envs_dir
+        global _app_settings_instance
+        if _app_settings_instance is None:
+            with _app_settings_lock:
+                # Double-check locking pattern
+                if _app_settings_instance is None:
+                    _app_settings_instance = super().__new__(cls)
+        return _app_settings_instance
+    
+    @classmethod
+    def get_instance(cls) -> 'AppSettings':
+        """Get the singleton instance of AppSettings.
         
-        # New settings for tool calling control
-        self.max_tool_call_iteration = max_tool_call_iteration  # Maximum number of tool call iterations
-        self.max_working_time = max_working_time  # Maximum time in seconds for tool operations
+        Creates the instance if it doesn't exist.
+        
+        Returns:
+            AppSettings: The singleton instance.
+        """
+        global _app_settings_instance
+        if _app_settings_instance is None:
+            cls()  # This will create the instance via __new__
+        return _app_settings_instance
+    
+    @classmethod
+    def reset_instance(cls) -> None:
+        """Reset the singleton instance.
+        
+        This method is primarily for testing purposes.
+        """
+        global _app_settings_instance
+        with _app_settings_lock:
+            _app_settings_instance = None
 
-        self.logger.info(f"ChatSettings initialized with model: {self.ollama_model}, API URL: {self.ollama_api_url}")
-        self.logger.info(f"Max tool call iterations: {self.max_tool_call_iteration}, Max working time: {self.max_working_time} seconds")
-        self.logger.info(f"Hatch environments directory: {self.hatch_envs_dir}")
+    @property
+    def api_base(self) -> str:
+        """Get the base API URL for the configured LLM provider."""
+        if self.llm.provider_enum == ELLMProvider.OPENAI:
+            return self.openai.api_base
+        elif self.llm.provider_enum == ELLMProvider.OLLAMA:
+            return self.ollama.api_base
+        else:
+            raise ValueError(f"Unsupported LLM provider: {self.llm.provider_enum}")
+    
+    class Config:
+        extra = "forbid"

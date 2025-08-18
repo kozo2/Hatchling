@@ -5,11 +5,14 @@ This package provides a CLI interface for interacting with LLMs
 with MCP Tool Calling capabilities.
 """
 
-# from importlib.metadata import version
-# __version__ = version("hatchling")
+import os
 
-from hatchling.mcp_utils.hatch_mcp import HatchMCP
+def _read_version():
+    version_file = os.path.join(os.path.dirname(__file__), '..', 'VERSION')
+    try:
+        with open(version_file, 'r', encoding='utf-8') as f:
+            return f.read().strip()
+    except Exception:
+        return "unknown"
 
-__all__ = [
-    'HatchMCP',
-]
+__version__ = _read_version()
