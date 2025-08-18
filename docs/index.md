@@ -44,12 +44,6 @@ Documentation for maintainers and contributors working on Hatchling's codebase.
 
 ## Resources
 
-### Images and Diagrams
-
-- [Logo Resources](./resources/images/Logo/) - Hatchling branding materials
-- [Setup Screenshots](./resources/images/docker-setup/) - Visual guides for Docker setup
-- [CLI Screenshots](./resources/images/running-hatchling/) - Application interface examples
-
 ### Diagrams
 
 - [Architecture Diagrams](./resources/diagrams/export/) - System architecture documentation
