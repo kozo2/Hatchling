@@ -54,3 +54,11 @@ Dockerfile.*
 docker-compose.override.yml
 .dockerignore
 .docker/
+
+# Jekyll
+_site
+.sass-cache
+.jekyll-cache
+.jekyll-metadata
+vendor
+Gemfile.lock
