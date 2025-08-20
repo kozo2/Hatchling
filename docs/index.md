@@ -1,58 +1,40 @@
-# Documentation Table of Contents
+# Hatchling Documentation
+
+Welcome to the Hatchling documentation! Hatchling is an LLM with MCP (Model Context Protocol) Tool Calling capabilities that provides powerful language model interactions with external tool integration.
+
+## Getting Started
+
+New to Hatchling? Start here:
+
+- **[Installation Guide](users/tutorials/Installation/index.md)** - Quick setup and installation
+- **[Docker Setup](users/tutorials/Installation/docker-ollama-setup.md)** - Docker environment configuration  
+- **[Running Hatchling](users/tutorials/Installation/running_hatchling.md)** - Starting the application
 
 ## For Users
 
-### Tutorials
+Learn how to use Hatchling effectively:
 
-- [Installation Guide](./articles/users/tutorials/Installation/) - Step-by-step setup instructions
-  - [Docker Setup](./articles/users/tutorials/Installation/docker-ollama-setup.md) - Docker environment setup
-  - [Running Hatchling](./articles/users/tutorials/Installation/running_hatchling.md) - Starting the application
-
-### User Guides
-
-- [Chat Commands](./articles/users/chat_commands.md) - Available commands and usage
-- [Settings](./articles/users/settings.md) - Configuration settings and management
-- [Language Support](./articles/users/language_support.md) - Multi-language interface support
+- **[Chat Commands](users/chat_commands.md)** - Available commands and usage
+- **[Settings](users/settings.md)** - Configuration settings and management
+- **[Language Support](users/language_support.md)** - Multi-language interface support
 
 ## For Developers
 
-### Development Documentation
+Contributing to Hatchling development:
 
-Documentation for maintainers and contributors working on Hatchling's codebase.
+- **[General Contribution Guidelines](devs/how_to_contribute.md)** - Standards for branches, versioning, and automation
+- **[Contributing Languages](devs/contribution_guides/contributing_languages.md)** - How to add new language translations
+- **[Implementing LLM Providers](devs/contribution_guides/implementing_llm_providers.md)** - Complete guide for adding new LLM providers
 
-### Versioning
+### Architecture Documentation
 
-- [Versioning](./articles/devs/versioning.md) - Versioning strategy and documentation
+- **[Settings Architecture](devs/settings_architecture.md)** - Settings system design and patterns
+- **[Event System Architecture](devs/event_system_architecture.md)** - Event-driven communication patterns
+- **[i18n Support](devs/i18n_support.md)** - Internationalization system architecture
+- **[Versioning](devs/versioning.md)** - Versioning strategy and documentation
 
-### Architecture
+## Reference
 
-- [Settings Architecture](./articles/devs/settings_architecture.md) - Settings system design and patterns
-- [Event System Architecture](./articles/devs/event_system_architecture.md) - Event-driven communication patterns and implementation
-- [i18n Support](./articles/devs/i18n_support.md) - Internationalization system architecture
-
-### Contributing
-
-- [**General Contribution Guidelines**](./articles/devs/how_to_contribute.md) - Standards for branches, versioning, and automation
-- [Contributing Languages](./articles/devs/contribution_guides/contributing_languages.md) - How to add new language translations
-- [Implementing LLM Providers](./articles/devs/contribution_guides/implementing_llm_providers.md) - Complete guide for adding new LLM providers
-
-## Appendices
-
-### Reference Materials
-
-- [Glossary](./articles/appendices/glossary.md) - Key terms and definitions
-
-## Resources
-
-### Diagrams
-
-- [Architecture Diagrams](./resources/diagrams/export/) - System architecture documentation
-  - [LLM Provider Architecture](./resources/diagrams/export/llm_provider_architecture.svg) - Provider system class diagram
-  - [Provider Interaction Sequence](./resources/diagrams/export/provider_interaction_sequence.svg) - Provider workflow sequence diagram
-  - [Translation Flow](./resources/diagrams/export/i18n_translation_flow.svg) - How the translation files are leveraged to display runtime documentation in different languages
-  - [Settings](./resources/diagrams/export/settings_components_architecture.svg) - How the settings components are related to each other
-  - [Tool Chaining Sequence](./resources/diagrams/export/tool_chaining_events_sequence_v2.svg) - How tool chaining plays out
-
-### Diagram Sources
-
-- [PlantUML Sources](./resources/diagrams/puml/) - Editable source files for architecture and workflow diagrams
+- **[Glossary](appendices/glossary.md)** - Key terms and definitions
+- **[Architecture Diagrams](resources/diagrams/export/index.md)** - System architecture documentation
+- **[PlantUML Sources](resources/diagrams/puml/index.md)** - Editable source files for diagrams

@@ -59,7 +59,7 @@ Settings are automatically persisted to configuration files and can be imported/
 
 ## Architecture Diagram
 
-![Settings Architecture](../../resources/diagrams/export/settings_components_architecture.svg)
+![Settings Architecture](../resources/diagrams/export/settings_components_architecture.svg)
 
 ## Key Files
 

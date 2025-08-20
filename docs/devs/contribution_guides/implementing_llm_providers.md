@@ -11,11 +11,11 @@ This article is about:
 Hatchling's LLM provider system provides an interface to connect with LLM providers.
 The system relies on an abstract base classes, decorator-based registration, and event-driven communication. 
 
-![Provider Architecture](../../../resources/diagrams/export/llm_provider_architecture.svg)
+![Provider Architecture](../../resources/diagrams/export/llm_provider_architecture.svg)
 
 The interaction flow demonstrates how providers integrate with the broader system:
 
-![Provider Interaction Sequence](../../../resources/diagrams/export/provider_interaction_sequence.svg)
+![Provider Interaction Sequence](../../resources/diagrams/export/provider_interaction_sequence.svg)
 
 ## Architecture Components
 

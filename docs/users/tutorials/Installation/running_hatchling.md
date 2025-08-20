@@ -35,14 +35,14 @@ This section assumes you have followed the [Docker & Ollama setup](./docker-olla
 ### Checking that GPU support is enabled  as expected
 
 - Go to the `Containers` tab in Docker Desktop (arrow 1) and select your Ollama container
-![docker_desktop_find_container](../../../../resources/images/docker-setup/docker_find_container.png)
+![docker_desktop_find_container](../../../resources/images/docker-setup/docker_find_container.png)
   - Check the logs and search for a message indicating GPU detection, similar to:
 
     ```txt
     msg="inference compute" id=GPU-a826c853-a49e-a55d-da4d-804bfe10cdcf  library=cuda variant=v12 compute=8.6 driver=12.7 name="NVIDIA GeForce RTX 3070 Laptop GPU" total="8.0 GiB" available="7.0 GiB"
     ```
 
-    ![docker_desktop_find_container_log](../../../../resources/images/docker-setup/docker_find_container_log.png)
+    ![docker_desktop_find_container_log](../../../resources/images/docker-setup/docker_find_container_log.png)
 - Alternatively, run the command `docker logs ollama` and search for the message in the output.
 
 For more detailed instructions and options, refer to the [official Ollama Docker documentation](https://github.com/ollama/ollama/blob/main/docs/docker.md).
@@ -125,14 +125,14 @@ For Hatchling, one can change `OLLAMA_MODEL` to any model under the category [to
 > [!Warning]
 > Be mindful of the size of the LLM. Models larger than your GPU's memory (VRAM on GPU cards, or the partition of the shared memory that can be allocated to GPU tasks on Apple Silicon), will not run smoothly. You can check the actual size of a model when selecting a model on the within [the list](https://ollama.com/search?c=tools)
 
-![deepseek_model_size_choice](../../../../resources/images/running-hatchling/deepseek_model_page_example.png)
+![deepseek_model_size_choice](../../../resources/images/running-hatchling/deepseek_model_page_example.png)
 
 For example, [earlier](#checking-that-gpu-support-is-enabled--as-expected) the GPU's available memory was indicated to be 7GB. Therefore, this GPU can load up to `deepseek-r1:8b`, which happens to be the default (marked as `latest`).
 
 #### Ollama
 
 - On Docker Desktop, navigate to your containers (arrow 1), and press the play button (arrow 2)
-![start_ollama_container](../../../../resources/images/docker-setup/Run_Ollama_Container.png)
+![start_ollama_container](../../../resources/images/docker-setup/Run_Ollama_Container.png)
 - Alternatively, run the command `docker start ollama`
 
 #### Hatchling
@@ -164,8 +164,8 @@ hatchling
 If Hatchling successfully connects to Ollama, it will download the specified LLM model. This will be shown by progress messages. Download time depends on the model size (the default model `llama3.2` is about 2GB).
 
 Here is a screenshot of what Hatchling typically looks like right after start up:
-![Typical_Hatchling_CLI_20250627_pt1](../../../../resources/images/running-hatchling/Typical_Hatchling_CLI_20250627_pt1.png)
-![Typical_Hatchling_CLI_20250627_pt2](../../../../resources/images/running-hatchling/Typical_Hatchling_CLI_20250627_pt2.png)
+![Typical_Hatchling_CLI_20250627_pt1](../../../resources/images/running-hatchling/Typical_Hatchling_CLI_20250627_pt1.png)
+![Typical_Hatchling_CLI_20250627_pt2](../../../resources/images/running-hatchling/Typical_Hatchling_CLI_20250627_pt2.png)
 
 You can receive help about all available commands by writing `help` in the chat. Details about the commands are also available in the [documentation](./chat_commands.md)
 
