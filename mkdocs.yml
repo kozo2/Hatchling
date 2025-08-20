@@ -1,0 +1,90 @@
+site_name: Hatchling Documentation
+site_url: https://kozo2.github.io/Hatchling/
+site_description: LLM with MCP Tool Calling - Documentation
+site_author: Hatch! Team
+
+repo_name: kozo2/Hatchling
+repo_url: https://github.com/kozo2/Hatchling
+
+theme:
+  name: material
+  palette:
+    # Palette toggle for light mode
+    - scheme: default
+      primary: blue
+      accent: blue
+      toggle:
+        icon: material/brightness-7
+        name: Switch to dark mode
+    # Palette toggle for dark mode
+    - scheme: slate
+      primary: blue
+      accent: blue
+      toggle:
+        icon: material/brightness-4
+        name: Switch to light mode
+  features:
+    - navigation.tabs
+    - navigation.tabs.sticky
+    - navigation.sections
+    - navigation.expand
+    - navigation.path
+    - navigation.indexes
+    - navigation.top
+    - search.highlight
+    - search.share
+    - content.code.copy
+    - content.action.edit
+
+markdown_extensions:
+  - pymdownx.highlight:
+      anchor_linenums: true
+  - pymdownx.inlinehilite
+  - pymdownx.snippets
+  - pymdownx.superfences
+  - pymdownx.tabbed:
+      alternate_style: true
+  - pymdownx.details
+  - admonition
+  - tables
+  - attr_list
+  - md_in_html
+  - toc:
+      permalink: true
+
+plugins:
+  - search
+  - awesome-pages
+
+nav:
+  - Home: index.md
+  - For Users:
+    - Getting Started:
+      - users/tutorials/Installation/index.md
+      - Docker Setup: users/tutorials/Installation/docker-ollama-setup.md
+      - Running Hatchling: users/tutorials/Installation/running_hatchling.md
+    - User Guides:
+      - Chat Commands: users/chat_commands.md
+      - Settings: users/settings.md
+      - Language Support: users/language_support.md
+  - For Developers:
+    - Contributing:
+      - devs/how_to_contribute.md
+      - Contributing Languages: devs/contribution_guides/contributing_languages.md
+      - Implementing LLM Providers: devs/contribution_guides/implementing_llm_providers.md
+    - Architecture:
+      - Settings Architecture: devs/settings_architecture.md
+      - Event System: devs/event_system_architecture.md
+      - i18n Support: devs/i18n_support.md
+    - Development:
+      - Versioning: devs/versioning.md
+  - Reference:
+    - Glossary: appendices/glossary.md
+    - Resources:
+      - Architecture Diagrams: resources/diagrams/export/index.md
+      - PlantUML Sources: resources/diagrams/puml/index.md
+
+extra:
+  social:
+    - icon: fontawesome/brands/github
+      link: https://github.com/kozo2/Hatchling

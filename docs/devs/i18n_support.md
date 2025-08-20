@@ -88,7 +88,7 @@ Global translation loader ensures consistent state across the application.
 
 Translation lookup follows a consistent pattern: current language → fallback to English → return key if not found.
 
-![Translation Flow](../../resources/diagrams/export/i18n_translation_flow.svg)
+![Translation Flow](../resources/diagrams/export/i18n_translation_flow.svg)
 
 ## Integration Points
 
