@@ -8,7 +8,7 @@ import sys
 import os
 import unittest
 import json
-import toml
+import tomli
 from pathlib import Path
 
 # Import test decorators
@@ -97,7 +97,7 @@ class TestSemanticReleaseConfiguration(unittest.TestCase):
                        "pyproject.toml should exist")
         
         with open(self.pyproject_path, 'r') as f:
-            config = toml.load(f)
+            config = tomli.load(f)
         
         self.assertIn("project", config, 
                      "project section should exist in pyproject.toml")
@@ -154,7 +154,7 @@ class TestSemanticReleaseConfiguration(unittest.TestCase):
     def test_version_format_is_semantic(self):
         """Test that the current version follows semantic versioning format."""
         with open(self.pyproject_path, 'r') as f:
-            config = toml.load(f)
+            config = tomli.load(f)
         
         version = config["project"]["version"]
 
