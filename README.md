@@ -135,7 +135,7 @@ These repositories work together to provide a comprehensive framework for creati
 
 ## Contributing
 
-We welcome contributions! Please see our [Contributing Guide](./CONTRIBUTING.md) for details.
+We welcome contributions! Please see our [Contributing Guide](./docs/CONTRIBUTING.md) for details.
 
 ### Quick Start
 
@@ -161,4 +161,4 @@ chore: maintenance tasks
 
 Use `npm run commit` for guided commit messages.
 
-For detailed guidelines, see [CONTRIBUTING.md](./CONTRIBUTING.md) and [versioning docs](./docs/articles/devs/versioning.md).
+For detailed guidelines, see [CONTRIBUTING.md](./docs/CONTRIBUTING.md) and [versioning docs](./docs/articles/devs/versioning.md).

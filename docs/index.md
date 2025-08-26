@@ -32,7 +32,7 @@ Documentation for maintainers and contributors working on Hatchling's codebase.
 
 ### Contributing
 
-- [**General Contribution Guidelines**](./articles/devs/how_to_contribute.md) - Standards for branches, versioning, and automation
+- [**General Contribution Guidelines**](./articles/devs/CONTRIBUTING.md) - Standards for branches, versioning, and automation
 - [Contributing Languages](./articles/devs/contribution_guides/contributing_languages.md) - How to add new language translations
 - [Implementing LLM Providers](./articles/devs/contribution_guides/implementing_llm_providers.md) - Complete guide for adding new LLM providers
 
@@ -56,3 +56,7 @@ Documentation for maintainers and contributors working on Hatchling's codebase.
 ### Diagram Sources
 
 - [PlantUML Sources](./resources/diagrams/puml/) - Editable source files for architecture and workflow diagrams
+
+## Change Log
+
+For recent changes and updates, see the [CHANGELOG](./CHANGELOG.md).
