@@ -139,18 +139,17 @@ class ToolLifecycleSubscriber(EventSubscriber):
     def _handle_tool_disabled_event(self, event: Event) -> None:
         """Handle tool disabled event."""
         tool_name = event.data.get("tool_name", "")
-        
-        if tool_name in self._tool_cache:
-            tool_info = self._tool_cache[tool_name]
-            tool_info.status = MCPToolStatus.DISABLED
-            
-            if "reason" in event.data:
-                try:
-                    tool_info.reason = MCPToolStatusReason[event.data["reason"].upper()]
-                except (KeyError, ValueError):
-                    tool_info.reason = MCPToolStatusReason.FROM_SYSTEM_ERROR
-            
-            self.logger.debug(f"Tool disabled: {tool_name}")
+        tool_info = event.data.get("tool_info", {})
+
+        if not tool_info:
+            self.logger.error(f"'Tool disabled event' missing 'tool_info' for tool '{tool_name}'")
+            return
+
+        # Update cache with the fresh tool info from the event
+        # This ensures consistency with _handle_tool_enabled_event() and prevents
+        # stale cache entries that could cause disabled tools to remain in payloads
+        self._tool_cache[tool_name] = tool_info
+        self.logger.debug(f"Tool disabled: {tool_name}")
     
     def get_enabled_tools(self) -> Dict[str, MCPToolInfo]:
         """Get all currently enabled tools.
