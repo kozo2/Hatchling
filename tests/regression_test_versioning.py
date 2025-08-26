@@ -1,150 +1,180 @@
 """
-Unit tests for the versioning system.
+Regression tests for the semantic-release versioning system.
 
-Simple test script to verify the versioning system works correctly.
+Tests to verify the semantic-release configuration and integration works correctly.
 """
 
 import sys
 import os
 import unittest
+import json
+import toml
 from pathlib import Path
-from unittest import mock
-
-# Add scripts directory to path
-script_dir = Path(__file__).parent.parent / "scripts"
-sys.path.insert(0, str(script_dir))
 
 # Import test decorators
 sys.path.insert(0, str(Path(__file__).parent.parent))
 from tests.test_decorators import regression_test
 
-from version_manager import VersionManager
-
-class TestVersionManager(unittest.TestCase):
-    """Unit tests for VersionManager."""
+class TestSemanticReleaseConfiguration(unittest.TestCase):
+    """Regression tests for semantic-release configuration."""
 
     def setUp(self):
-        # Patch file operations in VersionManager to use in-memory dict
-        self.patcher_open = mock.patch("builtins.open", new_callable=mock.mock_open)
-        self.mock_open = self.patcher_open.start()
-        self.addCleanup(self.patcher_open.stop)
-        self.version_data = {
-            'MAJOR': '1', 'MINOR': '2', 'PATCH': '0',
-            'DEV_NUMBER': '', 'BUILD_NUMBER': '', 'BRANCH': 'main'
-        }
-        # Patch VersionManager methods that read/write files
-        self.patcher_read = mock.patch.object(VersionManager, 'read_version_file', return_value=self.version_data.copy())
-        self.mock_read = self.patcher_read.start()
-        self.addCleanup(self.patcher_read.stop)
-        self.patcher_write = mock.patch.object(VersionManager, 'write_version_file')
-        self.mock_write = self.patcher_write.start()
-        self.addCleanup(self.patcher_write.stop)
-        self.patcher_write_simple = mock.patch.object(VersionManager, 'write_simple_version_file')
-        self.mock_write_simple = self.patcher_write_simple.start()
-        self.addCleanup(self.patcher_write_simple.stop)
-        # Patch os.path.exists and Path.exists to always return True
-        self.patcher_exists = mock.patch("os.path.exists", return_value=True)
-        self.mock_exists = self.patcher_exists.start()
-        self.addCleanup(self.patcher_exists.stop)
-        self.patcher_path_exists = mock.patch("pathlib.Path.exists", return_value=True)
-        self.mock_path_exists = self.patcher_path_exists.start()
-        self.addCleanup(self.patcher_path_exists.stop)
+        """Set up test fixtures."""
+        self.project_root = Path(__file__).parent.parent
+        self.releaserc_path = self.project_root / ".releaserc.json"
+        self.pyproject_path = self.project_root / "pyproject.toml"
+        self.package_json_path = self.project_root / "package.json"
 
     @regression_test
-    def test_get_version_string(self):
-        vm = VersionManager()
-        version = vm.get_version_string(self.version_data)
-        self.assertEqual(version, 'v1.2.0')
+    def test_releaserc_configuration_exists(self):
+        """Test that .releaserc.json exists and is valid."""
+        self.assertTrue(self.releaserc_path.exists(), 
+                       ".releaserc.json configuration file should exist")
+        
+        with open(self.releaserc_path, 'r') as f:
+            config = json.load(f)
+        
+        # Verify essential configuration
+        self.assertIn("repositoryUrl", config, 
+                     "repositoryUrl should be configured")
+        self.assertIn("branches", config, 
+                     "branches should be configured")
+        self.assertIn("plugins", config, 
+                     "plugins should be configured")
 
     @regression_test
-    def test_feature_branch_creation_from_main(self):
-        vm = VersionManager()
-        self.mock_read.return_value = {
-            'MAJOR': '1', 'MINOR': '2', 'PATCH': '0',
-            'DEV_NUMBER': '', 'BUILD_NUMBER': '', 'BRANCH': 'main'
-        }
-        feat_version = vm.update_version_for_branch('feat/test-feature')
-        self.assertEqual(feat_version, 'v1.3.0.dev0+build0')
+    def test_branch_configuration(self):
+        """Test that branch configuration includes main and dev branches."""
+        with open(self.releaserc_path, 'r') as f:
+            config = json.load(f)
+        
+        branches = config.get("branches", [])
+        branch_names = []
+        
+        for branch in branches:
+            if isinstance(branch, str):
+                branch_names.append(branch)
+            elif isinstance(branch, dict) and "name" in branch:
+                branch_names.append(branch["name"])
+        
+        self.assertIn("main", branch_names, 
+                     "main branch should be configured for releases")
+        self.assertIn("dev", branch_names, 
+                     "dev branch should be configured for pre-releases")
 
     @regression_test
-    def test_feature_branch_update_build_increment(self):
-        vm = VersionManager()
-        self.mock_read.return_value = {
-            'MAJOR': '1', 'MINOR': '3', 'PATCH': '0',
-            'DEV_NUMBER': '0', 'BUILD_NUMBER': '0', 'BRANCH': 'feat/test-feature'
-        }
-        feat_version2 = vm.update_version_for_branch('feat/test-feature')
-        self.assertEqual(feat_version2, 'v1.3.0.dev0+build1')
+    def test_required_plugins_configured(self):
+        """Test that required semantic-release plugins are configured."""
+        with open(self.releaserc_path, 'r') as f:
+            config = json.load(f)
+        
+        plugins = config.get("plugins", [])
+        plugin_names = []
+        
+        for plugin in plugins:
+            if isinstance(plugin, str):
+                plugin_names.append(plugin)
+            elif isinstance(plugin, list) and len(plugin) > 0:
+                plugin_names.append(plugin[0])
+        
+        # Essential plugins for semantic-release
+        required_plugins = [
+            "@semantic-release/commit-analyzer",
+            "@semantic-release/release-notes-generator",
+            "@semantic-release/changelog",
+            "@semantic-release/git",
+            "@semantic-release/github"
+        ]
+        
+        for required_plugin in required_plugins:
+            self.assertIn(required_plugin, plugin_names, 
+                         f"Required plugin {required_plugin} should be configured")
 
     @regression_test
-    def test_fix_branch_creation_from_main(self):
-        vm = VersionManager()
-        self.mock_read.return_value = {
-            'MAJOR': '1', 'MINOR': '2', 'PATCH': '0',
-            'DEV_NUMBER': '', 'BUILD_NUMBER': '', 'BRANCH': 'main'
-        }
-        fix_version = vm.update_version_for_branch('fix/test-fix')
-        self.assertEqual(fix_version, 'v1.2.1.dev0+build0')
+    def test_pyproject_toml_has_version(self):
+        """Test that pyproject.toml contains a version field."""
+        self.assertTrue(self.pyproject_path.exists(), 
+                       "pyproject.toml should exist")
+        
+        with open(self.pyproject_path, 'r') as f:
+            config = toml.load(f)
+        
+        self.assertIn("project", config, 
+                     "project section should exist in pyproject.toml")
+        self.assertIn("version", config["project"], 
+                     "version should be specified in project section")
+        
+        version = config["project"]["version"]
+        self.assertIsInstance(version, str, 
+                            "version should be a string")
+        self.assertTrue(version, 
+                       "version should not be empty")
 
     @regression_test
-    def test_fix_branch_update_build_increment(self):
-        vm = VersionManager()
-        self.mock_read.return_value = {
-            'MAJOR': '1', 'MINOR': '2', 'PATCH': '1',
-            'DEV_NUMBER': '0', 'BUILD_NUMBER': '0', 'BRANCH': 'fix/test-fix'
-        }
-        fix_version2 = vm.update_version_for_branch('fix/test-fix')
-        self.assertEqual(fix_version2, 'v1.2.1.dev0+build1')
+    def test_package_json_has_semantic_release_dependencies(self):
+        """Test that package.json includes semantic-release dependencies."""
+        self.assertTrue(self.package_json_path.exists(), 
+                       "package.json should exist for semantic-release")
+        
+        with open(self.package_json_path, 'r') as f:
+            config = json.load(f)
+        
+        # Check devDependencies for semantic-release
+        dev_deps = config.get("devDependencies", {})
+        
+        self.assertIn("semantic-release", dev_deps, 
+                     "semantic-release should be in devDependencies")
+        self.assertIn("@semantic-release/changelog", dev_deps, 
+                     "@semantic-release/changelog should be in devDependencies")
+        self.assertIn("@semantic-release/git", dev_deps, 
+                     "@semantic-release/git should be in devDependencies")
 
     @regression_test
-    def test_switching_between_fix_branches_patch_increment(self):
-        vm = VersionManager()
-        self.mock_read.return_value = {
-            'MAJOR': '1', 'MINOR': '2', 'PATCH': '1',
-            'DEV_NUMBER': '0', 'BUILD_NUMBER': '1', 'BRANCH': 'fix/test-fix'
-        }
-        fix_version3 = vm.update_version_for_branch('fix/another-fix')
-        self.assertTrue(fix_version3.startswith('v1.2.2'))
-    
+    def test_conventional_commits_configuration(self):
+        """Test that conventional commits preset is configured."""
+        with open(self.releaserc_path, 'r') as f:
+            config = json.load(f)
+        
+        plugins = config.get("plugins", [])
+        
+        # Find commit-analyzer plugin configuration
+        commit_analyzer_config = None
+        for plugin in plugins:
+            if isinstance(plugin, list) and len(plugin) >= 2:
+                if plugin[0] == "@semantic-release/commit-analyzer":
+                    commit_analyzer_config = plugin[1]
+                    break
+        
+        self.assertIsNotNone(commit_analyzer_config, 
+                           "commit-analyzer should have configuration")
+        self.assertEqual(commit_analyzer_config.get("preset"), "conventionalcommits", 
+                       "commit-analyzer should use conventionalcommits preset")
+
     @regression_test
-    def test_dev_branch_from_main(self):
-        vm = VersionManager()
-        self.mock_read.return_value = {
-            'MAJOR': '1', 'MINOR': '2', 'PATCH': '0',
-            'DEV_NUMBER': '', 'BUILD_NUMBER': '', 'BRANCH': 'main'
-        }
-        dev_version = vm.update_version_for_branch('dev')
-        self.assertEqual(dev_version, 'v1.3.0.dev0')
-    
-    @regression_test
-    def test_dev_branch_from_feature_increment_dev_number(self):
-        vm = VersionManager()
-        self.mock_read.return_value = {
-            'MAJOR': '1', 'MINOR': '3', 'PATCH': '0',
-            'DEV_NUMBER': '0', 'BUILD_NUMBER': '2', 'BRANCH': 'feat/test-feature'
-        }
-        dev_version2 = vm.update_version_for_branch('dev')
-        self.assertEqual(dev_version2, 'v1.3.0.dev1')
-    
-    @regression_test
-    def test_main_branch_clears_dev_build(self):
-        vm = VersionManager()
-        self.mock_read.return_value = {
-            'MAJOR': '1', 'MINOR': '3', 'PATCH': '0',
-            'DEV_NUMBER': '2', 'BUILD_NUMBER': '1', 'BRANCH': 'dev'
-        }
-        main_version = vm.update_version_for_branch('main')
-        self.assertEqual(main_version, 'v1.3.0')
+    def test_version_format_is_semantic(self):
+        """Test that the current version follows semantic versioning format."""
+        with open(self.pyproject_path, 'r') as f:
+            config = toml.load(f)
+        
+        version = config["project"]["version"]
+
+        # Basic semantic version regex: MAJOR.MINOR.PATCH with optional pre-release and build
+        import re
+        # Use a simpler, well-formed pattern to validate semantic-like versions (covers common valid forms)
+        semver_pattern = r'^\d+\.\d+\.\d+(?:-[0-9A-Za-z-.]+)?(?:\+[0-9A-Za-z-.]+)?$'
+
+        self.assertTrue(re.match(semver_pattern, version),
+                f"Version {version} should follow semantic versioning format")
 
 def run_regression_tests():
-    """Run all regression tests for versioning system.
+    """Run all regression tests for semantic-release versioning system.
 
     Returns:
         bool: True if all tests passed, False otherwise.
     """
     loader = unittest.TestLoader()
     suite = unittest.TestSuite()
-    suite.addTests(loader.loadTestsFromTestCase(TestVersionManager))
+    suite.addTests(loader.loadTestsFromTestCase(TestSemanticReleaseConfiguration))
     runner = unittest.TextTestRunner(verbosity=2)
     result = runner.run(suite)
     return result.wasSuccessful()
@@ -152,7 +182,7 @@ def run_regression_tests():
 if __name__ == "__main__":
     success = run_regression_tests()
     if success:
-        print("All versioning regression tests passed!")
+        print("All semantic-release versioning regression tests passed!")
     else:
-        print("Some versioning regression tests failed.")
+        print("Some semantic-release versioning regression tests failed.")
     exit(0 if success else 1)
