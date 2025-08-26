@@ -57,6 +57,7 @@
         "failComment": false,
         "releasedLabels": false
       }
-    ]
+    ],
+    "@covage/semantic-release-poetry-plugin"
   ]
 }
