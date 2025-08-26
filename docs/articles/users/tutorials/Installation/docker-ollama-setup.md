@@ -18,9 +18,9 @@ This document provides instructions on how to set up and run Ollama for deployin
 - On Windows, install Windows Subsystem for Linux (WSL). Latest version is v2: [Official Microsoft Documentation](https://learn.microsoft.com/en-us/windows/wsl/install)
 - GPU Support:
   - For MacOS users with Apple Silicon chips (typically M series), you can **follow the instructions for CPU and ignore the GPU-related sections**
-  - For Windows & Linux with dedicated GPUs, we strongly recommend enabling GPU support to increase LLM output speed. On the computer with the GPU, do:
+  - For Windows & Linux with dedicated GPUs, we strongly recommend enabling GPU support to increase LLM output speed. We will be using the official documentation for each GPU type:
     - NVIDIA GPUs: [NVIDIA Container Toolkit Installation](https://docs.nvidia.com/datacenter/cloud-native/container-toolkit/latest/install-guide.html)
-    - AMD GPUs: Nothing, you can move on.
+    - AMD GPUs: [AMD ROCm Installation](https://rocm.docs.amd.com/projects/radeon/en/latest/docs/install/native_linux/install-radeon.html)
 
 ## Setup with Docker Desktop
 
@@ -33,10 +33,11 @@ This document provides instructions on how to set up and run Ollama for deployin
    - Either enable integration with your default WSL distro (arrow 4.1) OR select a specific one (arrow 4.2)
    - Click "Apply & Restart" if you make changes (arrow 5)
 
-3. **For NVIDIA GPU owners, setup GPU Support (nothing to do for AMD GPU owners at this stage)**:
+3. **For GPU owners, setup GPU Support**:
    - [Open a terminal](../../../appendices/open_a_terminal.md) on the computer with the GPU you want to use (for GPU servers, you likely connect through ssh)
      - On Windows, launch the Linux version that was installed via WSL and that Docker is using. For example, in the previous image, that would be `Ubuntu-24.04`; so, run `wsl -d Ubuntu-24.04` to start Ubuntu.
-   - For NVIDIA GPU support, run:
+   
+   - **For NVIDIA GPU support**, run:
 
      ```bash
      # Add NVIDIA repository keys
@@ -53,6 +54,24 @@ This document provides instructions on how to set up and run Ollama for deployin
      
      # Configure Docker runtime
      sudo nvidia-ctk runtime configure --runtime=docker
+     ```
+
+   - **For AMD GPU support**, run:
+
+     ```bash
+     # Install required packages
+     sudo apt install python3-setuptools python3-wheel
+     
+     # Download and install AMD GPU installer script (for Ubuntu 24.04)
+     sudo apt update
+     wget https://repo.radeon.com/amdgpu-install/6.4.2.1/ubuntu/noble/amdgpu-install_6.4.60402-1_all.deb
+     sudo apt install ./amdgpu-install_6.4.60402-1_all.deb
+     
+     # Install graphics and ROCm support
+     sudo amdgpu-install -y --usecase=graphics,rocm
+     
+     # Add current user to render and video groups
+     sudo usermod -a -G render,video $LOGNAME
      ```
 
    - Close the terminal
