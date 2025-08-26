@@ -1,5 +1,6 @@
 {
   "repositoryUrl": "https://github.com/CrackingShells/Hatchling",
+  "tagFormat": "v${version}",
   "branches": [
     "main",
     {
