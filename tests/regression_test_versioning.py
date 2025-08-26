@@ -96,7 +96,7 @@ class TestSemanticReleaseConfiguration(unittest.TestCase):
         self.assertTrue(self.pyproject_path.exists(), 
                        "pyproject.toml should exist")
         
-        with open(self.pyproject_path, 'r') as f:
+        with open(self.pyproject_path, 'rb') as f:
             config = tomli.load(f)
         
         self.assertIn("project", config, 
@@ -153,7 +153,7 @@ class TestSemanticReleaseConfiguration(unittest.TestCase):
     @regression_test
     def test_version_format_is_semantic(self):
         """Test that the current version follows semantic versioning format."""
-        with open(self.pyproject_path, 'r') as f:
+        with open(self.pyproject_path, 'rb') as f:
             config = tomli.load(f)
         
         version = config["project"]["version"]
