@@ -1,251 +1,186 @@
-# Automated Versioning System
+# Automated Versioning with Semantic Release
 
-This article is about:
+Hatchling uses [semantic-release](https://semantic-release.gitbook.io/) for fully automated versioning and releases based on [Conventional Commits](https://www.conventionalcommits.org/).
 
-- The dual-file versioning system in Hatchling
-- How version information is managed for both humans and tools
+## How It Works
 
-Hatchling uses a dual-file versioning system to maintain both human-readable version information and compatibility with Python packaging tools.
+1. **Commit Analysis**: Analyzes commit messages to determine release type
+2. **Version Calculation**: Automatically calculates next version
+3. **Changelog Generation**: Creates release notes from commits
+4. **GitHub Release**: Publishes release with generated notes
+5. **Version Update**: Updates pyproject.toml with new version
 
-## Dual-File Versioning System
+## Commit Message Format
 
-### Files
+Use [Conventional Commits](https://www.conventionalcommits.org/) format:
 
-#### VERSION.meta
+```txt
+<type>[optional scope]: <description>
 
-- Human-readable, structured version information for CI/CD and development
-- Format: Key-value pairs with comments
-- Example:
+[optional body]
 
-  ```txt
-  MAJOR=0
-  MINOR=5
-  PATCH=0
-  DEV_NUMBER=0
-  BUILD_NUMBER=1
-  BRANCH=feat/automated-versioning
-  ```
+[optional footer(s)]
+```
 
-#### VERSION
+### Examples
 
-- Simple version string for setuptools and Python packaging
-- Format: Standard semantic version string
-- Example: `0.5.0.dev0+build1`
+```bash
+feat: add new LLM provider support
+fix: resolve memory leak in streaming
+docs: update API documentation
+refactor: simplify provider registry
+test: add integration tests for OpenAI
+chore: update dependencies
 
-### Benefits
+# Breaking changes (avoid until ready for v1.0.0)
+feat!: change configuration format
+```
 
-1. **Human Readability**: `VERSION.meta` provides clear, structured version information
-2. **Tool Compatibility**: `VERSION` maintains standard format for setuptools and other tools
-3. **Build Metadata**: Preserves branch, build number, and dev version information
-4. **CI/CD Integration**: Both files are automatically maintained by version management workflows
+### Version Impact
 
-## Usage
+- `feat:` → Minor version (0.4.0 → 0.5.0)
+- `fix:` → Patch version (0.4.0 → 0.4.1)
+- `feat!:` or `BREAKING CHANGE:` → Major version (0.4.0 → 1.0.0)
+- `docs:`, `test:`, `chore:` → No release
 
-### Branch-based Versioning Logic
+## Using Commitizen
 
-- **Feature branches (`feat/`)**:
-  - If created from `main`, minor version is incremented, and both `DEV_NUMBER` and `BUILD_NUMBER` are reset to 0.
-  - If updating an existing feature branch, only the `BUILD_NUMBER` is incremented.
-- **Fix branches (`fix/`)**:
-  - If created from any branch, patch version is incremented and `BUILD_NUMBER` is reset to 0.
-  - If updating the same fix branch, only the `BUILD_NUMBER` is incremented.
-  - If switching between fix branches, patch version is incremented.
-- **Main branch (`main`)**:
-  - `DEV_NUMBER` and `BUILD_NUMBER` are cleared for clean releases.
-- **Dev/other branches**:
-  - If coming from `main`, the minor version is incremented and `DEV_NUMBER` is reset to 0.
-  - Otherwise, `DEV_NUMBER` is incremented and `BUILD_NUMBER` is reset.
+For guided commit messages:
 
-### Workflow Examples
+```bash
+npm run commit
+# or
+npx cz
+```
 
-#### Example 1: Feature Development
+## Branches
 
-1. **Starting State**: `main` branch at `v1.2.0`
-2. **Create Feature Branch**: `git checkout -b feat/new-feature`
-   - Minor version is incremented: `v1.3.0.dev0+build0`
-3. **First Push**: Increments to `v1.3.0.dev0+build1`
-4. **Second Push**: Increments to `v1.3.0.dev0+build2`
-5. **Merge to Dev**: `dev` branch becomes `v1.3.0.devN`
-6. **Merge to Main**: `main` branch becomes `v1.3.0`
+- **main**: Production releases (0.4.0, 0.5.0, etc.)
+- **dev**: Pre-releases (0.5.0-dev.1, 0.5.0-dev.2, etc.)
 
-#### Example 2: Bug Fix
+## Manual Testing
 
-1. **Starting State**: `main` branch at `v1.2.0`
-2. **Create Fix Branch**: `git checkout -b fix/critical-bug`
-   - Patch version is incremented: `v1.2.1.dev0+build0`
-3. **First Push**: Increments to `v1.2.1.dev0+build1`
-4. **Switch to another fix branch**: Patch version is incremented for the new branch.
-5. **Merge to Dev**: `dev` branch becomes `v1.2.1.devN`
-6. **Hotfix to Main**: `main` branch becomes `v1.2.1`
+Test semantic-release configuration:
+
+```bash
+npx semantic-release --dry-run
+```
 
 ## GitHub Actions Workflows
 
-### 1. Release Workflow (`release.yml`)
+### 1. Semantic Release Workflow (`semantic-release.yml`)
 
-**Triggered by**: Pushes to `main` branch
-
-**Actions**:
-
-- Tests the package build
-- Updates version for main branch (removes pre-release suffixes)
-- Creates official release with version tag
-- Uploads build artifacts
-- Commits updated VERSION file
-
-### 2. Pre-Release Workflow (`prerelease.yml`)
-
-**Triggered by**: Pushes to `dev` branch
+**Triggered by**: Pushes to `main` and `dev` branches
 
 **Actions**:
 
-- Tests the package build
-- Updates version for dev branch (adds `-dev` suffix)
-- Creates pre-release with version tag
-- Uploads build artifacts
-- Commits updated VERSION file
+- Runs tests to ensure code quality
+- Analyzes commits since last release
+- Calculates next version based on commit types
+- Generates changelog from commit messages
+- Creates GitHub release with generated notes
+- Updates pyproject.toml with new version
+- Commits version changes back to repository
 
-### 3. Feature/Fix Workflow (`feature-fix.yml`)
+### 2. Commit Lint Workflow (`commitlint.yml`)
 
-**Triggered by**: Pushes to `feat/` and `fix/` branches
-
-**Actions**:
-
-- Tests the package build
-- Updates version based on branch type
-- Increments build number on each push
-- Creates lightweight tags for tracking
-- Commits updated VERSION file
-
-### 4. Tag Cleanup Workflow (`tag-cleanup.yml`)
-
-**Triggered by**: Weekly schedule or manual dispatch
+**Triggered by**: Pull requests to `main` and `dev` branches
 
 **Actions**:
 
-- Identifies old tags for cleanup
-- Removes build tags older than 7 days
-- Removes dev tags older than 30 days
-- Supports dry-run mode for testing
+- Validates commit messages follow Conventional Commits format
+- Ensures proper commit types and formatting
+- Provides feedback on commit message issues
 
-## Manual Version Management
+## Configuration Files
 
-The `scripts/version_manager.py` script provides manual control over versioning:
+### .releaserc.json
 
-### Get Current Version
+Contains semantic-release configuration:
 
-```bash
-python scripts/version_manager.py --get
-```
+- Branch configuration for main and dev
+- Plugin configuration for commit analysis
+- Changelog and release note generation
+- GitHub integration settings
 
-### Update Version for Branch
+### .commitlintrc.json
 
-```bash
-python scripts/version_manager.py --update-for-branch feat/my-feature
-python scripts/version_manager.py --update-for-branch dev
-python scripts/version_manager.py --update-for-branch main
-```
+Contains commit message linting rules:
 
-### Increment Version Components
+- Enforces Conventional Commits format
+- Validates commit types and structure
+- Ensures consistent commit message style
 
-```bash
-python scripts/version_manager.py --increment major
-python scripts/version_manager.py --increment minor
-python scripts/version_manager.py --increment patch
-python scripts/version_manager.py --increment build
-```
+### package.json
 
-### Prepare for Building
+Contains Node.js dependencies for semantic-release:
 
-```bash
-python scripts/prepare_version.py
-```
-
-This converts the structured VERSION file to a simple format that setuptools can read.
-
-## Integration with setuptools
-
-The `pyproject.toml` file is configured to read the version from the VERSION file:
-
-```toml
-[tool.setuptools.dynamic]
-version = {file = "VERSION"}
-```
-
-Before building, the `prepare_version.py` script converts the structured VERSION file to a simple format that setuptools understands.
-
-## Testing
-
-Run the versioning system tests:
-
-```bash
-python tests/test_versioning.py
-```
-
-This validates:
-
-- Version string generation
-- Branch-based version updates
-- Build number increments
-- The examples from the project requirements
+- semantic-release and plugins
+- commitizen for guided commits
+- commitlint for validation
 
 ## Best Practices
 
-1. **Never manually edit version numbers** - let the automation handle it
-2. **Use descriptive branch names** with proper prefixes (`feat/`, `fix/`)
-3. **Test in feature branches** before merging to dev
-4. **Use dev branch** for integration testing before production
-5. **Keep main branch stable** - only merge tested code from dev
-6. **Monitor tag cleanup** to avoid repository bloat
+1. **Use Conventional Commits** for all commit messages
+2. **Use commitizen** (`npm run commit`) for guided commits
+3. **Test changes** before merging to main or dev
+4. **Avoid breaking changes** until ready for v1.0.0
+5. **Use descriptive commit messages** that explain the change
+6. **Squash merge** PRs to maintain clean commit history
 
 ## Troubleshooting
 
-### VERSION File Format Issues
+### Commit Message Issues
 
-If the version files get corrupted, restore them as follows:
-
-- For the structured format, restore `VERSION.meta` with:
-
-  ```txt
-  MAJOR=1
-  MINOR=0
-  PATCH=0
-  DEV_NUMBER=0
-  BUILD_NUMBER=0
-  BRANCH=main
-  ```
-
-- For the simple format, regenerate `VERSION` by running:
-
-  ```bash
-  python scripts/prepare_version.py
-  ```
-
-  This will convert the structured `VERSION.meta` to the correct setuptools-compatible `VERSION` file.
-
-### Build Failures
-
-If builds fail due to version format:
+If commits don't follow the conventional format:
 
 ```bash
-python scripts/prepare_version.py
+# Use commitizen for guided commits
+npm run commit
+
+# Or manually format commits
+git commit -m "feat: add new feature description"
 ```
 
-### Testing Version Logic
+### Testing Configuration
 
-Run the test suite to verify versioning logic:
+Validate semantic-release setup:
 
 ```bash
-python tests/test_versioning.py
+# Test configuration without making changes
+npx semantic-release --dry-run
+
+# Validate commit messages
+echo "feat: test commit" | npx commitlint
 ```
 
-### Manual Tag Creation
+### Release Issues
 
-If GitHub Actions fail, manually create tags:
+If releases fail:
+
+1. Check commit message format
+2. Ensure branch is configured in .releaserc.json
+3. Verify GitHub token permissions
+4. Check workflow logs in GitHub Actions
+
+### Manual Release
+
+In emergency situations, create manual release:
 
 ```bash
-# Ensure VERSION is up to date with VERSION.meta
-python scripts/prepare_version.py
-VERSION=$(python scripts/version_manager.py --get)
-git tag $VERSION
-git push origin $VERSION
+# Create and push a tag manually
+git tag v0.4.1
+git push origin v0.4.1
+
+# Then create GitHub release manually
 ```
+
+## Testing
+
+Run the test suite to ensure everything works:
+
+```bash
+python run_tests.py --regression --feature
+```
+
+This validates that the new versioning system doesn't break existing functionality.
