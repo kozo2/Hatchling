@@ -74,6 +74,23 @@ def create_test_provider_class(name="test"):
         def mcp_to_provider_tool(self, tool_info):
             """Mock implementation of mcp_to_provider_tool."""
             return {"type": "function", "function": {"name": tool_info.name}}
+        
+        def hatchling_to_llm_tool_call(self, tool_call):
+            """Mock implementation of hatchling_to_llm_tool_call."""
+            return {
+                "id": tool_call.tool_call_id,
+                "function": {
+                    "name": tool_call.function_name,
+                    "arguments": tool_call.arguments
+                }
+            }
+        
+        def hatchling_to_provider_tool_result(self, tool_result):
+            """Mock implementation of hatchling_to_provider_tool_result."""
+            return {
+                "tool_call_id": tool_result.tool_call_id,
+                "content": str(tool_result.result)
+            }
     
     return TestProvider
 
