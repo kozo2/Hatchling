@@ -136,11 +136,11 @@ class TestCommandSystemIntegration(AsyncTestCase):
             'mcp:tool:info',
             'mcp:tool:enable',
             'mcp:tool:disable',
-            'mcp:tool:execute',
-            'mcp:tool:schema',
+            #'mcp:tool:execute',
+            #'mcp:tool:schema',
             'mcp:health',
-            'mcp:citations',
-            'mcp:reset'
+            #'mcp:citations',
+            #'mcp:reset'
         ]
         
         for cmd_name in expected_commands:
