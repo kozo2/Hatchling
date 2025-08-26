@@ -4,16 +4,21 @@ This module contains integration tests for the MCPToolCallSubscriber
 using provider methods directly instead of the registry pattern.
 """
 
+import os
 import sys
 import logging
 import unittest
 import time
+from pathlib import Path
+from asyncio.log import logger
 from unittest.mock import MagicMock
+from dotenv import load_dotenv
 
 from tests.test_decorators import feature_test, requires_api_key
 
+from hatchling.config.openai_settings import OpenAISettings
+from hatchling.config.settings import AppSettings
 from hatchling.core.llm.event_system import Event, EventType
-
 from hatchling.mcp_utils.mcp_tool_execution import MCPToolExecution
 from hatchling.mcp_utils.mcp_tool_call_subscriber import MCPToolCallSubscriber
 from hatchling.core.llm.providers.registry import ProviderRegistry
@@ -98,8 +103,23 @@ class TestMCPToolCallSubscriberRegistry(unittest.TestCase):
             timestamp=time.time()
         )
 
+        # load the test api key from local .env
+        # Load environment variables for API key
+        env_path = Path(__file__).parent / ".env"
+        if load_dotenv(env_path):
+            logger.info("Loaded environment variables from .env file")
+        else:
+            logger.warning("No .env file found, using system environment variables")
+        
+        api_key = os.environ.get('OPENAI_API_KEY')
+        if not api_key:
+            logger.warning("OPENAI_API_KEY environment variable not set")
+            self.skipTest("OpenAI API key is not set. Please set OPENAI_API_KEY environment variable.")
+
         # Use provider to get the strategy
-        provider = ProviderRegistry.get_provider(ELLMProvider.OPENAI)
+        openai_settings = OpenAISettings(api_key=api_key, timeout=30.0)
+        app_settings = AppSettings(openai=openai_settings)
+        provider = ProviderRegistry.get_provider(ELLMProvider.OPENAI, app_settings)
         subscriber = MCPToolCallSubscriber(self.mock_tool_execution)
         subscriber.on_event(first_event)
 

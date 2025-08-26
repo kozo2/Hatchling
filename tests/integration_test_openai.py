@@ -35,7 +35,6 @@ from tests.test_decorators import slow_test, requires_api_key, integration_test,
 from hatchling.config.openai_settings import OpenAISettings
 from hatchling.config.settings import AppSettings
 from hatchling.config.llm_settings import ELLMProvider
-from hatchling.mcp_utils.mcp_tool_lifecycle_subscriber import ToolLifecycleSubscriber
 from hatchling.core.llm.providers.registry import ProviderRegistry
 from hatchling.mcp_utils.mcp_tool_data import MCPToolInfo, MCPToolStatus, MCPToolStatusReason
 from hatchling.core.llm.event_system import (
@@ -47,7 +46,6 @@ from hatchling.core.llm.event_system import (
     EventType,
     Event
 )
-from hatchling.mcp_utils.mcp_tool_lifecycle_subscriber import ToolLifecycleSubscriber
 from hatchling.core.llm.providers.openai_provider import OpenAIProvider
 
 logger = logging.getLogger("integration_test_openai")
@@ -165,6 +163,7 @@ class TestOpenAIProviderIntegration(unittest.TestCase):
                 self.loop.close()
 
     @integration_test
+    @requires_api_key
     def test_provider_registration(self):
         """Test that OpenAIProvider is properly registered in the provider registry.
         
@@ -238,6 +237,7 @@ class TestOpenAIProviderIntegration(unittest.TestCase):
             self.fail(f"Health check test failed: {e}")
 
     @integration_test
+    @requires_api_key
     def test_payload_preparation(self):
         """Test chat payload preparation for API requests.
         
@@ -430,6 +430,7 @@ class TestOpenAIProviderIntegration(unittest.TestCase):
             self.fail(f"Simple chat integration test failed: {e}")
 
     @integration_test
+    @requires_api_key
     def test_api_key_validation(self):
         """Test that provider validates API key requirement.
 
