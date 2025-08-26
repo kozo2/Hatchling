@@ -46,7 +46,14 @@ coverage.xml
 *.ipynb_checkpoints
 *.pyc
 
+# Node.js dependencies for semantic-release
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
 
+# Semantic-release
+.semantic-release/
 
 # Docker
 *.dockerfile

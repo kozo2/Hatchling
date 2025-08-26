@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "hatchling"
-dynamic = ["version"]
+version = "0.4.2"
 description = "LLM with MCP Tool Calling"
 readme = "README.md"
 requires-python = ">=3.12"
@@ -37,7 +37,7 @@ dependencies = [
     "ollama==0.5.1",
     "openai==1.97.0",
 
-    "hatch @ git+https://github.com/CrackingShells/Hatch.git@feat/dependency-installers"
+    "hatch @ git+https://github.com/CrackingShells/Hatch.git@v0.5.1"
 ]
 
 [project.scripts]
@@ -49,8 +49,7 @@ where = ["."]
 [tool.setuptools.package-data]
 hatchling = ["config/languages/*.toml"]
 
-[tool.setuptools.dynamic]
-version = {file = "VERSION"}
+
 
 [project.urls]
 "Repository" = "https://github.com/CrackingShells/Hatchling"
