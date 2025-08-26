@@ -209,13 +209,14 @@ python run_tests.py --only feature,regression
 
 ## Release Process
 
-Releases are fully automated using semantic-release:
+Releases are fully automated using semantic-release with GitHub App integration:
 
 1. **Commits are analyzed** for conventional commit format
 2. **Version is calculated** based on commit types
 3. **Changelog is generated** from commit messages
-4. **GitHub release is created** with release notes
-5. **Version is updated** in pyproject.toml
+4. **Version files are updated** (pyproject.toml, CHANGELOG.md)
+5. **Changes are committed** back to repository using GitHub App
+6. **GitHub release is created** with release notes and tags
 
 ### Version Impact
 
