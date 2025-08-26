@@ -56,3 +56,7 @@ Documentation for maintainers and contributors working on Hatchling's codebase.
 ### Diagram Sources
 
 - [PlantUML Sources](./resources/diagrams/puml/) - Editable source files for architecture and workflow diagrams
+
+## Change Log
+
+For recent changes and updates, see the [CHANGELOG](./CHANGELOG.md).
