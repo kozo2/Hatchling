@@ -32,7 +32,7 @@ jobs:
           pip install -e .
 
       - name: Run tests
-        run: python run_tests.py --regression --feature
+        run: python run_tests.py --regression --feature --skip requires_api_key
 
   release:
     needs: test
