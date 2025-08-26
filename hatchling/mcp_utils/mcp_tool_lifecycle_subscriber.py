@@ -121,23 +121,20 @@ class ToolLifecycleSubscriber(EventSubscriber):
     def _handle_tool_enabled_event(self, event: Event) -> None:
         """Handle tool enabled event."""
         tool_name = event.data.get("tool_name", "")
-        
-        # Create or update tool info from event data
-        if tool_name not in self._tool_cache:
-            tool_info = event.data.get("tool_info", {})
+        tool_info = event.data.get("tool_info", {})
 
-            if not tool_info:
-                self.logger.error(f"'Tool enabled event' missing 'tool_info' for tool '{tool_name}'")
-                return
-            
-            # Convert tool to provider-specific format
-            # Tool info is an in/out parameter in mcp_to_provider_tool
-            # Hence, the provider_format field will be set
-            # to the converted tool format
-            self._mcp_to_provider_tool_func(tool_info)
+        if not tool_info:
+            self.logger.error(f"'Tool enabled event' missing 'tool_info' for tool '{tool_name}'")
+            return
 
-            self._tool_cache[tool_name] = tool_info
-            self.logger.debug(f"Tool enabled: {tool_name}")
+        # Always convert tool to provider-specific format
+        # This ensures that tools are properly formatted even during reconnection
+        # when they already exist in the cache but need their provider_format refreshed
+        self._mcp_to_provider_tool_func(tool_info)
+
+        # Update cache with the new tool info (whether new or existing)
+        self._tool_cache[tool_name] = tool_info
+        self.logger.debug(f"Tool enabled: {tool_name}")
     
     def _handle_tool_disabled_event(self, event: Event) -> None:
         """Handle tool disabled event."""
