@@ -32,6 +32,9 @@ This section assumes you have followed the [Docker & Ollama setup](./docker-olla
   docker run -d --device /dev/kfd --device /dev/dri -v ollama:/root/.ollama -p 11434:11434 --name ollama ollama/ollama:rocm
   ```
 
+  > [!Note]
+  > Troubleshooting: If you encounter issues with the `/dev/kfd` or `/dev/dri` devices, try running the command with the `--privileged` flag: `docker run -d --privileged --device /dev/kfd --device /dev/dri -v ollama:/root/.ollama -p 11434:11434 --name ollama ollama/ollama:rocm`
+
 ### Checking that GPU support is enabled  as expected
 
 - Go to the `Containers` tab in Docker Desktop (arrow 1) and select your Ollama container
