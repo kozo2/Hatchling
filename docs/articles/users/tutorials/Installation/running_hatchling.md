@@ -72,6 +72,12 @@ At this step, you will be downloading the content of Hatchling. Currently, we ar
 cd ./Hatchling/docker
 ```
 
+### Copy the `.env.example` file to `.env`
+
+```bash
+cp .env.example .env
+```
+
 ### Install Hatchling by building the code
 
    ```bash
