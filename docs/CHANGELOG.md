@@ -1,3 +1,10 @@
+## [0.4.3-dev.2](https://github.com/CrackingShells/Hatchling/compare/v0.4.3-dev.1...v0.4.3-dev.2) (2025-08-26)
+
+
+### Bug Fixes
+
+* **mcp:** disabled tools being called ([1d24986](https://github.com/CrackingShells/Hatchling/commit/1d249869b9d37c3b387f3197d8fc313055ac952a))
+
 ## [0.4.3-dev.1](https://github.com/CrackingShells/Hatchling/compare/v0.4.2...v0.4.3-dev.1) (2025-08-26)
 
 
