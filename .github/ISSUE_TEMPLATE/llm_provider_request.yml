@@ -1,0 +1,185 @@
+name: 🤖 LLM Provider Request
+description: Request support for a new LLM provider
+title: "[LLM Provider]: "
+labels: ["enhancement", "llm-provider", "needs-triage"]
+assignees: []
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for requesting a new LLM provider! Hatchling has a standardized interface for adding LLM providers. 
+        Please provide the information below to help us evaluate and implement support.
+
+  - type: checkboxes
+    id: checklist
+    attributes:
+      label: Pre-submission checklist
+      description: Please verify these items before submitting
+      options:
+        - label: I have searched existing issues to ensure this provider isn't already requested
+          required: true
+        - label: I have checked the [LLM provider implementation guide](https://github.com/CrackingShells/Hatchling/blob/main/docs/articles/devs/contribution_guides/implementing_llm_providers.md)
+          required: true
+
+  - type: input
+    id: provider_name
+    attributes:
+      label: Provider Name
+      description: What is the name of the LLM provider?
+      placeholder: e.g., Anthropic Claude, Google Gemini, Cohere, etc.
+    validations:
+      required: true
+
+  - type: input
+    id: provider_website
+    attributes:
+      label: Provider Website/Documentation
+      description: Link to the provider's official website or API documentation
+      placeholder: https://...
+    validations:
+      required: true
+
+  - type: dropdown
+    id: api_type
+    attributes:
+      label: API Type
+      description: What type of API does this provider offer?
+      options:
+        - REST API (HTTP-based)
+        - WebSocket API
+        - gRPC API
+        - Local/Self-hosted
+        - Other
+    validations:
+      required: true
+
+  - type: checkboxes
+    id: features_supported
+    attributes:
+      label: Features Supported
+      description: What features does this provider support?
+      options:
+        - label: Text generation/completion
+        - label: Function/tool calling
+        - label: Streaming responses
+        - label: System messages
+        - label: Message history
+        - label: Temperature/top-p controls
+        - label: Token limits/max tokens
+        - label: Multiple models
+
+  - type: textarea
+    id: authentication
+    attributes:
+      label: Authentication Method
+      description: How does authentication work for this provider?
+      placeholder: |
+        Describe the authentication method:
+        - API key in header
+        - Bearer token
+        - OAuth
+        - No authentication required
+        - Other method
+    validations:
+      required: true
+
+  - type: textarea
+    id: models_available
+    attributes:
+      label: Available Models
+      description: What models are available from this provider?
+      placeholder: |
+        List the main models available, for example:
+        - claude-3-sonnet
+        - claude-3-haiku
+        - gemini-pro
+        - command-r-plus
+    validations:
+      required: true
+
+  - type: textarea
+    id: api_format
+    attributes:
+      label: API Request/Response Format
+      description: |
+        Provide examples of the API request and response format, or link to documentation.
+        This helps understand how to integrate with the provider.
+      placeholder: |
+        Example request format:
+        ```json
+        {
+          "model": "model-name",
+          "messages": [...],
+          "tools": [...]
+        }
+        ```
+        
+        Example response format:
+        ```json
+        {
+          "choices": [...],
+          "usage": {...}
+        }
+        ```
+      render: markdown
+
+  - type: textarea
+    id: tool_calling_support
+    attributes:
+      label: Tool Calling Support
+      description: |
+        Does this provider support function/tool calling? If so, how does it work?
+        This is important for MCP server integration.
+      placeholder: |
+        Describe tool calling support:
+        - Format for defining tools
+        - How tool calls are made
+        - Response format for tool results
+        - Any limitations or special requirements
+
+  - type: dropdown
+    id: priority
+    attributes:
+      label: Priority/Interest Level
+      description: How important is this provider to you?
+      options:
+        - Low - Would be nice to have
+        - Medium - Would improve my workflow
+        - High - Critical for my use case
+    validations:
+      required: true
+
+  - type: textarea
+    id: use_case
+    attributes:
+      label: Use Case
+      description: Why do you need this specific provider? What advantages does it offer?
+      placeholder: |
+        Explain your use case:
+        - What makes this provider unique?
+        - What specific features or models do you need?
+        - How would this improve your Hatchling experience?
+    validations:
+      required: true
+
+  - type: checkboxes
+    id: contribution
+    attributes:
+      label: Contribution
+      description: Would you be interested in helping implement this provider?
+      options:
+        - label: I would be willing to contribute to implementing this provider
+        - label: I have access to this provider's API for testing
+        - label: I would be willing to help with testing and validation
+
+  - type: textarea
+    id: additional_info
+    attributes:
+      label: Additional Information
+      description: Any other relevant information about this provider
+      placeholder: |
+        Include any additional context:
+        - Pricing/rate limits
+        - Special requirements
+        - Known limitations
+        - Links to SDKs or libraries
