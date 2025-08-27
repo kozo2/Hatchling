@@ -1,0 +1,148 @@
+name: 📚 Documentation Issue
+description: Report issues with documentation or request documentation improvements
+title: "[Docs]: "
+labels: ["documentation", "needs-triage"]
+assignees: []
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for helping improve our documentation! Please provide details about the documentation issue or improvement.
+
+  - type: checkboxes
+    id: checklist
+    attributes:
+      label: Pre-submission checklist
+      description: Please verify these items before submitting
+      options:
+        - label: I have searched existing issues to ensure this is not a duplicate
+          required: true
+        - label: I have checked multiple documentation sources (README, docs/, articles/)
+          required: true
+
+  - type: dropdown
+    id: doc_type
+    attributes:
+      label: Documentation Type
+      description: What type of documentation issue is this?
+      options:
+        - Missing Documentation (feature/command not documented)
+        - Incorrect Information (documentation is wrong or outdated)
+        - Unclear Instructions (confusing or hard to follow)
+        - Broken Links (links don't work or go to wrong place)
+        - Typos/Grammar (spelling, grammar, or formatting issues)
+        - Missing Examples (need more examples or use cases)
+        - Installation/Setup (issues with setup instructions)
+        - API/Command Reference (missing or incorrect command documentation)
+        - Other
+    validations:
+      required: true
+
+  - type: input
+    id: doc_location
+    attributes:
+      label: Documentation Location
+      description: Where is the documentation issue located?
+      placeholder: |
+        e.g., README.md, docs/articles/users/chat_commands.md, 
+        docs/articles/users/tutorials/Installation/docker-ollama-setup.md
+    validations:
+      required: true
+
+  - type: textarea
+    id: issue_description
+    attributes:
+      label: Issue Description
+      description: Describe the documentation issue in detail
+      placeholder: |
+        Clearly describe what's wrong, missing, or confusing about the documentation.
+        Be specific about what you were trying to accomplish.
+    validations:
+      required: true
+
+  - type: textarea
+    id: current_content
+    attributes:
+      label: Current Content
+      description: |
+        If applicable, quote the current documentation content that has issues
+      placeholder: |
+        Copy and paste the current documentation text that needs to be fixed.
+        Use quotes or code blocks to clearly identify the content.
+      render: markdown
+
+  - type: textarea
+    id: suggested_improvement
+    attributes:
+      label: Suggested Improvement
+      description: How should the documentation be improved?
+      placeholder: |
+        Provide your suggestion for how to fix or improve the documentation.
+        Include specific text changes, additional examples, or structural improvements.
+    validations:
+      required: true
+
+  - type: textarea
+    id: context
+    attributes:
+      label: Context
+      description: What were you trying to accomplish when you found this issue?
+      placeholder: |
+        Describe your use case or what you were trying to learn/do:
+        - Setting up Hatchling for the first time
+        - Trying to use a specific command
+        - Integrating with a new LLM provider
+        - Creating a custom MCP server
+        - etc.
+    validations:
+      required: true
+
+  - type: dropdown
+    id: user_level
+    attributes:
+      label: User Experience Level
+      description: What's your experience level with Hatchling?
+      options:
+        - New User (first time using Hatchling)
+        - Beginner (basic usage, following tutorials)
+        - Intermediate (comfortable with most features)
+        - Advanced (power user, custom configurations)
+        - Developer (contributing to the project)
+    validations:
+      required: true
+
+  - type: textarea
+    id: additional_examples
+    attributes:
+      label: Additional Examples Needed
+      description: |
+        If requesting examples, what specific scenarios should be covered?
+      placeholder: |
+        Describe what examples would be helpful:
+        - Step-by-step tutorials
+        - Common use cases
+        - Configuration examples
+        - Troubleshooting scenarios
+        - Code samples
+
+  - type: checkboxes
+    id: contribution
+    attributes:
+      label: Contribution
+      description: Would you be interested in helping improve this documentation?
+      options:
+        - label: I would be willing to contribute to fixing this documentation
+        - label: I would be willing to review proposed documentation changes
+        - label: I can provide additional examples or use cases
+
+  - type: textarea
+    id: additional_context
+    attributes:
+      label: Additional Context
+      description: Any other context about this documentation issue
+      placeholder: |
+        Include any additional information:
+        - Screenshots of confusing interfaces
+        - Links to related documentation
+        - Similar issues in other projects
+        - Urgency or impact of this issue

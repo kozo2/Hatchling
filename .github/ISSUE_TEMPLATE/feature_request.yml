@@ -1,0 +1,121 @@
+name: ✨ Feature Request
+description: Suggest a new feature or enhancement for Hatchling
+title: "[Feature]: "
+labels: ["enhancement", "needs-triage"]
+assignees: []
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for suggesting a new feature! Please provide as much detail as possible to help us understand your request.
+
+  - type: checkboxes
+    id: checklist
+    attributes:
+      label: Pre-submission checklist
+      description: Please verify these items before submitting
+      options:
+        - label: I have searched existing issues and discussions to ensure this is not a duplicate
+          required: true
+        - label: I have checked the [roadmap](https://github.com/CrackingShells/Hatchling#roadmap) to see if this is already planned
+          required: true
+
+  - type: dropdown
+    id: feature_category
+    attributes:
+      label: Feature Category
+      description: What area does this feature request relate to?
+      options:
+        - LLM Provider Support (new providers, authentication methods)
+        - Chat Interface (UI improvements, new commands, display features)
+        - MCP Server Management (server discovery, tool management, debugging)
+        - Tool Calling & Chaining (execution improvements, citation features)
+        - Configuration & Settings (new settings, configuration management)
+        - Performance & Optimization
+        - Documentation & Help
+        - Developer Experience
+        - Other
+    validations:
+      required: true
+
+  - type: textarea
+    id: problem_statement
+    attributes:
+      label: Problem Statement
+      description: What problem does this feature solve? What is the current limitation?
+      placeholder: |
+        Describe the problem or limitation you're experiencing.
+        For example: "Currently, I cannot..."
+    validations:
+      required: true
+
+  - type: textarea
+    id: proposed_solution
+    attributes:
+      label: Proposed Solution
+      description: Describe your ideal solution to this problem
+      placeholder: |
+        Describe what you would like to see implemented.
+        Be as specific as possible about the desired behavior.
+    validations:
+      required: true
+
+  - type: textarea
+    id: use_cases
+    attributes:
+      label: Use Cases
+      description: Describe specific scenarios where this feature would be useful
+      placeholder: |
+        Provide concrete examples of how this feature would be used:
+        1. When working with...
+        2. During...
+        3. To accomplish...
+    validations:
+      required: true
+
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives Considered
+      description: What alternatives have you considered? What workarounds are you currently using?
+      placeholder: |
+        Describe any alternative solutions or workarounds you've considered or tried.
+
+  - type: dropdown
+    id: priority
+    attributes:
+      label: Priority
+      description: How important is this feature to your workflow?
+      options:
+        - Low - Nice to have
+        - Medium - Would improve my workflow
+        - High - Blocking my work or significantly impacts productivity
+    validations:
+      required: true
+
+  - type: textarea
+    id: implementation_ideas
+    attributes:
+      label: Implementation Ideas
+      description: |
+        Do you have any ideas about how this could be implemented? 
+        (Optional - only if you have technical insights)
+      placeholder: |
+        If you have ideas about implementation approaches, commands, or technical details, share them here.
+
+  - type: textarea
+    id: additional_context
+    attributes:
+      label: Additional Context
+      description: Any other context, screenshots, or examples that would help explain this feature request
+      placeholder: Add any other context, mockups, or examples here
+
+  - type: checkboxes
+    id: contribution
+    attributes:
+      label: Contribution
+      description: Would you be interested in contributing to this feature?
+      options:
+        - label: I would be willing to contribute to implementing this feature
+        - label: I would be willing to help with testing this feature
+        - label: I would be willing to help with documentation for this feature

@@ -1,0 +1,11 @@
+blank_issues_enabled: false
+contact_links:
+  - name: 📚 Documentation
+    url: https://github.com/CrackingShells/Hatchling/tree/main/docs
+    about: Check the documentation for setup guides, tutorials, and troubleshooting
+  - name: 💬 Discussions
+    url: https://github.com/CrackingShells/Hatchling/discussions
+    about: Ask questions, share ideas, or discuss features with the community
+  - name: 🔗 Related Projects
+    url: https://github.com/CrackingShells
+    about: Issues with Hatch package manager, schemas, or registry should be reported in their respective repositories

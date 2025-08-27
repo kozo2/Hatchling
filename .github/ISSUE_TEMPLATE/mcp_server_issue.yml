@@ -1,0 +1,179 @@
+name: 🔧 MCP Server Issue
+description: Report issues with MCP server integration, tool discovery, or execution
+title: "[MCP]: "
+labels: ["mcp-server", "needs-triage"]
+assignees: []
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for reporting an MCP server issue! Please provide detailed information to help us diagnose the problem.
+
+  - type: checkboxes
+    id: checklist
+    attributes:
+      label: Pre-submission checklist
+      description: Please verify these items before submitting
+      options:
+        - label: I have searched existing issues to ensure this is not a duplicate
+          required: true
+        - label: I have tried disconnecting and reconnecting to the MCP server
+          required: true
+        - label: I have checked the MCP server logs for error messages
+          required: true
+
+  - type: dropdown
+    id: issue_type
+    attributes:
+      label: Issue Type
+      description: What type of MCP server issue are you experiencing?
+      options:
+        - Server Connection (cannot connect to MCP server)
+        - Tool Discovery (tools not appearing or incorrect tools)
+        - Tool Execution (tools fail to execute or return errors)
+        - Tool Chaining (issues with multiple tool calls)
+        - Citation Issues (incorrect or missing citations)
+        - Performance (slow tool execution, timeouts)
+        - Custom MCP Server (issues with self-created servers)
+        - Other
+    validations:
+      required: true
+
+  - type: textarea
+    id: environment
+    attributes:
+      label: Environment Information
+      description: Please provide your system and environment details
+      placeholder: |
+        - OS: (e.g., Ubuntu 22.04, macOS 14.1, Windows 11)
+        - Hatchling version: (run `version` command in chat)
+        - Python version:
+        - Current Hatch environment: (run `hatch:env:current`)
+        - Docker setup: (yes/no, if using Docker)
+      render: markdown
+    validations:
+      required: true
+
+  - type: textarea
+    id: mcp_server_info
+    attributes:
+      label: MCP Server Information
+      description: |
+        Please provide information about the MCP server(s) involved
+      placeholder: |
+        Run these commands and paste the output:
+        - `mcp:server:list`
+        - `mcp:tool:list`
+        - `mcp:health`
+        
+        For custom servers, also include:
+        - Server file path
+        - Server code (if relevant to the issue)
+      render: text
+    validations:
+      required: true
+
+  - type: textarea
+    id: description
+    attributes:
+      label: Issue Description
+      description: A clear and concise description of the issue
+      placeholder: Describe what's happening with the MCP server or tools
+    validations:
+      required: true
+
+  - type: textarea
+    id: reproduction
+    attributes:
+      label: Steps to Reproduce
+      description: Detailed steps to reproduce the issue
+      placeholder: |
+        1. Connect to MCP server with '...'
+        2. Run command '...'
+        3. Try to use tool '...'
+        4. See error
+    validations:
+      required: true
+
+  - type: textarea
+    id: expected_behavior
+    attributes:
+      label: Expected Behavior
+      description: What you expected to happen
+      placeholder: Describe what should happen when using the MCP server or tools
+    validations:
+      required: true
+
+  - type: textarea
+    id: actual_behavior
+    attributes:
+      label: Actual Behavior
+      description: What actually happened
+      placeholder: Describe what actually happened, including any error messages
+    validations:
+      required: true
+
+  - type: textarea
+    id: tool_details
+    attributes:
+      label: Tool Details
+      description: |
+        If the issue involves specific tools, provide details:
+      placeholder: |
+        - Tool name(s): 
+        - Tool parameters used:
+        - Expected tool output:
+        - Actual tool output:
+        - Tool execution time:
+      render: text
+
+  - type: textarea
+    id: logs
+    attributes:
+      label: Relevant Logs
+      description: |
+        Please include relevant log output:
+      placeholder: |
+        Include logs from:
+        - Hatchling logs: `show_logs` command or `~/.hatch/logs/hatchling.log`
+        - MCP server logs (if available)
+        - Any error messages from tool execution
+        
+        Use `set_log_level debug` for more detailed logging.
+      render: text
+
+  - type: textarea
+    id: package_info
+    attributes:
+      label: Package Information
+      description: |
+        If using Hatch packages, provide package details:
+      placeholder: |
+        - Package name and version: (run `hatch:pkg:list`)
+        - Package source: (local/registry)
+        - Package metadata: (content of hatch_metadata.json if relevant)
+      render: text
+
+  - type: textarea
+    id: workarounds
+    attributes:
+      label: Workarounds Tried
+      description: What have you tried to resolve this issue?
+      placeholder: |
+        List any workarounds or troubleshooting steps you've tried:
+        - Restarting Hatchling
+        - Recreating the environment
+        - Using different tool parameters
+        - etc.
+
+  - type: textarea
+    id: additional_context
+    attributes:
+      label: Additional Context
+      description: Any other context about the problem
+      placeholder: |
+        Include any additional information that might be helpful:
+        - Screenshots of error messages
+        - Network connectivity issues
+        - Custom configurations
+        - Related issues or patterns

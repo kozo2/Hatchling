@@ -1,0 +1,139 @@
+name: 🐛 Bug Report
+description: Report a bug or unexpected behavior in Hatchling
+title: "[Bug]: "
+labels: ["bug", "needs-triage"]
+assignees: []
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for taking the time to report a bug! Please fill out the information below to help us diagnose and fix the issue.
+
+  - type: checkboxes
+    id: checklist
+    attributes:
+      label: Pre-submission checklist
+      description: Please verify these items before submitting
+      options:
+        - label: I have searched existing issues to ensure this is not a duplicate
+          required: true
+        - label: I have checked the [documentation](https://github.com/CrackingShells/Hatchling/tree/main/docs) for relevant information
+          required: true
+        - label: I can reproduce this issue consistently
+          required: true
+
+  - type: dropdown
+    id: bug_category
+    attributes:
+      label: Bug Category
+      description: What type of issue are you experiencing?
+      options:
+        - LLM Provider Connection (Ollama/OpenAI authentication, timeouts)
+        - MCP Server Integration (server connection, tool discovery, execution)
+        - Chat Interface (CLI display, commands, session management)
+        - Tool Calling & Chaining (execution failures, citation issues)
+        - Configuration (settings, environment variables, TOML files)
+        - Performance (slow responses, memory usage, timeouts)
+        - Installation & Setup
+        - Other
+    validations:
+      required: true
+
+  - type: textarea
+    id: environment
+    attributes:
+      label: Environment Information
+      description: Please provide your system and Hatchling environment details
+      placeholder: |
+        - OS: (e.g., Ubuntu 22.04, macOS 14.1, Windows 11)
+        - Hatchling version: (run `version` command in chat)
+        - Python version: 
+        - LLM Provider: (Ollama/OpenAI)
+        - LLM Model: (e.g., llama3.2, gpt-4)
+        - Docker setup: (yes/no, if using Docker)
+      render: markdown
+    validations:
+      required: true
+
+  - type: textarea
+    id: description
+    attributes:
+      label: Bug Description
+      description: A clear and concise description of what the bug is
+      placeholder: Describe what happened and what you expected to happen
+    validations:
+      required: true
+
+  - type: textarea
+    id: reproduction
+    attributes:
+      label: Steps to Reproduce
+      description: Detailed steps to reproduce the behavior
+      placeholder: |
+        1. Start Hatchling with '...'
+        2. Run command '...'
+        3. Enter message '...'
+        4. See error
+    validations:
+      required: true
+
+  - type: textarea
+    id: expected_behavior
+    attributes:
+      label: Expected Behavior
+      description: What you expected to happen
+      placeholder: A clear description of what you expected to happen
+    validations:
+      required: true
+
+  - type: textarea
+    id: actual_behavior
+    attributes:
+      label: Actual Behavior
+      description: What actually happened
+      placeholder: A clear description of what actually happened, including any error messages
+    validations:
+      required: true
+
+  - type: textarea
+    id: logs
+    attributes:
+      label: Relevant Logs
+      description: |
+        Please include relevant log output. You can:
+        - Use `show_logs` command in chat to get recent logs
+        - Check the log file at `~/.hatch/logs/hatchling.log`
+        - Use `set_log_level debug` for more detailed logging
+      placeholder: Paste relevant log entries here
+      render: text
+
+  - type: textarea
+    id: configuration
+    attributes:
+      label: Configuration Details
+      description: |
+        If the issue is configuration-related, please share relevant settings:
+        - Settings from `settings:list` command
+        - Content of `~/.hatch/settings/hatchling_settings.toml` (remove sensitive data like API keys)
+        - Environment variables (HATCH_*, OLLAMA_*, OPENAI_*)
+      placeholder: Paste relevant configuration here (remove sensitive information)
+      render: text
+
+  - type: textarea
+    id: mcp_servers
+    attributes:
+      label: MCP Server Information
+      description: |
+        If the issue involves MCP servers, please provide:
+        - Output of `mcp:server:list` command
+        - Output of `mcp:tool:list` command
+        - Any custom MCP servers you've added
+      placeholder: Paste MCP server information here
+      render: text
+
+  - type: textarea
+    id: additional_context
+    attributes:
+      label: Additional Context
+      description: Any other context about the problem (screenshots, workarounds tried, etc.)
+      placeholder: Add any other context about the problem here
