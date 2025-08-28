@@ -39,22 +39,22 @@ This document provides instructions on how to set up and run Ollama for deployin
    
    - **For NVIDIA GPU support**, run:
 
-     ```bash
-     # Add NVIDIA repository keys
-     curl -fsS https://nvidia.github.io/libnvidia-container/gpgkey | sudo gpg --dearmor -o /usr/share/keyrings/nvidia-container-toolkit-keyring.gpg
-     
-     # Add NVIDIA repository
-     curl -s -L https://nvidia.github.io/libnvidia-container/stable/deb/nvidia-container-toolkit.list | sed 's#deb https://#deb [signed-by=/usr/share/keyrings/nvidia-container-toolkit-keyring.gpg] https://#g' | sudo tee /etc/apt/sources.list.d/nvidia-container-toolkit.list
-     
-     # Update package lists
-     sudo apt-get update
-     
-     # Install NVIDIA container toolkit
-     sudo apt-get install -y nvidia-container-toolkit
-     
-     # Configure Docker runtime
-     sudo nvidia-ctk runtime configure --runtime=docker
-     ```
+```bash
+# Add NVIDIA repository keys
+curl -fsS https://nvidia.github.io/libnvidia-container/gpgkey | sudo gpg --dearmor -o /usr/share/keyrings/nvidia-container-toolkit-keyring.gpg
+
+# Add NVIDIA repository
+curl -s -L https://nvidia.github.io/libnvidia-container/stable/deb/nvidia-container-toolkit.list | sed 's#deb https://#deb [signed-by=/usr/share/keyrings/nvidia-container-toolkit-keyring.gpg] https://#g' | sudo tee /etc/apt/sources.list.d/nvidia-container-toolkit.list
+
+# Update package lists
+sudo apt-get update
+
+# Install NVIDIA container toolkit
+sudo apt-get install -y nvidia-container-toolkit
+
+# Configure Docker runtime
+sudo nvidia-ctk runtime configure --runtime=docker
+```
 
    - **For AMD GPU support**, run:
 
