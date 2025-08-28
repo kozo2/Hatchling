@@ -58,21 +58,21 @@ sudo nvidia-ctk runtime configure --runtime=docker
 
    - **For AMD GPU support**, run:
 
-     ```bash
-     # Install required packages
-     sudo apt install python3-setuptools python3-wheel
-     
-     # Download and install AMD GPU installer script (for Ubuntu 24.04)
-     sudo apt update
-     wget https://repo.radeon.com/amdgpu-install/6.4.2.1/ubuntu/noble/amdgpu-install_6.4.60402-1_all.deb
-     sudo apt install ./amdgpu-install_6.4.60402-1_all.deb
-     
-     # Install graphics and ROCm support
-     sudo amdgpu-install -y --usecase=graphics,rocm
-     
-     # Add current user to render and video groups
-     sudo usermod -a -G render,video $LOGNAME
-     ```
+```bash
+# Install required packages
+sudo apt install python3-setuptools python3-wheel
+
+# Download and install AMD GPU installer script (for Ubuntu 24.04)
+sudo apt update
+wget https://repo.radeon.com/amdgpu-install/6.4.2.1/ubuntu/noble/amdgpu-install_6.4.60402-1_all.deb
+sudo apt install ./amdgpu-install_6.4.60402-1_all.deb
+
+# Install graphics and ROCm support
+sudo amdgpu-install -y --usecase=graphics,rocm
+
+# Add current user to render and video groups
+sudo usermod -a -G render,video $LOGNAME
+```
 
    - Close the terminal
    - Restart Docker
