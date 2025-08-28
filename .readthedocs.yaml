@@ -10,14 +10,6 @@ build:
   tools:
     python: "3.13"
 
-git:
-  clone:
-    depth: full
-    submodules: true
-  checkout:
-    path: .
-    ref: dev
-
 # Build documentation with Mkdocs
 mkdocs:
    configuration: mkdocs.yml
